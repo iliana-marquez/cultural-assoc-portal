@@ -22,9 +22,10 @@ The goal is not only to **make content easy to edit**, but to **ensure that webs
 
 #### The Details:
 >- [Overview](#overview)
+>- [Database](#database-schema)
 
 ## Overview
-This is a vanilla PHP MVC portal built from scratch that provides a public-facing website with an integrated content management layer that allows a non-technical web manager to independently edit and manage `content`, `events`, `team members`, `participants`, `partners` and `sponsors` directly on the live website, without a separate backend dashboard or service UI.
+This is a vanilla PHP MVC portal built from scratch that provides a public-facing website with an integrated content management layer that allows a non-technical web manager to independently edit and manage `content`, `events`, `projects`, `team members`, `participants`, and `collaborators` directly on the live website, without a separate backend dashboard or service UI.
 
 
 ## Database Schema
@@ -32,7 +33,7 @@ This is a vanilla PHP MVC portal built from scratch that provides a public-facin
 ```text
 SEED
 ├── section_types           # Dynamic content block type definitions
-└── url_types              # Link label and icon lookup
+└── url_types               # Link label and icon lookup
 
 CONTENT
 └── pages                   # Page content stored as JSON (per section)
@@ -65,8 +66,7 @@ EVENTS
 
 MEDIA
 └── media                  # Media files
-                           # polymorphic: event | project
-                           # stage: promo (pre) | gallery (after)
+                           # polymorphic: event | project 
 
 ARCHIVE
 └── archiv                 # Historical events (legacy import / museum archive)
