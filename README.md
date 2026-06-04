@@ -1,5 +1,5 @@
-# Website Template for Cultural and Non-Profit Oganisations
-PHP MVC web portal with built-in content management.
+# KulturCMS
+PHP MVC Website Template with built-in content management for Cultural and Non-Profit Oganisations
 
 ## Project overview
 
