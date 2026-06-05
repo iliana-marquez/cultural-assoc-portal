@@ -131,7 +131,11 @@ and icons). Everything else is a white canvas the organisation fills from
 day one.
 
 
-## Project Structure
+## Project Folder Structure
+
+<details>
+   <summary>Click to display 👇</summary>
+
 ```
 cultural-assoc-portal/
 │
@@ -263,10 +267,11 @@ cultural-assoc-portal/
 ├── .gitignore
 └── README.md
 ```
+</details>
 
 ### Key decisions:
 
-* **`public/`as document root:** so everything above is inaccessible from the browser. Security foundation for clasic headless PHP, being `index.php` the only getting directly hit by the browser:
+* **`public/`as document root:** so everything above is inaccessible from the browser. Security foundation for clasic headless PHP, being `index.php` the only one getting directly hit by the browser.
 
 * **`core/` separate from `app/`:** clean separation of project vs deplployment-specific code.
 
