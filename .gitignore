@@ -1,2 +1,16 @@
-docs/docs
+# IDE
+.vscode
+settings.json
+
+# Environment
 .env
+
+# Logs
+storage/logs/*
+!storage/logs/.gitkeep
+
+# OS
+.DS_Store
+
+# DOCS 
+docs/docs
