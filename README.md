@@ -1,5 +1,5 @@
-# KulturCMS
-PHP MVC web portal for Cultural and Non-Profit Oganisations with built-in content management. 
+# Organisation Website System
+A deployable PHP MVC website system with integrated content management for Cultural and Non-Profit Organisations, designed to help them preserve and present their institutional memory in a sustainable, independent way and without technical barriers.
 
 <!-- add section
 > First deployed for Kultur Klub Alsergrund, Vienna — the real-world use case that inspired this project.
