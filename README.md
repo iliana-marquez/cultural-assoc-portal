@@ -27,6 +27,14 @@ The goal is not only to **make content easy to edit**, but to **ensure that webs
 ## Overview
 This is a vanilla PHP MVC portal built from scratch that provides a public-facing website with an integrated content management layer that allows a non-technical web manager to independently edit and manage `content`, `events`, `projects`, `team members`, `participants`, and `collaborators` directly on the live website, without a separate backend dashboard or service UI.
 
+## Target Audience
+Small to mid-size cultural associations and non-profit organisations operating with:
+- Limited budgets
+- Volunteer or part-time web managers
+- No dedicated technical staff
+- Need for full data ownership and portability
+
+## Features
 
 ## Database Schema
 
@@ -69,7 +77,7 @@ MEDIA
                            # polymorphic: event | project 
 
 ARCHIVE
-└── archiv                 # Historical events (legacy import / museum archive)
+└── archive                 # Historical events (legacy import / museum archive)
 
 AUTH
 └── authorised_users       # Editors, OTP fields, and access control
@@ -121,4 +129,154 @@ their own programme and disciplines without touching the codebase.
 `section_types` (content block definitions) and `url_types` (link labels 
 and icons). Everything else is a white canvas the organisation fills from 
 day one.
+
+
+## Project Structure
+```
+cultural-assoc-portal/
+│
+├── public/                         ← document root (maps to html/ on server)
+│   ├── index.php                   ← single entry point
+│   ├── .htaccess                   ← mod_rewrite rules
+│   └── assets/
+│       ├── css/
+│       │   ├── main.css            ← compiled styles
+│       │   └── theme.css           ← CSS variables (colours, fonts)
+│       ├── js/
+│       │   ├── app.js              ← main JS
+│       │   ├── editor.js           ← edit mode interactions
+│       │   └── sortable.js         ← drag and drop ordering
+│       └── images/
+│           └── placeholder/        ← default images for empty states
+│
+├── app/
+│   ├── Controllers/
+│   │   ├── BaseController.php      ← render(), redirect(), isLoggedIn()
+│   │   ├── HomeController.php
+│   │   ├── AboutController.php
+│   │   ├── TeamController.php
+│   │   ├── ParticipantsController.php
+│   │   ├── EventsController.php
+│   │   ├── ProjectsController.php
+│   │   ├── ContributorsController.php
+│   │   ├── ArchivController.php
+│   │   ├── KontaktController.php
+│   │   ├── MitgliedController.php
+│   │   ├── AlsergrundController.php
+│   │   ├── AuthController.php      ← OTP login/logout
+│   │   └── Admin/
+│   │       ├── AdminBaseController.php  ← session guard
+│   │       ├── PagesAdminController.php
+│   │       ├── TeamAdminController.php
+│   │       ├── ParticipantsAdminController.php
+│   │       ├── EventsAdminController.php
+│   │       ├── ProjectsAdminController.php
+│   │       ├── ContributorsAdminController.php
+│   │       ├── MediaAdminController.php
+│   │       ├── OrganisationAdminController.php
+│   │       └── UsersAdminController.php
+│   │
+│   ├── Models/
+│   │   ├── BaseModel.php           ← PDO wrapper, prepared statements
+│   │   ├── PageModel.php
+│   │   ├── TeamModel.php
+│   │   ├── ParticipantModel.php
+│   │   ├── EventModel.php
+│   │   ├── ProjectModel.php
+│   │   ├── ContributorModel.php
+│   │   ├── MediaModel.php
+│   │   ├── UrlModel.php
+│   │   ├── ArchivModel.php
+│   │   ├── OrganisationModel.php
+│   │   └── AuthModel.php
+│   │
+│   └── Views/
+│       ├── layouts/
+│       │   ├── main.php            ← public layout (header, nav, footer)
+│       │   └── auth.php            ← login page layout
+│       ├── components/
+│       │   ├── nav.php
+│       │   ├── footer.php
+│       │   ├── event-card.php
+│       │   ├── team-card.php
+│       │   ├── participant-card.php
+│       │   ├── contributor-card.php
+│       │   ├── media-carousel.php
+│       │   ├── media-gallery.php
+│       │   ├── edit-bar.php        ← floating editing mode bar
+│       │   └── sections/           ← section type components
+│       │       ├── hero.php
+│       │       ├── text-block.php
+│       │       └── cta-block.php
+│       ├── pages/
+│       │   ├── home.php
+│       │   ├── about.php
+│       │   ├── team.php
+│       │   ├── team-detail.php
+│       │   ├── participants.php
+│       │   ├── events.php
+│       │   ├── event-detail.php
+│       │   ├── projects.php
+│       │   ├── project-detail.php
+│       │   ├── contributors.php
+│       │   ├── archiv.php
+│       │   ├── kontakt.php
+│       │   ├── mitglied.php
+│       │   └── alsergrund.php
+│       └── admin/
+│           ├── login.php
+│           ├── pages-edit.php
+│           ├── team-list.php
+│           ├── team-form.php
+│           ├── participants-list.php
+│           ├── participants-form.php
+│           ├── events-list.php
+│           ├── events-form.php
+│           ├── projects-list.php
+│           ├── projects-form.php
+│           ├── contributors-list.php
+│           ├── contributors-form.php
+│           ├── media-upload.php
+│           ├── organisation-form.php
+│           └── users-list.php
+│
+├── core/
+│   ├── Router.php                  ← URL to controller mapping
+│   ├── Request.php                 ← wraps $_GET, $_POST, $_SERVER
+│   ├── Response.php                ← redirects, status codes
+│   └── Database.php                ← PDO singleton connection
+│
+├── config/
+│   ├── routes.php                  ← all route definitions
+│   ├── organisation.php            ← deployment-specific config
+│   └── app.php                     ← environment, debug, session config
+│
+├── database/
+│   ├── schema.sql                  ← full DB structure + seed data
+│   └── .gitkeep
+│
+├── storage/
+│   └── logs/                       ← error logs, OTP logs
+│
+├── .env.example                    ← template — committed
+├── .env                            ← credentials — never committed
+├── .gitignore
+└── README.md
+```
+
+### Key decisions:
+
+* **`public/`as document root:** so everything above is inaccessible from the browser. Security foundation for clasic headless PHP, being `index.php` the only getting directly hit by the browser:
+
+* **`core/` separate from `app/`:** clean separation of project vs deplployment-specific code.
+
+* **`Request.php` & `Response.php`:** wrapping superglobals ($_GET, $_POST) keeps controllers testable and clean. No raw superglobals on controllers.
+ 
+* **`config/routes.php`:** all routes in one file, easy to see the full URL map at a glace.
+
+* **`Admin/` subfolder in Controllers:** keeps admin controllers grouped and namespaced separatelly from public controlers.
+
+* **`components/sections/`:** section type components isolated. Adding a new section type = one new file here.
+
+* **`storage/logs/`:** OTP attempts, errors logged here. Never in `public/`.
 
