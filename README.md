@@ -1,12 +1,12 @@
-# Organisation Website System
-A deployable PHP MVC website system with integrated content management for Cultural and Non-Profit Organisations, designed to help them preserve and present their institutional memory in a sustainable, independent way and without technical barriers.
+# Organisation Website System (OWS)
+A deployable PHP MVC website system with integrated content management for Non-Profit Organisations, designed to help them preserve and present their institutional memory in a sustainable and independent way, and without technical barriers.
 
 <!-- add section
-> First deployed for Kultur Klub Alsergrund, Vienna — the real-world use case that inspired this project.
+> First deployed for Kulturklub Alsergrund, Vienna - the real-world use case that inspired this project.
 -->
 
 #### The Fact: 
-> The mission of **Cultural & Non-Profit Organisations** is to **strengthen communities, preserve cultural heritage, and create opportunities for participation, education, and social engagement**. 
+> The mission of **Cultural and Non-Profit Organisations** is to **strengthen communities, preserve cultural heritage, and create opportunities for participation, education, and social engagement**. 
 
 In today's digital environment, a **website** has become an **essential tool for supporting this mission**. It provides a structured and permanent space to communicate activities, present projects, showcase collaborators, preserve institutional memory, and maintain an accessible public presence alongside social media platforms.
 
@@ -87,7 +87,7 @@ AUTH
 
 ### Entity Relationship Diagram
 
-![Entity Relationship Diagram](/docs/images/ERD-db-relational-schema-V3.png)
+![Entity Relationship Diagram](/docs/readme-images/ERD-db-relational-schema-V3.png)
 
 ### Design Principles
 
