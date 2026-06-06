@@ -1,6 +1,6 @@
 # Organisation Website System (OWS)
 
-A deployable PHP MVC website system with integrated content management for Non-Profit Organisations, designed to help them preserve and present their institutional memory in a sustainable and independent way, and without technical barriers.
+A deployable PHP MVC website system with integrated content management for Non-Profit Organisations, designed to help them preserve and present their institutional activities in a sustainable and independent way, and without technical barriers.
 
 <!-- add section
 > First deployed for Kulturklub Alsergrund, Vienna - the real-world use case that inspired this project.
