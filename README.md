@@ -20,7 +20,7 @@ Maintaining **website content** over time often becomes a challenge in itself. I
 
 #### The Solution:
 
-> A website framework with integrated content management designed to preserve structure, consistency, and continuity over time.
+> A website system with integrated content management designed to preserve structure, consistency, and continuity over time.
 
 The goal is not only to **make content easy to edit**, but to **ensure that website management remains sustainable, transferable, and independent of specialized technical knowledge**.
 
@@ -31,7 +31,7 @@ The goal is not only to **make content easy to edit**, but to **ensure that webs
 
 ## Overview
 
-This is a vanilla PHP MVC portal built from scratch that provides a public-facing website with an integrated content management layer that allows a non-technical web manager to independently edit and manage `content`, `events`, `projects`, `team members`, `participants`, and `collaborators` directly on the live website, without a separate backend dashboard or service UI.
+This is a vanilla PHP MVC application built from scratch that provides a public-facing website with an integrated content management layer that allows a non-technical web manager to independently edit and manage `content`, `events`, `projects`, `team members`, `participants`, and `collaborators` directly on the live website, without a separate backend dashboard or service UI.
 
 ## Target Audience
 
@@ -313,3 +313,22 @@ $router->get('/', 'HomeController', 'index');
 ```
 
 Dynamic parameters (`{slug}`, `{id}`) are extracted automatically and passed to the controller method.
+
+### MVC Skeletton
+
+`ob_start()` / `b_get_clean()` — to capture the view output into $content instead of sending it directly to the browser. Then `$content`is available inside`main.php` layout to be placed where needed.
+
+`extract($data)` — to convert array keys to variables:
+
+```php
+// $data = ['team' => [...], 'title' => 'Team']
+// becomes:
+$team = [...];
+$title = 'Team';
+// both available in the view
+requireLogin() — one line in any admin controller method protects it completely.
+```
+
+Browser → .htaccess → index.php → Router → HomeController
+→ BaseController::render() → ob_start() → home.php captured
+→ main.php layout → nav.php + $content + footer.php → Browser
