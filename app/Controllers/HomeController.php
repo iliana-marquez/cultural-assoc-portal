@@ -6,10 +6,12 @@
  * Handles request for the homepage.
  */
 
-class HomeController
+require_once __DIR__ . '/BaseController.php';
+
+class HomeController extends BaseController
 {
     public function index(array $params = []): void
     {
-        echo 'Hello from HomeController ;D';
+        $this->render('pages/home');
     }
 }
