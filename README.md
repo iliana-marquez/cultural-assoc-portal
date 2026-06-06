@@ -1,34 +1,42 @@
 # Organisation Website System (OWS)
+
 A deployable PHP MVC website system with integrated content management for Non-Profit Organisations, designed to help them preserve and present their institutional memory in a sustainable and independent way, and without technical barriers.
 
 <!-- add section
 > First deployed for Kulturklub Alsergrund, Vienna - the real-world use case that inspired this project.
 -->
 
-#### The Fact: 
-> The mission of **Cultural and Non-Profit Organisations** is to **strengthen communities, preserve cultural heritage, and create opportunities for participation, education, and social engagement**. 
+#### The Fact:
+
+> The mission of **Cultural and Non-Profit Organisations** is to **strengthen communities, preserve cultural heritage, and create opportunities for participation, education, and social engagement**.
 
 In today's digital environment, a **website** has become an **essential tool for supporting this mission**. It provides a structured and permanent space to communicate activities, present projects, showcase collaborators, preserve institutional memory, and maintain an accessible public presence alongside social media platforms.
 
-#### The Problem: 
-> **A website should not become another responsibility to manage** 
+#### The Problem:
+
+> **A website should not become another responsibility to manage**
 
 Maintaining **website content** over time often becomes a challenge in itself. Information accumulates, content structures evolve inconsistently, and websites gradually become harder to maintain. While content management systems (CMS) have made website editing more accessible, many remain either too technical, too complex, or too expensive for organisations that operate with limited budgets and volunteer-driven efforts.
 
 #### The Solution:
+
 > A website framework with integrated content management designed to preserve structure, consistency, and continuity over time.
 
 The goal is not only to **make content easy to edit**, but to **ensure that website management remains sustainable, transferable, and independent of specialized technical knowledge**.
 
 #### The Details:
->- [Overview](#overview)
->- [Database](#database-schema)
+
+> - [Overview](#overview)
+> - [Database](#database-schema)
 
 ## Overview
+
 This is a vanilla PHP MVC portal built from scratch that provides a public-facing website with an integrated content management layer that allows a non-technical web manager to independently edit and manage `content`, `events`, `projects`, `team members`, `participants`, and `collaborators` directly on the live website, without a separate backend dashboard or service UI.
 
 ## Target Audience
+
 Small to mid-size cultural associations and non-profit organisations operating with:
+
 - Limited budgets
 - Volunteer or part-time web managers
 - No dedicated technical staff
@@ -37,6 +45,9 @@ Small to mid-size cultural associations and non-profit organisations operating w
 ## Features
 
 ## Database Schema
+
+<details>
+   <summary>Click to display 👇</summary>
 
 ```text
 SEED
@@ -74,7 +85,7 @@ EVENTS
 
 MEDIA
 └── media                  # Media files
-                           # polymorphic: event | project 
+                           # polymorphic: event | project
 
 ARCHIVE
 └── archive                 # Historical events (legacy import / museum archive)
@@ -82,6 +93,8 @@ ARCHIVE
 AUTH
 └── authorised_users       # Editors, OTP fields, and access control
 ```
+
+</details>
 
 ---
 
@@ -91,45 +104,44 @@ AUTH
 
 ### Design Principles
 
-**Single source of truth** — every piece of data has exactly one home. 
-Primary assets (logo, profile photo, hero image) live as columns on their 
-entity table. Secondary and variable data live in dedicated tables. No 
+**Single source of truth** — every piece of data has exactly one home.
+Primary assets (logo, profile photo, hero image) live as columns on their
+entity table. Secondary and variable data live in dedicated tables. No
 field is duplicated across tables.
 
-**Polymorphic relationships** — three tables replace multiple entity-specific tables 
+**Polymorphic relationships** — three tables replace multiple entity-specific tables
 with a single flexible structure.
 
-- `urls` — external links for organisation, contributors, team, 
+- `urls` — external links for organisation, contributors, team,
   participants, projects and events
-- `media` — promotional and documentary media for events and projects, 
+- `media` — promotional and documentary media for events and projects,
   distinguished by `stage` (promo | gallery) set at application level and nullable for any entity type where this doesn't aplly
-- `contributors_assignments` — maps contributors to the association 
+- `contributors_assignments` — maps contributors to the association
   globally, or to specific projects and events
 
-`entity_type` is stored as `varchar`, keeping the pattern open to new entity types 
-without schema changes. Referential integrity for `entity_id` is 
+`entity_type` is stored as `varchar`, keeping the pattern open to new entity types
+without schema changes. Referential integrity for `entity_id` is
 validated at model level.
 
-**Content-driven display** — page sections store structured content as 
-JSON, typed by `section_types`. Array fields (media, buttons) drive 
-display automatically: one item renders as a single element, multiple 
+**Content-driven display** — page sections store structured content as
+JSON, typed by `section_types`. Array fields (media, buttons) drive
+display automatically: one item renders as a single element, multiple
 items as a carousel or button group — no additional configuration needed.
 
-**Date-driven logic** — events and projects have no manual status field. 
-Display context (upcoming, past, active, completed) is derived entirely 
-from date comparison at render time, eliminating human error and manual 
+**Date-driven logic** — events and projects have no manual status field.
+Display context (upcoming, past, active, completed) is derived entirely
+from date comparison at render time, eliminating human error and manual
 status management.
 
-**Configurable per deployment** — category tables (`participants_categories`, 
-`event_categories`, `project_categories`) and `url_types` are defined per 
-deployment. Each organisation configures the classifications that reflect 
+**Configurable per deployment** — category tables (`participants_categories`,
+`event_categories`, `project_categories`) and `url_types` are defined per
+deployment. Each organisation configures the classifications that reflect
 their own programme and disciplines without touching the codebase.
 
-**Seed data** — only two tables are pre-populated on every deployment: 
-`section_types` (content block definitions) and `url_types` (link labels 
-and icons). Everything else is a white canvas the organisation fills from 
+**Seed data** — only two tables are pre-populated on every deployment:
+`section_types` (content block definitions) and `url_types` (link labels
+and icons). Everything else is a white canvas the organisation fills from
 day one.
-
 
 ## Project Folder Structure
 
@@ -267,21 +279,37 @@ cultural-assoc-portal/
 ├── .gitignore
 └── README.md
 ```
+
 </details>
 
 ### Key decisions:
 
-* **`public/`as document root:** so everything above is inaccessible from the browser. Security foundation for clasic headless PHP, being `index.php` the only one getting directly hit by the browser.
+- **`public/`as document root:** so everything above is inaccessible from the browser. Security foundation for clasic headless PHP, being `index.php` the only one getting directly hit by the browser.
 
-* **`core/` separate from `app/`:** clean separation of project vs deplployment-specific code.
+- **`core/` separate from `app/`:** clean separation of project vs deplployment-specific code.
 
-* **`Request.php` & `Response.php`:** wrapping superglobals ($_GET, $_POST) keeps controllers testable and clean. No raw superglobals on controllers.
- 
-* **`config/routes.php`:** all routes in one file, easy to see the full URL map at a glace.
+- **`Request.php` & `Response.php`:** wrapping superglobals ($\_GET, $\_POST) keeps controllers testable and clean. No raw superglobals on controllers.
 
-* **`Admin/` subfolder in Controllers:** keeps admin controllers grouped and namespaced separatelly from public controlers.
+- **`config/routes.php`:** all routes in one file, easy to see the full URL map at a glace.
 
-* **`components/sections/`:** section type components isolated. Adding a new section type = one new file here.
+- **`Admin/` subfolder in Controllers:** keeps admin controllers grouped and namespaced separatelly from public controlers.
 
-* **`storage/logs/`:** OTP attempts, errors logged here. Never in `public/`.
+- **`components/sections/`:** section type components isolated. Adding a new section type = one new file here.
 
+- **`storage/logs/`:** OTP attempts, errors logged here. Never in `public/`.
+
+## Development
+
+### Request Lifecycle
+
+All requests are routed through a single entry point (`public/index.php`) via Apache mod_rewrite. The Router maps URLs to controllers and methods, supporting both static and dynamic routes with named parameters.
+
+Request -> public/index.php -> Router -> Controller -> View -> Response
+
+Routes are defined in `config/routes.php`:
+
+```php
+$router->get('/', 'HomeController', 'index');
+```
+
+Dynamic parameters (`{slug}`, `{id}`) are extracted automatically and passed to the controller method.
