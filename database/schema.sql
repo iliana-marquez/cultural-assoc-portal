@@ -50,16 +50,22 @@ create table if not exists pages (
 -- =============================================================
 
 create table if not exists organisation_info (
-    id              int             not null auto_increment,
-    name            varchar(255)    not null,
-    tagline         varchar(255)    null,
-    logo_url        varchar(255)    null,
-    address         varchar(255)    null,
+    id                  int             not null auto_increment,
+    name                varchar(255)    not null,
+    tagline             varchar(255)    null,
+    description         varchar(300)    null,
+    organisation_type   varchar(100)    null,
+    logo_url            varchar(255)    null,
+    street              varchar(255)    null,
+    postcode            varchar(20)     null,
+    city                varchar(100)    null,
+    country             varchar(100)    null,
     registration_number varchar(100)    null,
-    email           varchar(255)    null,
-    phone           varchar(50)     null,
-    statutes_url    varchar(255)    null,
-    updated_at      timestamp       not null default current_timestamp on update current_timestamp,
+    email               varchar(255)    null,
+    phone               varchar(50)     null,
+    statutes_url        varchar(255)    null,
+    schema_type         varchar(100)    not null default 'Organization',
+    updated_at          timestamp       not null default current_timestamp on update current_timestamp,
     primary key (id)
 );
 
@@ -74,7 +80,7 @@ create table if not exists contributors (
     name            varchar(255)    not null,
     type            varchar(50)     not null,
     description     text            null,
-    logo_url        varchar(255)    null,
+    image           varchar(255)    null,
     created_at      timestamp       not null default current_timestamp,
     updated_at      timestamp       not null default current_timestamp on update current_timestamp,
     primary key (id)
@@ -119,7 +125,7 @@ create table if not exists team (
     role            varchar(150)    not null,
     motto           text            null,
     biography       text            null,
-    image_url       varchar(255)    null,
+    image           varchar(255)    null,
     image_credits   varchar(255)    null,
     created_at      timestamp       not null default current_timestamp,
     updated_at      timestamp       not null default current_timestamp on update current_timestamp,
@@ -145,12 +151,31 @@ create table if not exists participants (
     last_name       varchar(100)    not null,
     category_id     int             not null,
     field           varchar(150)    null,
-    image_url       varchar(255)    null,
+    image           varchar(255)    null,
     created_at      timestamp       not null default current_timestamp,
     updated_at      timestamp       not null default current_timestamp on update current_timestamp,
     primary key (id),
     foreign key (category_id) references participants_categories(id) on delete restrict
 );
+
+
+-- =============================================================
+-- VENUES
+-- Physical locations for events and projects
+-- =============================================================
+
+create table if not exists venues (
+    id          int             not null auto_increment,
+    name        varchar(255)    not null,
+    street      varchar(255)    null,
+    postcode    varchar(20)     null,
+    city        varchar(100)    null,
+    country     varchar(100)    null,
+    created_at  timestamp       not null default current_timestamp,
+    updated_at  timestamp       not null default current_timestamp on update current_timestamp,
+    primary key (id)
+);
+
 
 
 -- =============================================================
@@ -171,14 +196,17 @@ create table if not exists projects (
     title           varchar(255)    not null,
     subtitle        varchar(255)    null,
     description     text            null,
-    image_url       varchar(255)    null,
+    venue_id        int             null,
     start_date      date            null,
     end_date        date            null,
     created_at      timestamp       not null default current_timestamp,
     updated_at      timestamp       not null default current_timestamp on update current_timestamp,
     primary key (id),
-    foreign key (category_id) references project_categories(id) on delete set null
+    foreign key (category_id) references project_categories(id) on delete set null,
+    foreign key (venue_id) references venues(id) on delete set null
 );
+
+
 
 
 -- =============================================================
@@ -202,15 +230,14 @@ create table if not exists events (
     description     text            null,
     date            date            not null,
     time            time            null,
-    location_name   varchar(255)    null,
-    location_url    varchar(255)    null,
-    image_url       varchar(255)    null,
+    venue_id        int             null,
     review          text            null,
     created_at      timestamp       not null default current_timestamp,
     updated_at      timestamp       not null default current_timestamp on update current_timestamp,
     primary key (id),
     foreign key (project_id) references projects(id) on delete set null,
-    foreign key (category_id) references event_categories(id) on delete set null
+    foreign key (category_id) references event_categories(id) on delete set null,
+    foreign key (venue_id) references venues(id) on delete set null
 );
 
 create table if not exists event_participants (
@@ -250,7 +277,7 @@ create table if not exists archive (
     title           varchar(255)    not null,
     date            date            null,
     description     text            null,
-    image_url       varchar(255)    null,
+    image           varchar(255)    null,
     artists         json            null,
     created_at      timestamp       not null default current_timestamp,
     primary key (id)
@@ -298,4 +325,5 @@ insert into url_types (label, icon) values
 ('Press',           'ti-news'),
 ('Radio',           'ti-radio'),
 ('TV',              'ti-device-tv'),
-('Other',           'ti-link');
+('Maps',             'ti-map-pin'),
+('Other',            'ti-link');
