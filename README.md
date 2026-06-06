@@ -1,6 +1,6 @@
 # Organisation Website System (OWS)
 
-A deployable PHP MVC website system with integrated content management for Non-Profit Organisations, designed to help them preserve and present their institutional activities in a sustainable and independent way, and without technical barriers.
+A deployable PHP MVC website system with integrated content management for Non-Profit Organisations, designed to help them present and preserve their institutional activities in a sustainable and independent way, and without technical barriers.
 
 <!-- add section
 > First deployed for Kulturklub Alsergrund, Vienna - the real-world use case that inspired this project.
@@ -47,7 +47,7 @@ Small to mid-size cultural associations and non-profit organisations operating w
 ## Database Schema
 
 <details>
-   <summary>Click to display 👇</summary>
+   <summary>Click to display schema overview 👇</summary>
 
 ```text
 SEED
@@ -58,14 +58,14 @@ CONTENT
 └── pages                   # Page content stored as JSON (per section)
 
 ORGANISATION
-└── organisation_info       # Identity, contact, legal — single row
+└── organisation_info       # Identity, contact, legal, SEO — single row
 
 EXTERNAL ORGANISATIONS
 ├── contributors              # partners + sponsors + collaborators
 └── contributors_assignments  # polymorphic: association | project | event
 
 EXTERNAL URLs:
-└── urls # polymorphic: organisation(s) | contributors | participants | projects | events
+└── urls # polymorphic: organisation(s) | team | contributors | participants | projects | events
 
 TEAM
 └── team                    # Team member profiles
@@ -73,6 +73,9 @@ TEAM
 PARTICIPANTS
 ├── participants              # Participant profiles
 └── participants_categories   # Configurable (deployment-specific)
+
+VENUES
+└── venues                  # Physical locations for events and projects
 
 PROJECTS
 ├── projects               # Funded initiatives, series, productions
@@ -84,8 +87,7 @@ EVENTS
 └── event_participants     # Many-to-many: events ↔ participants
 
 MEDIA
-└── media                  # Media files
-                           # polymorphic: event | project
+└── media                  # Audiovisual content — polymorphic: event | project
 
 ARCHIVE
 └── archive                 # Historical events (legacy import / museum archive)
@@ -100,7 +102,7 @@ AUTH
 
 ### Entity Relationship Diagram
 
-![Entity Relationship Diagram](/docs/readme-images/ERD-db-relational-schema-V3.png)
+![Entity Relationship Diagram](/docs/readme-images/ERD-db-relational-schema-V4.png)
 
 ### Design Principles
 
@@ -142,6 +144,17 @@ their own programme and disciplines without touching the codebase.
 `section_types` (content block definitions) and `url_types` (link labels
 and icons). Everything else is a white canvas the organisation fills from
 day one.
+
+**Venues as independent entities** — physical locations are stored in a
+dedicated `venues` table referenced by both `events` and `projects` via
+a standard FK. Change a venue address once — all associated events and
+projects reflect it automatically.
+
+**Semantic image fields** — identity assets (team profile photos,
+participant photos, contributor logos) are stored as `image` columns
+directly on their entity tables. Audiovisual content for events and
+projects flows exclusively through the polymorphic `media` table,
+eliminating duplication and maintaining a single source of truth.
 
 ## Project Folder Structure
 
@@ -260,6 +273,7 @@ cultural-assoc-portal/
 │   ├── Router.php                  ← URL to controller mapping
 │   ├── Request.php                 ← wraps $_GET, $_POST, $_SERVER
 │   ├── Response.php                ← redirects, status codes
+│   ├── SchemaBuilder.php           ← builds JSON-LD structured data for search engines and AI crawlers
 │   └── Database.php                ← PDO singleton connection
 │
 ├── config/
@@ -332,3 +346,159 @@ requireLogin() — one line in any admin controller method protects it completel
 Browser → .htaccess → index.php → Router → HomeController
 → BaseController::render() → ob_start() → home.php captured
 → main.php layout → nav.php + $content + footer.php → Browser
+
+### Implementing SEO from the start
+
+Pulling SEO data from the DB makes it truly headless: `main.php` contains the relevant tags prepared to be filled according to the db reccords, so they can be found by human and ai search.
+
+1. **SEO Data set dynamically in the controllers**:
+
+   ```php
+   // HomeController
+   $this->render('pages/home', [
+       'seo' => [
+           'title'       => $org->name . ' | ' . $org->tagline,
+           'description' => $org->description,
+           'image'       => $org->logo_url,
+           'url'         => 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'],
+           'type'        => 'website',
+           'schema'      => null,
+       ]
+   ]);
+   ```
+
+2. **`main.php` recives `$seo` and renders it**:
+
+   ```php
+      <head>
+       <meta charset="UTF-8">
+       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+       <title><?= htmlspecialchars($seo['title'] ?? '$org->name') ?></title>
+       <meta name="description" content="<?= htmlspecialchars($seo['description'] ?? '') ?>">
+
+       <!-- Open Graph -->
+       <meta property="og:title"       content="<?= htmlspecialchars($seo['title'] ?? '') ?>">
+       <meta property="og:description" content="<?= htmlspecialchars($seo['description'] ?? '') ?>">
+       <meta property="og:image"       content="<?= htmlspecialchars($seo['image'] ?? '') ?>">
+       <meta property="og:url"         content="<?= htmlspecialchars($seo['url'] ?? '') ?>">
+       <meta property="og:type"        content="<?= htmlspecialchars($seo['type'] ?? 'website') ?>">
+
+       <!-- Twitter Card -->
+       <meta name="twitter:card"        content="summary_large_image">
+       <meta name="twitter:title"       content="<?= htmlspecialchars($seo['title'] ?? '') ?>">
+       <meta name="twitter:description" content="<?= htmlspecialchars($seo['description'] ?? '') ?>">
+       <meta name="twitter:image"       content="<?= htmlspecialchars($seo['image'] ?? '') ?>">
+
+       <!-- JSON-LD Schema -->
+       <?= $seo['schema'] ?? '' ?>
+
+       <!-- canonical URL -->
+       <link rel="canonical" href="<?= htmlspecialchars($seo['url']) ?>">
+   </head>
+
+   ```
+
+3. **JSON-LD schema built in a BaseController helper:**
+
+   ```php
+   // BaseController
+   protected function buildEventSchema(object $event): string
+   {
+       $schema = [
+           '@context' => 'https://schema.org',
+           '@type'    => 'Event',
+           'name'     => $event->title,
+           'startDate'=> $event->date . 'T' . ($event->time ?? '00:00'),
+           'location' => [
+               '@type' => 'Place',
+               'name'  => $event->location_name,
+           ],
+       ];
+
+       return '<script type="application/ld+json">'
+           . json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+           . '</script>';
+   }
+   ```
+
+   `json_encode()` handles all escaping automatically — no manual
+   `htmlspecialchars()` needed inside JSON.
+
+4. **Default SEO from organisation_info:**
+
+   Every controller that needs defauls calls:
+
+   ```php
+   // BaseController helper
+   protected function defaultSeo(object $org): array
+   {
+       return [
+           'title'       => $org->name . ' | ' . $org->tagline,
+           'description' => $org->tagline,
+           'image'       => $org->logo_url,
+           'url'         => 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'],
+           'type'        => 'website',
+           'schema'      => null,
+       ];
+   }
+   ```
+
+5. **The full headless SEO flow:**
+
+   ```
+   organisation_info (DB)
+         ↓
+   BaseController::defaultSeo()     ← default for every page
+         ↓
+   Controller overrides per page    ← event title, image etc.
+         ↓
+   passed to render() as $seo array
+         ↓
+   main.php renders all meta tags   ← no logic, just output
+   ```
+
+6. **Benefits**
+
+   > [Tip]
+   > Built-in meta tags: One file, permanent benefit across every platform
+
+   **Humans visiting the site** → find and see the designed page
+
+   **Social media bots** (Facebook, LinkedIn, Twitter) → read Open Graph + Twitter Card tags → display rich preview cards when links are shared
+   Search engine bots (Google, Bing, DuckDuckGo) → read:
+   - `<title>` → page title in search results
+   - `<meta name="description">` → snippet under the title
+   - `<link rel="canonical">` → which URL to index
+   - JSON-LD schema → rich results (event dates, locations shown directly in Google)
+
+   **AI crawlers** (ChatGPT, Perplexity, Claude) → read structured data and meta tags to understand and cite your content accurately
+
+   **For a cultural assosiation this is particularly valuable:**
+   When someone searches "Konzert Wien 9. Bezirk" — Google can show the event directly in results with date, time and location from the JSON-LD schema. No click needed to see the details, so is higher in visibility than a plain blue link.
+
+### BaseController
+
+Key decisions:
+
+- `fetchAll()` — returns array of objects, multiple rows
+- `fetchOne()` — returns single object or null, never false
+- `execute()` — INSERT/UPDATE/DELETE, returns bool
+- `lastInsertId()` — call immediately after INSERT
+- `count()` — for pagination and existence checks
+- `beginTransaction/commit/rollback()` — for multi-step operations
+- All queries go through `prepare()` → `execute()` — SQL injection impossible by design.
+
+BaseController Load Test succesfull:
+
+![test-BaseController](/docs/screenshots/test_BaseModel_load_works.png)
+
+<!--
+
+## ROADMAP/KNOWN ISSUES
+
+- logo_url column in organisation info
+- implement relationship btw. projects and participants
+- update SEO SECTION!
+
+-->
