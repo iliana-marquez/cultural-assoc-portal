@@ -7,6 +7,8 @@
  * Loads environment, core classes, and resolves the current route.
  */
 
+require_once __DIR__ . '/../app/Models/BaseModel.php';
+
 // Environment 
 $env = parse_ini_file(__DIR__ . '/../.env');
 foreach ($env as $key => $value) {
