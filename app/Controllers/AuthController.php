@@ -21,6 +21,7 @@ require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../Models/UserModel.php';
 require_once __DIR__ . '/../Models/EditorModel.php';
 require_once __DIR__ . '/../Models/OrganisationModel.php';
+require_once __DIR__ . '/../../core/Mailer.php';
 
 class AuthController extends BaseController
 {
