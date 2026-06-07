@@ -10,10 +10,19 @@
 require_once __DIR__ . '/../app/Models/BaseModel.php';
 
 // Environment 
-define('ROOT_PATH', dirname(__DIR__));
-$env = parse_ini_file(ROOT_PATH . '/.env');
-foreach ($env as $key => $value) {
-    $_ENV[$key] = $value;
+$envPaths = [
+    dirname(__DIR__) . '/.env',      // local + public_html level
+    dirname(__DIR__, 2) . '/.env',   // one above public_html
+];
+
+foreach ($envPaths as $path) {
+    if (file_exists($path)) {
+        $env = parse_ini_file($path);
+        foreach ($env as $key => $value) {
+            $_ENV[$key] = $value;
+        }
+        break;
+    }
 }
 
 // Config
