@@ -9,7 +9,7 @@
  * Usage in config/routes.php:
  *   $router->get('/', 'HomeController', 'index');
  *   $router->get('/team/{slug}', 'TeamController', 'show');
- *   $router->post('/wkk/verify', 'AuthController', 'verify');
+ *   $router->post('/{admin_path}/verify', 'AuthController', 'verify');
  */
 
 class Router
