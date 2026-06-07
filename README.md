@@ -136,8 +136,7 @@ from date comparison at render time, eliminating human error and manual
 status management.
 
 **Configurable per deployment** — category tables (`participants_categories`,
-`event_categories`, `project_categories`) and `url_types` are defined per
-deployment. Each organisation configures the classifications that reflect
+`event_categories`, `project_categories`) and `url_types` customisable. Each organisation configures the classifications that reflect
 their own programme and disciplines without touching the codebase.
 
 **Seed data** — only two tables are pre-populated on every deployment:
@@ -399,31 +398,14 @@ Pulling SEO data from the DB makes it truly headless: `main.php` contains the re
 
    ```
 
-3. **JSON-LD schema built in a BaseController helper:**
-
-   ```php
-   // BaseController
-   protected function buildEventSchema(object $event): string
-   {
-       $schema = [
-           '@context' => 'https://schema.org',
-           '@type'    => 'Event',
-           'name'     => $event->title,
-           'startDate'=> $event->date . 'T' . ($event->time ?? '00:00'),
-           'location' => [
-               '@type' => 'Place',
-               'name'  => $event->location_name,
-           ],
-       ];
-
-       return '<script type="application/ld+json">'
-           . json_encode($schema, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
-           . '</script>';
-   }
-   ```
-
-   `json_encode()` handles all escaping automatically — no manual
-   `htmlspecialchars()` needed inside JSON.
+3. JSON-LD SchemaBuilder utility class
+   - Builds JSON-LD structured data strings for search engines and AI crawlers.
+   - All values come from the database — no hardcoded content data.
+   - Schema.org vocabulary (@context, @type) is fixed as per the standard.
+   - Usage:
+     - SchemaBuilder::build('organisation', $org);
+     - SchemaBuilder::build('occurrence', $event); // events and projects
+     - SchemaBuilder::build('person', $person); // team and participants
 
 4. **Default SEO from organisation_info:**
 
@@ -479,8 +461,6 @@ Pulling SEO data from the DB makes it truly headless: `main.php` contains the re
 
 ### BaseController
 
-Key decisions:
-
 - `fetchAll()` — returns array of objects, multiple rows
 - `fetchOne()` — returns single object or null, never false
 - `execute()` — INSERT/UPDATE/DELETE, returns bool
@@ -492,6 +472,20 @@ Key decisions:
 BaseController Load Test succesfull:
 
 ![test-BaseController](/docs/screenshots/test_BaseModel_load_works.png)
+
+### OrganisationModel → Manages the single organisation_info row.
+
+- `get()` — fetches the single org row
+- `getWithUrls()` — org + all social/external links joined
+- `update()` — edit mode saves contact/identity data
+
+### UrlModel → Manages all external URLs across the system
+
+- all URL CRUD for any entity via `entity_type` + `entity_id`
+
+### HomeController → render homepage with real data
+
+### Then SEO → built from real model data, tested in browser
 
 <!--
 
