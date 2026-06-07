@@ -1,0 +1,12 @@
+Options -Indexes
+
+RewriteEngine On
+
+# Block sensitive files and directories
+RewriteRule ^\.env$ - [F,L]
+RewriteRule ^(app|core|config|storage|database)/ - [F,L]
+
+# Route everything through public/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ public/$1 [QSA,L]
