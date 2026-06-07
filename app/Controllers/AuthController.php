@@ -9,7 +9,7 @@
  *   POST /{admin_path}/verify   → validate OTP → create session → redirect to /
  *   GET  /logout               → destroy session → redirect to /
  *
- * {admin_path} configured in config/app.php → admin_path (default: 'wkk')
+ * {admin_path} configured in config/app.php → admin_path 
  *
  * Uses:
  *   EditorModel       → extends UserModel — entity lookup + OTP flow

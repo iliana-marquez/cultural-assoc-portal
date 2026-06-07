@@ -30,7 +30,7 @@ return [
     'otp_max_attempts' => 3,    // max requests per hour per email
 
     // Admin path
-    'admin_path' => 'wkk',
+    'admin_path' => $_ENV['ADMIN_PATH'] ?? throw new RuntimeException('ADMIN_PATH not set in .env'),
 
 
 ];
