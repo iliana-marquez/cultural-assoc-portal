@@ -1,0 +1,15 @@
+{
+    "name": "ilianamarquez/cultural-assoc-portal",
+    "description": "PHP MVC website system for non-profit organisations",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Iliana Márquez",
+            "email": "ilianamarquezm@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {
+        "phpmailer/phpmailer": "^7.1"
+    }
+}
