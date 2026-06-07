@@ -6,6 +6,7 @@
  *
  * Application settings — non-secret, environment-independent.
  * Secrets (DB credentials, API keys) live in .env
+ * 
  */
 
 return [
@@ -17,7 +18,7 @@ return [
     'app_name'    => 'Organisation Website System',
     'locale'      => 'de_AT',
     'timezone'    => 'Europe/Vienna',
-    'debug'       => true, // set to false on production
+    'debug'       => ($_ENV['APP_DEBUG'] ?? 'false') === 'true', // sets depending on dev/prod mode
 
     // Session
     'session_name'     => 'ows_session',
@@ -26,8 +27,5 @@ return [
     // OTP
     'otp_expiry'       => 600,  // 10 minutes in seconds
     'otp_max_attempts' => 3,    // max requests per hour per email
-
-    // Pagination
-    'per_page'         => 12,
 
 ];
