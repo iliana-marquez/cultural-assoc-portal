@@ -500,6 +500,8 @@ First Test
 -> OrganisationModel (basic test, one entry queried)
 -> UrlModel (basic test, one entry queried)
 
+LOCAL:
+
 ```
 MySQL (test data)
       ↓
@@ -524,9 +526,58 @@ What it proves:
 ✅ BaseController render chain works
 ✅ main.php layout wraps content
 
-Roadmap next phase...
+DEPLOYED:
+
+```
+GitHub → auto-deploys → Hostinger
+.env → DB connected
+Router → working
+Models → tested
+Layout → rendering
+```
+
+Staging checklist done:
+✅ Git auto-deployment
+✅ Document root configured
+✅ .env path resolution across environments
+✅ DB connection on live server
+✅ Full render chain working
+
+## Second phase...
 
 1. AuthController + OTP flow
+
+`AuthController` has:
+
+```
+GET  /$adminPath           -> show login form
+POST /$adminPath           -> receive email -> validate -> send OTP
+POST /$adminPath/verify    -> receive OTP code -> validate -> create session
+GET  /logout               -> destroy session -> redirect to /
+```
+
+**`config/app.php`**
+gets the admin path
+
+```php
+    //Admin path
+    'admin_path' => 'path',
+
+```
+
+**`config/routes.php`**
+
+- Dynamic Admin path routes / Customisable admin URL path once set per deployment
+
+```php
+$adminPath = $config['admin_path'];
+
+$router->get('/' . $adminPath, 'AuthController', 'showLogin');
+$router->post('/' . $adminPath, 'AuthController', 'sendOtp');
+$router->post('/' . $adminPath . '/verify', 'AuthController', 'verifyOtp');
+$router->get('/logout', 'AuthController', 'logout');
+```
+
 2. authorised_users — insert first row manually in phpMyAdmin
 3. Edit mode bar in main.php
 4. OrganisationController — edit form
@@ -539,8 +590,15 @@ Roadmap next phase...
 
 ## ROADMAP/KNOWN ISSUES
 
-- logo_url column in organisation info
-- implement relationship btw. projects and participants
-- update SEO SECTION!
+- logo_url column in organisation info (semantic image name)
+- update SEO SECTION (readme)
 
+V2
+
+- could have:
+- implement relationship btw. projects and participants
+└── .ics calendar export per event
+    └── used for .ics calendar export
+    └── set during onboarding
+    └── replaces hardcoded 'Europe/Vienna' in app.php
 -->

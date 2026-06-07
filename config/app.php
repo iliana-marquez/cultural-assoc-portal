@@ -5,6 +5,7 @@
  * app.php
  *
  * Application settings — non-secret, environment-independent.
+ * Set once per deployment
  * Secrets (DB credentials, API keys) live in .env
  * 
  */
@@ -27,5 +28,9 @@ return [
     // OTP
     'otp_expiry'       => 600,  // 10 minutes in seconds
     'otp_max_attempts' => 3,    // max requests per hour per email
+
+    // Admin path
+    'admin_path' => 'wkk',
+
 
 ];
