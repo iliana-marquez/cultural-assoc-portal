@@ -442,7 +442,6 @@ Pulling SEO data from the DB makes it truly headless: `main.php` contains the re
 
 6. **Benefits**
 
-   > [Tip]
    > Built-in meta tags: One file, permanent benefit across every platform
 
    **Humans visiting the site** → find and see the designed page
@@ -486,6 +485,55 @@ BaseController Load Test succesfull:
 ### HomeController → render homepage with real data
 
 ### Then SEO → built from real model data, tested in browser
+
+Backend wiring is working (db connection/BaseModel to extend to other Models and )
+
+First test:
+
+db connection -> wired
+BaseModel -> prepared with CRUD
+BaseController -> prepared to render other controllers
+Views/layout/main.php prepared to render specific $content from whatever mask
+Model ready to render Organisation + Url(rel. entity)
+
+First Test
+-> OrganisationModel (basic test, one entry queried)
+-> UrlModel (basic test, one entry queried)
+
+```
+MySQL (test data)
+      ↓
+OrganisationModel::get()      ← fetches org row
+UrlModel::getForEntity()      ← fetches urls
+      ↓
+HomeController::index()       ← calls models, passes data
+      ↓
+BaseController::render()      ← captures view into $content
+      ↓
+main.php                      ← renders $content in layout
+      ↓
+Browser displays var_dump     ← real data from DB
+```
+
+What it proves:
+✅ DB connection and credentials
+✅ BaseModel prepared statements work
+✅ OrganisationModel fetches real data
+✅ UrlModel fetches related URLs
+✅ Controller passes data to view
+✅ BaseController render chain works
+✅ main.php layout wraps content
+
+Roadmap next phase...
+
+1. AuthController + OTP flow
+2. authorised_users — insert first row manually in phpMyAdmin
+3. Edit mode bar in main.php
+4. OrganisationController — edit form
+5. Cloudinary connection
+6. Nav + Footer wired to org data
+7. Contact page
+8. Then everything else replicates
 
 <!--
 
