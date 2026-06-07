@@ -26,7 +26,7 @@ return [
     'session_lifetime' => 3600, // 1 hour in seconds
 
     // OTP
-    'otp_expiry'       => 600,  // 10 minutes in seconds
+    'otp_expiry'       => 900,  // 15 minutes in seconds
     'otp_max_attempts' => 3,    // max requests per hour per email
 
     // Admin path
