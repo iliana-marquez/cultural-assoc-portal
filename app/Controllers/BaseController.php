@@ -2,21 +2,31 @@
 
 /**
  * BaseController
- * 
+ *
  * Foundation class extended by all controllers.
- * Provides view rendering, redirects and session helpers.
+ * Provides view rendering, redirects, session helpers and config access.
+ *
+ * Loads config/app.php once in constructor — available as $this->config
+ * in all extending controllers. No hardcoded paths or settings.
  */
 
 class BaseController
 {
-    /**
-     * Render a view inside a main layout.
-     * 
-     * @param string $view  Path to view file relative to app/Views/
-     *                      e.g. 'pages/home' renders app/Views/pages/home.php
-     * @param array $data   Data to extract and make available in the view
-     */
+    protected array $config;
 
+    public function __construct()
+    {
+        $this->config = require __DIR__ . '/../../config/app.php';
+    }
+
+    /**
+     * Render a view inside the main layout.
+     * Always uses layouts/main.php — one layout wraps all pages.
+     * $content is available inside main.php as the page-specific output.
+     *
+     * @param string $view  Path to view relative to app/Views/ e.g. 'pages/home'
+     * @param array  $data  Data to extract and make available in the view
+     */
     protected function render(string $view, array $data = []): void
     {
         // Make data variables available in the view
@@ -32,9 +42,9 @@ class BaseController
     }
 
     /**
-     * Redirect to given URL
-     * 
-     * @param string $url URL to redirect
+     * Redirect to a given URL.
+     *
+     * @param string $url URL to redirect to
      */
     protected function redirect(string $url): void
     {
@@ -43,27 +53,36 @@ class BaseController
     }
 
     /**
-     * Check if the current user is logged in (edit mode active)
-     * 
+     * Check if the current user is logged in (edit mode active).
+     *
      * @return bool
      */
     protected function isLoggedIn(): bool
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
+        $this->startSession();
         return isset($_SESSION['user_id']);
     }
 
     /**
-     * Require login - redirect to loginpage if not authenticated.
-     * Used in admin controllers to protect every action.
+     * Require login — redirect to admin login if not authenticated.
+     * Uses admin_path from config — no hardcoded paths.
      */
     protected function requireLogin(): void
     {
         if (!$this->isLoggedIn()) {
-            $this->redirect('/wkk');
+            $this->redirect('/' . $this->config['admin_path']);
+        }
+    }
+
+    /**
+     * Start session if not already started.
+     * Uses session_name from config.
+     */
+    protected function startSession(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_name($this->config['session_name']);
+            session_start();
         }
     }
 }
