@@ -45,8 +45,8 @@ class RateLimiter
         $keyLast = self::$sessionPrefix . '_' . $action . '_last';
 
         // Read current values from session
-        $attempts = $_SESSION['keyAttempts'] ?? 0;
-        $lastAttempt = $_SESSION['keyLast'] ?? 0;
+        $attempts = $_SESSION[$keyAttempts] ?? 0;
+        $lastAttempt = $_SESSION[$keyLast] ?? 0;
 
         // Reset counter if window has passed since last attempt
         if (time() - $lastAttempt > $window) {
@@ -69,8 +69,8 @@ class RateLimiter
         $keyAttempts = self::$sessionPrefix . '_' . $action . '_attempts';
         $keyLast = self::$sessionPrefix . '_' . $action . '_last';
 
-        $_SESSION['key_attempts'] = ($_SESSION['keyAtempts'] ?? 0) + 1;
-        $_SESSION['keyLast'] = time();
+        $_SESSION[$keyAttempts] = ($_SESSION[$keyAttempts] ?? 0) + 1;
+        $_SESSION[$keyLast] = time();
     }
 
     /**
