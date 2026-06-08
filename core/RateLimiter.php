@@ -51,7 +51,7 @@ class RateLimiter
         // Reset counter if window has passed since last attempt
         if (time() - $lastAttempt > $window) {
             $attempts = 0;
-            $_SESSION['keyAttempts'] = 0;
+            $_SESSION[$keyAttempts] = 0;
         }
 
         // Return false if limit excedeed
