@@ -94,4 +94,13 @@ class BaseController
             session_start();
         }
     }
+
+
+    /**
+     * Render not found page if content not found 
+     */
+    public function renderNotFound(): void
+    {
+        $this->render('pages/404');
+    }
 }
