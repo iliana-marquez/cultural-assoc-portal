@@ -9,7 +9,7 @@
  * Usage in config/routes.php:
  *   $router->get('/', 'HomeController', 'index');
  *   $router->get('/team/{slug}', 'TeamController', 'show');
- *   $router->post('/wkk/verify', 'AuthController', 'verify');
+ *   $router->post('/{admin_path}/verify', 'AuthController', 'verifyOtp');
  */
 
 class Router
@@ -117,6 +117,7 @@ class Router
     private function notFound(): void
     {
         http_response_code(404);
-        echo '404 — Page not found';
+        require_once __DIR__ . '/../app/Controllers/BaseController.php';
+        (new BaseController())->renderNotFound();
     }
 }

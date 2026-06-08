@@ -7,6 +7,7 @@
  * Loads environment, core classes, and resolves the current route.
  */
 
+require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../app/Models/BaseModel.php';
 
 // Environment 
