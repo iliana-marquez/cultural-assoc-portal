@@ -21,6 +21,7 @@ require_once __DIR__ . '/../Models/UserModel.php';
 require_once __DIR__ . '/../Models/EditorModel.php';
 require_once __DIR__ . '/../Models/OrganisationModel.php';
 require_once __DIR__ . '/../../core/Mailer.php';
+require_once __DIR__ . '/../../core/RateLimiter.php';
 
 class AuthController extends BaseController
 {
@@ -54,6 +55,19 @@ class AuthController extends BaseController
      */
     public function sendOtp(array $params = []): void
     {
+
+        $this->startSession();
+
+        // Rate limiting — config: otp_max_attempts + otp_rate_limit_window
+        if (!RateLimiter::check('login', $this->config['otp_max_attempts'], $this->config['otp_rate_limit_window'])) {
+            $this->render('admin/login', [
+                'error' => 'Zu viele Versuche. Bitte versuchen Sie es in einer Stunde erneut.'
+            ]);
+            return;
+        }
+
+        RateLimiter::increment('login');
+
         $email = strtolower(trim($_POST['email'] ?? ''));
 
         // Validate email format
@@ -91,9 +105,10 @@ class AuthController extends BaseController
             $_SESSION['pending_editor_id'] = $editor->id;
         }
 
-        // Always show verify form — don't reveal if email was found
+        // Always show verify page — registered or not
         $this->render('admin/verify', [
-            'email' => $email
+            'email'   => $email,
+            'message' => 'Falls diese E-Mail registriert ist, erhalten Sie in Kürze einen Code. Prüfen Sie Ihr Postfach.'
         ]);
     }
 
@@ -124,6 +139,8 @@ class AuthController extends BaseController
         $editor = $this->editorModel->findById((int) $editorId);
         $this->editorModel->clearOtp((int) $editorId);
 
+        // Reset rate limit on successful login
+        RateLimiter::reset('login');
         unset($_SESSION['pending_editor_id']);
 
         $_SESSION['user_id']            = $editor->id;
