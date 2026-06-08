@@ -14,3 +14,4 @@ storage/logs/*
 
 # DOCS 
 docs/docs
+/vendor/
