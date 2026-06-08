@@ -26,8 +26,9 @@ return [
     'session_lifetime' => 3600, // 1 hour in seconds
 
     // OTP
-    'otp_expiry'       => 900,  // 15 minutes in seconds
-    'otp_max_attempts' => 3,    // max requests per hour per email
+    'otp_expiry'            => 900,  // 15 minutes in seconds
+    'otp_max_attempts'      => 3,    // max requests per hour per email
+    'otp_rate_limit_window' => 3600,    // 1 hour in seconds
 
     // Admin path
     'admin_path' => $_ENV['ADMIN_PATH'] ?? throw new RuntimeException('ADMIN_PATH not set in .env'),
