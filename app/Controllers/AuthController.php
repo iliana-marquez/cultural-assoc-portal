@@ -16,7 +16,6 @@
  *   OrganisationModel → org name for email branding
  *   Mailer            → email sending + template rendering
  */
-
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../Models/UserModel.php';
 require_once __DIR__ . '/../Models/EditorModel.php';
@@ -30,9 +29,9 @@ class AuthController extends BaseController
 
     public function __construct()
     {
+        parent::__construct(); // runs BaseController's constructor → loads $this->config
         $this->editorModel = new EditorModel();
         $this->orgModel    = new OrganisationModel();
-        $this->config      = require __DIR__ . '/../../config/app.php';
     }
 
     /**
