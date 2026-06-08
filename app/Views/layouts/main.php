@@ -11,6 +11,7 @@
     <!-- <link rel="icon" href=" dynamic "> -->
 
 
+
     <!-- Open Graph -->
     <meta property="og:title" content="<?= htmlspecialchars($seo['title'] ?? '') ?>">
     <meta property="og:description" content="<?= htmlspecialchars($seo['description'] ?? '') ?>">
@@ -27,16 +28,32 @@
     <!-- JSON-LD Schema -->
     <?= $seo['schema'] ?? '' ?>
 
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
-<body>
+<body class="d-flex flex-column min-vh-100">
     <?php require __DIR__ . '/../components/nav.php'; ?>
+
+    <?php require __DIR__ . '/../components/edit-bar.php'; ?>
 
     <main>
         <?= $content ?>
     </main>
 
     <?php require __DIR__ . '/../components/footer.php'; ?>
+
+    <!-- Bootstrap JS Script-->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
+    <!-- Script -->
+
 </body>
 
 </html>

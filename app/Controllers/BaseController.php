@@ -29,6 +29,15 @@ class BaseController
      */
     protected function render(string $view, array $data = []): void
     {
+        // Available in every view automatically
+        $data['isLoggedIn'] = $this->isLoggedIn();
+        $data['config']     = $this->config;
+
+        // Organisation data — available in nav, footer, every page
+        require_once __DIR__ . '/../Models/OrganisationModel.php';
+        $orgModel       = new OrganisationModel();
+        $data['org']    = $orgModel->get();
+
         // Make data variables available in the view
         extract($data);
 
