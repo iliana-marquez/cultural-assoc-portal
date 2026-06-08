@@ -93,7 +93,7 @@ ARCHIVE
 └── archive                 # Historical events (legacy import / museum archive)
 
 AUTH
-└── authorised_users       # Editors, OTP fields, and access control
+└── authorised_editors       # Editors, OTP fields, and access control
 ```
 
 </details>
@@ -225,6 +225,7 @@ cultural-assoc-portal/
 │       ├── components/
 │       │   ├── nav.php
 │       │   ├── footer.php
+│       │   ├── newsletter_subcribe.php
 │       │   ├── event-card.php
 │       │   ├── team-card.php
 │       │   ├── participant-card.php
@@ -236,6 +237,10 @@ cultural-assoc-portal/
 │       │       ├── hero.php
 │       │       ├── text-block.php
 │       │       └── cta-block.php
+│       ├── emails/
+│       │   ├── otp.php
+│       │   ├── newsletter.php
+│       │   └── newsletter_confirmation.php
 │       ├── pages/
 │       │   ├── home.php
 │       │   ├── about.php
@@ -247,8 +252,8 @@ cultural-assoc-portal/
 │       │   ├── projects.php
 │       │   ├── project-detail.php
 │       │   ├── contributors.php
-│       │   ├── archiv.php
-│       │   ├── kontakt.php
+│       │   ├── archive.php
+│       │   ├── contact.php
 │       │   ├── mitglied.php
 │       │   └── alsergrund.php
 │       └── admin/
@@ -269,6 +274,8 @@ cultural-assoc-portal/
 │           └── users-list.php
 │
 ├── core/
+│   ├── Mailer.php                  ← PHPMailer wrapper with renderView()
+│   ├── RateLimiter.php             ← session-based rate limiting utility
 │   ├── Router.php                  ← URL to controller mapping
 │   ├── Request.php                 ← wraps $_GET, $_POST, $_SERVER
 │   ├── Response.php                ← redirects, status codes
@@ -308,8 +315,6 @@ cultural-assoc-portal/
 - **`Admin/` subfolder in Controllers:** keeps admin controllers grouped and namespaced separatelly from public controlers.
 
 - **`components/sections/`:** section type components isolated. Adding a new section type = one new file here.
-
-- **`storage/logs/`:** OTP attempts, errors logged here. Never in `public/`.
 
 ## Development
 
@@ -458,6 +463,11 @@ Pulling SEO data from the DB makes it truly headless: `main.php` contains the re
    **For a cultural assosiation this is particularly valuable:**
    When someone searches "Konzert Wien 9. Bezirk" — Google can show the event directly in results with date, time and location from the JSON-LD schema. No click needed to see the details, so is higher in visibility than a plain blue link.
 
+### **Zero-configuration codebase**
+
+No deployment-specific values exist in the codebase. All settings live in `config/app.php` and `.env`.
+A developer deploys the OWS by configuring two files only — never by searching and replacing values in code.
+
 ### BaseController
 
 - `fetchAll()` — returns array of objects, multiple rows
@@ -518,13 +528,14 @@ Browser displays var_dump     ← real data from DB
 ```
 
 What it proves:
-✅ DB connection and credentials
-✅ BaseModel prepared statements work
-✅ OrganisationModel fetches real data
-✅ UrlModel fetches related URLs
-✅ Controller passes data to view
-✅ BaseController render chain works
-✅ main.php layout wraps content
+
+- DB connection and credentials
+- BaseModel prepared statements work
+- OrganisationModel fetches real data
+- UrlModel fetches related URLs
+- Controller passes data to view
+- BaseController render chain works
+- main.php layout wraps content
 
 DEPLOYED:
 
@@ -537,13 +548,37 @@ Layout → rendering
 ```
 
 Staging checklist done:
-✅ Git auto-deployment
-✅ Document root configured
-✅ .env path resolution across environments
-✅ DB connection on live server
-✅ Full render chain working
+
+- Git auto-deployment
+- Document root configured
+- .env path resolution across environments
+- DB connection on live server
+- Full render chain working
 
 ## Second phase...
+
+### Global Data — Available in Every View
+
+`BaseController::render()` automatically passes three data sets
+to every view without requiring controllers to pass them manually:
+
+```php
+// $data['isLoggedIn'] = $this->isLoggedIn();   // edit mode visibility
+$data['config']     = $this->config;          // app settings
+$data['org']        = $orgModel->get();       // organisation identity
+```
+
+**`$org`** — fetched from `organisation_info` on every render.
+Provides organisation name, logo, contact and legal data to
+nav, footer and any page that needs it. Single source of truth —
+update once in the DB, reflects everywhere instantly.
+
+**`$isLoggedIn`** — session check passed to every view.
+Edit mode UI (edit bar, edit icons) rendered only when true —
+never present in the DOM for visitors, not even as hidden elements.
+
+**`$config`** — app settings available in views where needed
+(e.g. admin path in login/verify forms).
 
 1. AuthController + OTP flow
 
@@ -567,7 +602,7 @@ gets the admin path
 
 **`config/routes.php`**
 
-- Dynamic Admin path routes / Customisable admin URL path once set per deployment
+- Dynamic Admin path routes / Customisable admin URL path once set per deployment (.env)
 
 ```php
 $adminPath = $config['admin_path'];
@@ -578,27 +613,193 @@ $router->post('/' . $adminPath . '/verify', 'AuthController', 'verifyOtp');
 $router->get('/logout', 'AuthController', 'logout');
 ```
 
-2. authorised_users — insert first row manually in phpMyAdmin
-3. Edit mode bar in main.php
-4. OrganisationController — edit form
-5. Cloudinary connection
-6. Nav + Footer wired to org data
-7. Contact page
-8. Then everything else replicates
+**`core/Mailer.php`**
+
+- Composer autoload handles PHPMailer
+- `fromName` from controller (org name from DB) - customiseble from user side
+- `expiryMin` no default — always passed from controller via config/app.php
+- `UTF-8` hardcoded — always correct for emails, not configurable
+- Fallback on `fromName` → uses `MAIL_FROM` email address if no name passed
+- `renderView` is completely generic: One Mailer class, infinite email types — each with its own clean template.
+
+2. authorised_editors
+
+- `AuthModel` — authorised_editors table, auth only
+- `EditorModel` — authorised_editors table, CRUD only
+- `AuthController` — can_manage_editors session variable
+
+3. Edit-bar in Editor-Mode in main.php:
+
+- only show it for the logged-in editor. It doesn't exist in the DOM , not hidden with CSS, not rendered at all. Zero HTML output for non-editors.
+- Visitors see zero edit UI — not even in page source.
+- Tested amd working.
+
+# FEATURE: OTP Authentication & Edit-Mode
+
+Passwordless authentication for website editors using One-Time Passwords (OTP).
+Session-based edit mode activates on successful login, making all edit controls visible exclusively to authenticated editors.
+
+## Architecture Decisions
+
+### UserModel as base authentication layer
+
+Rather than a standalone auth utility, authentication logic lives in `UserModel` —
+the direct equivalent of Django's `auth.User` or Laravel's `Authenticatable`.
+Entity-specific models extend it, inheriting auth methods automatically:
+
+```php
+class EditorModel extends UserModel {
+    public function __construct() {
+        parent::__construct('authorised_editors');
+    }
+    // inherits: findByEmail, findById, generateOtp, validateOtp, clearOtp
+}
+```
+
+## Bugs Fixed
+
+**Double increment** — `RateLimiter::increment()` called twice per submission
+due to misplaced call before email format validation. Fixed by moving increment
+after format check — invalid format does not count as an attempt.
+
+**Session key literal** — `$_SESSION['keyAttempts']` instead of
+`$_SESSION[$keyAttempts]`. Counter never reset correctly because the variable
+name was used as a string literal instead of its value as the key.
+
+**PRG refresh resubmission** — refreshing the verify page resubmitted the POST
+form, incrementing the rate limit counter. Fixed by PRG pattern — refresh hits
+GET route, never re-processes the form.
+
+**Verify page after rate limit** — `pending_email` persisted in session after
+block, making the verify page accessible via refresh even after rate limit
+exhaustion. Fixed by clearing all pending session data on block.
+
+**Session fixation** — `session_regenerate_id(true)` added immediately after
+successful OTP verification before writing session variables.
+
+**Verify page loop** — `showLogin()` redirected to verify if `pending_editor_id`
+existed, making it impossible to return to the login form. Fixed by removing
+the redirect — `/wkk` always renders the login form, pending data overwritten
+on next submission.
+
+---
+
+## Testing
+
+```
+
+✅ Login form renders at /{admin_path}
+✅ Logged-in editor redirected to / from login page
+✅ Invalid email format → error shown, no attempt counted
+✅ Unregistered email → verify page rendered (no code sent, no info leaked)
+✅ Registered email → OTP email received within seconds
+✅ Valid OTP → session created → edit bar visible → edit mode active
+✅ Invalid OTP → error message on verify form
+✅ Expired OTP → error message on verify form
+✅ 3 attempts → rate limit block → "Zu viele Versuche"
+✅ Rate limit window expires → fresh attempts allowed
+✅ After rate limit block → verify page inaccessible (pending data cleared)
+✅ Refresh on verify page → GET, no form resubmission, no counter increment
+✅ Direct /verify access without session → redirect to login
+✅ Logout → session destroyed → edit bar disappears → visitor view restored
+✅ session_regenerate_id on successful login
+✅ Organisation data in nav and footer from DB
+✅ 404 page renders inside main layout with nav and footer
+
+```
 
 <!--
 
 ## ROADMAP/KNOWN ISSUES
 
-- logo_url column in organisation info (semantic image name)
+MUST HAVE — after core features complete:
+└── newsletter_subscribers
+    ├── signup form on website
+    ├── double opt-in (GDPR required — EU law)
+    ├── confirmation email with token
+    ├── unsubscribe link in every email
+    └── confirmed subscribers list for super admin
+
+Automated newsletter generation
+on events "new event" "cancelled event"
+record_status: active, cancelled, deleted (no hard delete)
+
+```sql
+id          int PK
+email       varchar(255) unique
+name        varchar(100) null
+confirmed   boolean default false
+token       varchar(255) null      ← temporary, cleared after confirmation
+created_at  timestamp
+````
+
+```
+Enter email → "Check your inbox for confirmation"
+      ↓
+One click in email → confirmed
+      ↓
+"You're subscribed!" — no further steps
+```
+
+<!-- - logo_url column in organisation info (semantic image name)
 - update SEO SECTION (readme)
 
-V2
+V2 -->
 
-- could have:
+<!-- - could have:
 - implement relationship btw. projects and participants
-└── .ics calendar export per event
-    └── used for .ics calendar export
-    └── set during onboarding
-    └── replaces hardcoded 'Europe/Vienna' in app.php
--->
+- .ics calendar export per event
+  └── used for .ics calendar export
+  └── set during onboarding
+  └── replaces hardcoded 'Europe/Vienna' in app.ph
+- Move to organisation_info
+  - ADMIN_PATH="value" (so it is customisable form the client side)
+- Timezone
+  No APP_TIMEZONE or APP_LOCALE in .env
+  No hardcoded values in config/app.php
+  Derived automatically from organisation_info.country
+
+```php
+// future v2 logic in app.php or a helper
+$country = $org->country ?? 'Austria';
+
+$timezones = [
+    'Austria'     => 'Europe/Vienna',
+    'Germany'     => 'Europe/Berlin',
+    'France'      => 'Europe/Paris',
+    'Spain'       => 'Europe/Madrid',
+];
+
+$locales = [
+    'Austria'     => 'de_AT',
+    'Germany'     => 'de_DE',
+    'France'      => 'fr_FR',
+    'Spain'       => 'es_ES',
+];
+
+$timezone = $timezones[$country] ?? 'UTC';
+$locale   = $locales[$country]   ?? 'en_US';
+```
+
+## v2 — automated event newsletter:
+
+OWS generates newsletters automatically from your data (event, project, news), styled with your organisation's branding — no external tools, no manual formatting, no copy-pasting.
+├── native branding from organisation_info
+├── event content auto-populated
+├── consistent web + email visual identity
+├── zero external newsletter dependency
+└── triggered on event status → 'published'
+
+## v2 — data-source agnostic auth:
+
+└── consider Laravel-style Authenticatable interface
+└── any entity (editor, member) can authenticate via OTP
+└── AuthModel becomes a pure OTP utility
+
+--> -->
+
+Mentions:
+
+[Tabler-Icons](https://tabler.io/icons)
+
+🛠️ _Developed by [Iliana Márquez](https://ilianamarquez.com)_
