@@ -39,14 +39,21 @@
 </head>
 
 <body class="d-flex flex-column min-vh-100">
+
+    <!-- Navbar -->
     <?php require __DIR__ . '/../components/nav.php'; ?>
 
-    <?php require __DIR__ . '/../components/edit-bar.php'; ?>
+    <!-- Edit-Bar for Editing Mode only -->
+    <?php if ($isLoggedIn): ?>
+        <?php require __DIR__ . '/../components/edit-bar.php'; ?>
+    <?php endif; ?>
 
+    <!-- Main content (Mask) -->
     <main>
         <?= $content ?>
     </main>
 
+    <!-- Footer -->
     <?php require __DIR__ . '/../components/footer.php'; ?>
 
     <!-- Bootstrap JS Script-->
