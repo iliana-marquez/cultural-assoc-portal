@@ -9,7 +9,7 @@
  */
 ?>
 
-<footer class="text-center bg-body-tertiary mt-auto">
+<footer class="text-center mt-auto dark-segment">
     <p>
         <?= htmlspecialchars($org->name ?? '') ?> | <?= htmlspecialchars($org->email ?? '') ?> | <?= htmlspecialchars($org->city ?? '') ?>
     </p>
