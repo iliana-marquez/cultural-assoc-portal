@@ -29,9 +29,12 @@ jobs:
           port: ${{ secrets.FTP_PORT }}
           local-dir: ./
           server-dir: /public_html/
+          security: loose
+          protocol: ftp
           exclude: |
             **/.git*
             **/.git*/**
+            **/vendor/**
             .env
             .env.example
             **/node_modules/**
