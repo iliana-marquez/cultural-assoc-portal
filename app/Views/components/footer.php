@@ -9,11 +9,26 @@
  */
 ?>
 
-<footer class="text-center mt-auto dark-segment">
-    <p>
-        <?= htmlspecialchars($org->name ?? '') ?> | <?= htmlspecialchars($org->email ?? '') ?> | <?= htmlspecialchars($org->city ?? '') ?>
-    </p>
-    <p>
-        Powered by <a href="https://ilianamarquez.com" target="_blank">OWS</a>
-    </p>
+<footer class="text-center mt-auto segment dark-segment">
+
+    <div class="footer-logo">
+        <img src="<?= htmlspecialchars($org->logo_url ?? '') ?>" alt="<?= htmlspecialchars($org->name ?? 'Organisation') ?> Logo">
+    </div>
+
+    <p class="margin-top">&copy; 2026 <?= htmlspecialchars($org->name ?? 'Organisation') ?></p>
+
+    <nav class="nav-socials justify-content-center margin-top" aria-label="Socials Navigation">
+        <a href=""><i class="ti ti-brand-instagram"></i></a>
+        <a href=""><i class="ti ti-brand-facebook"></i></a>
+        <a href=""><i class="ti ti-brand-youtube"></i></a>
+    </nav>
+
+    <nav class="footer-links small margin-top" aria-label="Footer Navigation">
+        <a href="#">Datenschutzerklärung</a>
+        <span class="divider">|</span>
+        <a href="#">Impressum</a>
+        <span class="divider">|</span>
+        <a href="/impressum">Kontakt</a>
+    </nav>
+
 </footer>
