@@ -35,19 +35,9 @@
 
                 <li><a href="/veranstaltungen">Veranstaltungen</a></li>
 
-                <li>
-                    <a href="/alsergrund" class="swap-label">
-                        <span class="label-main">Alsergrund</span>
-                        <span class="label-hover small">Bezirksporträt</span>
-                    </a>
-                </li>
+                <li><a href="/alsergrund">Bezirksporträt</a></li>
 
-                <li>
-                    <a href="/archiv" class="swap-label">
-                        <span class="label-main">Archiv</span>
-                        <span class="label-hover small">Vermächtnis</span>
-                    </a>
-                </li>
+                <li><a href="/archiv">Archiv</a></li>
 
                 <li><a href="/kontakt">Kontakt</a></li>
 
