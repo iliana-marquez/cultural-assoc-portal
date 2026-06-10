@@ -708,6 +708,34 @@ on next submission.
 
 ```
 
+Feature Section-Components
+
+updates in the db:
+
+````
+organisation_info
+└── description: varchar(300) → text / because description can be specific and cannot be explained in varchar
+
+section_types
+└── fields_schema: not null → null , can start empty are incremental
+└── seed: cleaned up — only ('section', 'Free Section', null)
+└── removed old seeds: hero, text_block, cta_block
+
+pages
+└── type_key: default 'section' added (for block crud, free section)
+
+authorised_users → authorised_editors
+└── table renamed
+└── can_manage_users → can_manage_editors
+
+DEPLOYMENT DATA added:
+└── organisation_info — KLA data
+└── pages — homepage intro section
+└── authorised_editors — commented template
+
+
+
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
