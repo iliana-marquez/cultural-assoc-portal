@@ -20,7 +20,6 @@
         <i class="ti ti-circle-filled"></i>
         <span class="edit-bar__label">Editing</span>
     </span>
-    <span>|</span>
 
     <a href="/logout" class="edit-bar__exit" title="Exit edit mode">
         Exit Edit Mode

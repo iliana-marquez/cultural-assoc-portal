@@ -13,7 +13,7 @@
 create table if not exists section_types (
     type_key        varchar(50)     not null,
     label           varchar(100)    not null,
-    fields_schema   json            not null,
+    fields_schema   json            null,
     primary key (type_key)
 );
 
@@ -53,7 +53,7 @@ create table if not exists organisation_info (
     id                  int             not null auto_increment,
     name                varchar(255)    not null,
     tagline             varchar(255)    null,
-    description         varchar(300)    null,
+    description         text            null,
     organisation_type   varchar(100)    null,
     logo_url            varchar(255)    null,
     street              varchar(255)    null,
@@ -289,11 +289,11 @@ create table if not exists archive (
 -- Authorised editors — OTP based, no passwords
 -- =============================================================
 
-create table if not exists authorised_users (
+create table if not exists authorised_editors (
     id                  int             not null auto_increment,
     name                varchar(100)    not null,
     email               varchar(255)    not null unique,
-    can_manage_users    boolean         not null default false,
+    can_manage_editors  boolean         not null default false,
     otp_code            varchar(255)    null,
     otp_expires_at      timestamp       null,
     created_at          timestamp       not null default current_timestamp,
@@ -305,11 +305,6 @@ create table if not exists authorised_users (
 -- SEED DATA
 -- Inserted on every deployment
 -- =============================================================
-
-insert into section_types (type_key, label, fields_schema) values
-('hero',        'Hero Banner',    '["title","subtitle","text","media_urls","buttons"]'),
-('text_block',  'Text Block',     '["title","subtitle","text","media_urls","buttons"]'),
-('cta_block',   'Call to Action', '["title","text","buttons"]');
 
 insert into url_types (label, icon) values
 ('Website',         'ti-world'),
