@@ -8,7 +8,7 @@
  */
 ?>
 
-<section class="auth">
+<section class="auth light-segment segment">
     <h1>Editor Login</h1>
 
     <?php if (!empty($error)): ?>

@@ -10,7 +10,7 @@
 
 
 :root {
-    --nav-height: 36px;
+    --nav-height: 50px;
     --transition: 0.25s ease;
 
     --light: #ffffff;
@@ -372,9 +372,7 @@ footer {
     align-items: center;
     justify-content: space-between;
     padding: 0.5rem 1.5rem;
-    background: #1a1a1a;
-    color: #fff;
-    font-size: 0.85rem;
+
 }
 
 .edit-bar__indicator { display: flex; align-items: center; gap: 0.5rem; }
@@ -386,7 +384,7 @@ footer {
 }
 
 body.is-editing .edit-bar__indicator i {
-    color: #4ade80;
+    color: #4ade51;
     animation: pulse 1.5s infinite;
 }
 
@@ -399,12 +397,9 @@ body.is-editing .edit-bar__indicator i {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    color: #ccc;
     font-size: 0.85rem;
     transition: color var(--transition);
 }
-
-.edit-bar__exit:hover { color: #fff; }
 
 
 /* ============================================================
