@@ -70,7 +70,7 @@
 
         <li><a href="/veranstaltungen">Veranstaltungen</a></li>
         <li><a href="/kontakt">Kontakt</a></li>
-        <li><a href="/alsergrund">Alsergrund</a></li>
+        <li><a href="/alsergrund">Bezirksporträt</a></li>
         <li><a href="/archiv">Archiv</a></li>
 
         <li class="nav-socials">
