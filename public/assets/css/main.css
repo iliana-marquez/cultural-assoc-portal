@@ -63,7 +63,6 @@
 body {
     font-size: var(--text-body);
     font-weight: var(--font-regular);
-    line-height: 1.5;
     margin: 0;
     font-family: var(--font-family);
 }
@@ -333,6 +332,7 @@ footer {
 
 .footer-logo img{
     max-height: 200px;
+    filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.4));
 }
 
 .footer-links {
@@ -525,12 +525,9 @@ body.is-editing .edit-bar__indicator i {
 
 
 
-
-
-
-
 /* ── Mobile (desktop nav) ─────────────────────────────────────────────────── */
 @media (max-width: 1000px) {
     #main-nav { display: none; }
+    .nav-brand { font-size: var(--text-large);}
     .hamburger { display: flex; }
 }

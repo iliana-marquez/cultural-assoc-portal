@@ -11,11 +11,11 @@
 
 <footer class="text-center mt-auto segment dark-segment">
 
-    <div class="footer-logo">
+    <div class="footer-logo margin-top">
         <img src="<?= htmlspecialchars($org->logo_url ?? '') ?>" alt="<?= htmlspecialchars($org->name ?? 'Organisation') ?> Logo">
     </div>
 
-    <p class="margin-top">&copy; 2026 <?= htmlspecialchars($org->name ?? 'Organisation') ?></p>
+    <p class="">&copy; 2026 <?= htmlspecialchars($org->name ?? 'Organisation') ?></p>
 
     <nav class="nav-socials justify-content-center margin-top" aria-label="Socials Navigation">
         <a href=""><i class="ti ti-brand-instagram"></i></a>
@@ -23,7 +23,7 @@
         <a href=""><i class="ti ti-brand-youtube"></i></a>
     </nav>
 
-    <nav class="footer-links small margin-top" aria-label="Footer Navigation">
+    <nav class="footer-links small" aria-label="Footer Navigation">
         <a href="#">Datenschutzerklärung</a>
         <span class="divider">|</span>
         <a href="#">Impressum</a>
