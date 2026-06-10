@@ -67,6 +67,18 @@ class UrlModel extends BaseModel
      */
     public function add(string $entityType, int $entityId, int $urlTypeId, string $url): bool
     {
+
+        // Check for duplicate URL on this entity
+        $exists = $this->fetchOne(
+            "SELECT id FROM {$this->table} 
+         WHERE entity_type = ? AND entity_id = ? AND url = ?",
+            [$entityType, $entityId, $url]
+        );
+
+        if ($exists) return false; // already exists
+
+
+
         return $this->execute(
             "INSERT INTO {$this->table} (entity_type, entity_id, url_type, url)
             VALUES (?, ?, ?, ?)",
