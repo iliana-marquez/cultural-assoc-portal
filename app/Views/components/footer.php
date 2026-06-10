@@ -9,7 +9,7 @@
  */
 ?>
 
-<footer class="text-center mt-auto segment dark-segment">
+<footer class="text-center mt-auto segment-fix dark-segment">
 
     <div class="footer-logo margin-top">
         <img src="<?= htmlspecialchars($org->logo_url ?? '') ?>" alt="<?= htmlspecialchars($org->name ?? 'Organisation') ?> Logo">
@@ -28,7 +28,7 @@
         <span class="divider">|</span>
         <a href="#">Impressum</a>
         <span class="divider">|</span>
-        <a href="/impressum">Kontakt</a>
+        <a href="/kontakt">Kontakt</a>
     </nav>
 
 </footer>
