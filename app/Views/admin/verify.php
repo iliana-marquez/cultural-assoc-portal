@@ -8,34 +8,44 @@
  */
 ?>
 
-<section class="auth light-segment segment">
-    <h1>Code eingeben</h1>
+<section class="auth light-segment segment container">
 
-    <p>
-        Ein 6-stelliger Code wurde gesendet.
-        Bitte prüfen Sie Ihr Postfach.
-    </p>
+    <div class="col-6 align-self-center">
+        <div class="contact-form-wrap">
+            <h1>Code eingeben</h1>
 
-    <?php if (!empty($error)): ?>
-        <p class="error"><?= htmlspecialchars($error) ?></p>
-    <?php endif; ?>
+            <p>
+                Ein 6-stelliger Code wurde gesendet.
+                Bitte prüfen Sie Ihr Postfach.
+            </p>
 
-    <form method="POST" action="/<?= htmlspecialchars($config['admin_path']) ?>/verify">
-        <label for="code">Einmalcode</label>
-        <input
-            type="text"
-            id="code"
-            name="code"
-            required
-            autofocus
-            maxlength="6"
-            placeholder="000000"
-            inputmode="numeric"
-            autocomplete="one-time-code">
-        <button type="submit">Anmelden</button>
-    </form>
+            <?php if (!empty($error)): ?>
+                <p class="error"><?= htmlspecialchars($error) ?></p>
+            <?php endif; ?>
 
-    <a href="/<?= htmlspecialchars($config['admin_path']) ?>">
-        Andere E-Mail verwenden
-    </a>
+            <form method="POST" action="/<?= htmlspecialchars($config['admin_path']) ?>/verify">
+                <div class="form-group">
+                    <label for="code">Einmalcode</label>
+                    <input
+                        type="text"
+                        id="code"
+                        name="code"
+                        required
+                        autofocus
+                        maxlength="6"
+                        placeholder="000000"
+                        inputmode="numeric"
+                        style="width: auto;"
+                        autocomplete="one-time-code">
+                    <button class="btn-section" type="submit">Anmelden</button>
+                </div>
+            </form>
+            <div class="margin-top">
+                <a href="/<?= htmlspecialchars($config['admin_path']) ?>">
+                    Andere E-Mail verwenden
+                </a>
+            </div>
+
+        </div>
+    </div>
 </section>

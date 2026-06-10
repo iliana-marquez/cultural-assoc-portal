@@ -21,4 +21,5 @@ $router->get('/' . $adminPath,             'AuthController', 'showLogin');
 $router->post('/' . $adminPath,            'AuthController', 'sendOtp');
 $router->get('/' . $adminPath . '/verify', 'AuthController', 'showVerify');
 $router->post('/' . $adminPath . '/verify', 'AuthController', 'verifyOtp');
+$router->get('/kontakt',                    'ContactController', 'index');
 $router->get('/logout',                    'AuthController', 'logout');
