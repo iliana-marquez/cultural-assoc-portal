@@ -9,6 +9,11 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../app/Models/BaseModel.php';
+require_once __DIR__ . '/../app/Models/UserModel.php';
+require_once __DIR__ . '/../app/Models/EditorModel.php';
+require_once __DIR__ . '/../app/Models/OrganisationModel.php';
+require_once __DIR__ . '/../app/Models/UrlModel.php';
+require_once __DIR__ . '/../app/Models/PagesModel.php';
 
 // Environment 
 $envPaths = [
