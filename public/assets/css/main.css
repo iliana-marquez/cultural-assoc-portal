@@ -162,7 +162,7 @@ a:hover {
     top: 0;
     z-index: 100;
     height: var(--nav-height);
-    margin: 1rem;
+    padding: 1rem;
 }
 
 .nav-container {
@@ -302,6 +302,28 @@ a:hover {
     font-size: 0.9rem;
     border-radius: 6px;
 }
+
+/* ── Hero ───────────────────────────────────────────────────── */
+.hero-logo {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.4));
+}
+
+.hero-logo-placeholder {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+    background: var(--neutral);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-logo-placeholder i { font-size: 4rem; opacity: 0.4; }
+
 
 /* ── Footer ─────────────────────────────────────────────────── */
 footer {
