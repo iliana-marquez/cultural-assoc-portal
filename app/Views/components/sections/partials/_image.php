@@ -10,6 +10,7 @@
  *   $image       string|null  URL
  *   $imageCredit string|null  Photographer credit
  *   $title       string|null  Used as alt text
+ *   $objectFit   string       'cover' | 'contain'
  */
 ?>
 
@@ -17,7 +18,8 @@
     <div class="section-image-wrap">
         <img src="<?= htmlspecialchars($image) ?>"
             alt="<?= htmlspecialchars($title ?? '') ?>"
-            class="section-image">
+            class="section-image"
+            style="object-fit: <?= htmlspecialchars($objectFit ?? 'cover') ?>;">
     </div>
     <?php if (!empty($imageCredit)): ?>
         <span class="image-credit small">

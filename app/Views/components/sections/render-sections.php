@@ -21,6 +21,7 @@ foreach ($sections as $section):
     $theme       = $section->theme        ?? 'light';
     $bgImage     = $section->bg_image     ?? null;
     $image       = $section->image        ?? null;
+    $objectFit   = $section->object_fit   ?? 'cover';
     $imageCredit = $section->image_credit ?? null;
     $imagePos    = $section->image_pos    ?? 'none';
     $layout      = $section->layout       ?? '50-50';
@@ -29,6 +30,7 @@ foreach ($sections as $section):
     $subtitle    = $section->subtitle     ?? null;
     $text        = $section->text         ?? null;
     $cta         = $section->cta          ?? null;
+    $objectFit   = $section->object_fit   ?? 'cover';
 
     require $sectionFile;
 

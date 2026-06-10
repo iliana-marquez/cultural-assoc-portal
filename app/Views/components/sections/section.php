@@ -18,6 +18,7 @@
  *   $subtitle    string|null
  *   $text        string|null
  *   $cta         object|null { label, url }
+ *   $objectFit   string      cover | contain 
  */
 
 $themeClass = ($theme ?? 'light') === 'dark' ? 'dark-segment' : 'light-segment';
@@ -42,6 +43,7 @@ $alignClass = match ($align ?? 'left') {
 
 $hasImage    = !empty($image) && ($imagePos ?? 'none') !== 'none';
 $imageLeft   = ($imagePos ?? 'none') === 'left';
+$objectFit = $section->object_fit ?? 'cover';
 
 $ctaAlignClass = $hasImage
     ? ($imageLeft ? 'align-self-end' : 'align-self-start')
