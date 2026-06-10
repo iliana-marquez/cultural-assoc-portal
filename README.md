@@ -708,17 +708,91 @@ on next submission.
 
 ```
 
+## feat/section-components
+
+### Overview
+
+Dynamic content section system for all pages. Sections stored as JSON
+in the `pages` table and rendered via a universal PHP component.
+Bootstrap grid handles responsive layout automatically — no custom
+media queries needed.
+
+### Architecture
+
+PagesModel::getForPage('home')
+↓
+render-sections.php loops sections
+↓
+section.php — universal component
+↓
+partials/\_content.php + \_image.php + \_controls.php
+
+### Section options
+
+| Option           | Values                                   |
+| ---------------- | ---------------------------------------- |
+| Theme            | light / dark                             |
+| Image position   | left / right / none                      |
+| Layout           | 50-50 / 75-25 / 25-75                    |
+| Text align       | left / center / right (no image only)    |
+| Background image | optional — colour overlay at 90% opacity |
+| Image fit        | cover / contain                          |
+| CTA              | optional button with label + url         |
+| Image credit     | optional photographer credit             |
+
+CTA alignment mirrors image position automatically — no user choice needed.
+
+### Homepage structure
+
+hero.php ← fixed, driven by organisation_info
+render-sections.php ← free sections from pages table
+
+### Key decisions
+
+- One universal `section.php` — not one file per layout type
+- Partials for reusable sub-components (\_image, \_content, \_controls)
+- Edit controls rendered server-side only when logged in — never in DOM for visitors
+- Bootstrap grid replaces all custom responsive CSS
+- `drop-shadow` filter on logo — follows PNG transparency, no box shadow
+
+### Testing
+
+```
+✅ Hero renders with org name, tagline, description and logo from DB
+✅ Logo drop-shadow follows PNG shape correctly
+✅ Light segment — white background, dark red text
+✅ Dark segment — dark red background, white text
+✅ Background image with 90% colour overlay on both themes
+✅ Image left layout — CTA aligns right automatically
+✅ Image right layout — CTA aligns left automatically
+✅ No image — text and CTA follow align setting (left/center/right)
+✅ 50-50 layout — equal columns
+✅ 75-25 layout — text wider, image narrower
+✅ 25-75 layout — image wider, text narrower
+✅ Image credit renders below image
+✅ Image placeholder renders when no image set
+✅ object-fit cover — fills frame, crops at 600px max height
+✅ object-fit contain — full image visible
+✅ CTA button renders with correct URL
+✅ Edit controls visible when logged in
+✅ Edit controls not in DOM for visitors
+✅ Bootstrap stacks to single column on mobile
+✅ Multiple sections render in correct order from DB
+✅ Empty sections array — no render, no errors
+✅ Deployed on Hostinger — sections render from production DB
+```
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
 
 MUST HAVE — after core features complete:
 └── newsletter_subscribers
-    ├── signup form on website
-    ├── double opt-in (GDPR required — EU law)
-    ├── confirmation email with token
-    ├── unsubscribe link in every email
-    └── confirmed subscribers list for super admin
+├── signup form on website
+├── double opt-in (GDPR required — EU law)
+├── confirmation email with token
+├── unsubscribe link in every email
+└── confirmed subscribers list for super admin
 
 Automated newsletter generation
 on events "new event" "cancelled event"
@@ -731,7 +805,7 @@ name        varchar(100) null
 confirmed   boolean default false
 token       varchar(255) null      ← temporary, cleared after confirmation
 created_at  timestamp
-````
+```
 
 ```
 Enter email → "Check your inbox for confirmation"
