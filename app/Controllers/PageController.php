@@ -57,21 +57,18 @@ class PageController extends BaseController
         $pageKey  = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/') ?: 'home';
         $sections = $this->pagesModel->getForPage($pageKey);
 
-        // SEO — built via BaseController::buildSeo()
-        // $org already available from BaseController::render()
-        require_once __DIR__ . '/../Models/OrganisationModel.php';
-        $org   = (new OrganisationModel())->get() ?? (object)[];
+        // SEO — $this->org loaded once in BaseController::__construct()
         $title = !empty($this->pageTitles[$pageKey])
-            ? $org->name . ' | ' . $this->pageTitles[$pageKey]
-            : $org->name;
+            ? $this->org->name . ' | ' . $this->pageTitles[$pageKey]
+            : $this->org->name;
 
         $seo = $this->buildSeo(
-            $org,
+            $this->org,
             $title,
-            $org->description ?? $org->tagline ?? '',
-            $org->logo_url ?? '',
+            $this->org->description ?? $this->org->tagline ?? '',
+            $this->org->logo_url ?? '',
             'website',
-            SchemaBuilder::build('organisation', $org)
+            SchemaBuilder::build('organisation', $this->org)
         );
 
         $this->render('pages/free-page', [

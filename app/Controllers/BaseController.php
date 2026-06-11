@@ -12,11 +12,16 @@
 
 class BaseController
 {
-    protected array $config;
+    protected array  $config;
+    protected object $org;
 
     public function __construct()
     {
         $this->config = require __DIR__ . '/../../config/app.php';
+
+        // Organisation data — available in all controllers and views
+        require_once __DIR__ . '/../Models/OrganisationModel.php';
+        $this->org = (new OrganisationModel())->get() ?? (object)[];
     }
 
     /**
@@ -29,24 +34,17 @@ class BaseController
      */
     protected function render(string $view, array $data = []): void
     {
-        // Available in every view automatically
+        // Always available in every view
         $data['isLoggedIn'] = $this->isLoggedIn();
         $data['config']     = $this->config;
+        $data['org']        = $this->org;
 
-        // Organisation data — available in nav, footer, every page
-        require_once __DIR__ . '/../Models/OrganisationModel.php';
-        $orgModel       = new OrganisationModel();
-        $data['org']    = $orgModel->get();
-
-        // Make data variables available in the view
         extract($data);
 
-        // Capture the view content
         ob_start();
         require __DIR__ . '/../Views/' . $view . '.php';
         $content = ob_get_clean();
 
-        // Load the main layout - $content is available inside it.
         require __DIR__ . '/../Views/layouts/main.php';
     }
 
@@ -95,9 +93,39 @@ class BaseController
         }
     }
 
+    /**
+     * Build SEO data array for any page.
+     * Used by all controllers — no duplication.
+     *
+     * @param object $org         Organisation data from organisation_info
+     * @param string $title       Page title — defaults to org name
+     * @param string $description Meta description — defaults to org description
+     * @param string $image       OG image URL — defaults to org logo
+     * @param string $type        OG type — 'website' or 'article'
+     * @param string $schema      JSON-LD schema string from SchemaBuilder
+     * @return array              $seo array for main.php
+     */
+    protected function buildSeo(
+        object $org,
+        string $title = '',
+        string $description = '',
+        string $image = '',
+        string $type = 'website',
+        string $schema = ''
+    ): array {
+        return [
+            'title'       => $title ?: $org->name,
+            'description' => $description ?: ($org->description ?? $org->tagline ?? ''),
+            'image'       => $image ?: ($org->logo_url ?? ''),
+            'url'         => 'https://' . $_SERVER['HTTP_HOST']
+                . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH),
+            'type'        => $type,
+            'schema'      => $schema,
+        ];
+    }
 
     /**
-     * Render not found page if content not found 
+     * Render 404 page.
      */
     public function renderNotFound(): void
     {
