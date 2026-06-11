@@ -109,6 +109,7 @@ create table if not exists urls (
     url             varchar(255)    not null,
     primary key (id),
     foreign key (url_type_id) references url_types(id)
+    unique key unique_entity_url (entity_type, entity_id, url)
 );
 
 
