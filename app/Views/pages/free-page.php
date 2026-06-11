@@ -5,6 +5,7 @@
  *
  * Universal view for all free-section pages.
  * Used by PageController::show() for all non-entity pages.
+ * Hero section handled via section type 'hero' in pages table.
  *
  * Variables:
  *   $sections array   From PagesModel::getForPage()

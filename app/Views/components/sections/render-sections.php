@@ -15,9 +15,18 @@
 // Absolute path — works regardless of where this file is required from
 $sectionFile  = __DIR__ . '/section.php';
 $partialsDir  = __DIR__ . '/partials/';
+$heroFile = __DIR__ . '/../hero.php';
 
 foreach ($sections as $section):
 
+
+    // Hero section — pulls from $org, no JSON content needed
+    if (($section->type ?? 'section') === 'hero') {
+        require $heroFile;
+        continue;
+    }
+
+    // Free section — extract variables from JSON content
     $theme       = $section->theme        ?? 'light';
     $bgImage     = $section->bg_image     ?? null;
     $image       = $section->image        ?? null;
