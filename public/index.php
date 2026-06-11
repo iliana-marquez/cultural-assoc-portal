@@ -8,15 +8,27 @@
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
+
+// Core
+require_once __DIR__ . '/../core/Database.php';
+require_once __DIR__ . '/../core/Router.php';
+require_once __DIR__ . '/../core/Mailer.php';
+require_once __DIR__ . '/../core/RateLimiter.php';
+require_once __DIR__ . '/../core/SchemaBuilder.php';
+
+// Models
 require_once __DIR__ . '/../app/Models/BaseModel.php';
 require_once __DIR__ . '/../app/Models/UserModel.php';
 require_once __DIR__ . '/../app/Models/EditorModel.php';
 require_once __DIR__ . '/../app/Models/OrganisationModel.php';
 require_once __DIR__ . '/../app/Models/UrlModel.php';
 require_once __DIR__ . '/../app/Models/PagesModel.php';
-require_once __DIR__ . '/../app/Controllers/ContactController.php';
-require_once __DIR__ . '/../app/Controllers/PageController.php';
 
+// Controllers
+require_once __DIR__ . '/../app/Controllers/BaseController.php';
+require_once __DIR__ . '/../app/Controllers/AuthController.php';
+require_once __DIR__ . '/../app/Controllers/PageController.php';
+require_once __DIR__ . '/../app/Controllers/ContactController.php';
 
 // Environment 
 $envPaths = [
