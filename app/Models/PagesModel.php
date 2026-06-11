@@ -32,6 +32,7 @@ class PagesModel extends BaseModel
         return array_map(function ($row) {
             $content = json_decode($row->content ?? '{}');
             // Merge page metadata with content fields
+            $content->type        = $row->type_key;
             $content->id          = $row->id;
             $content->page_key    = $row->page_key;
             $content->section_key = $row->section_key;
