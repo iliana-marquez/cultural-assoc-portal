@@ -11,15 +11,26 @@
  *  $router->post('/path', 'ControllerClass', 'method'); 
  */
 
-// Public
-$router->get('/', 'HomeController', 'index');
-
 // Editor
 $adminPath = $config['admin_path'];
-
 $router->get('/' . $adminPath,             'AuthController', 'showLogin');
 $router->post('/' . $adminPath,            'AuthController', 'sendOtp');
 $router->get('/' . $adminPath . '/verify', 'AuthController', 'showVerify');
 $router->post('/' . $adminPath . '/verify', 'AuthController', 'verifyOtp');
 $router->get('/kontakt',                    'ContactController', 'index');
 $router->get('/logout',                    'AuthController', 'logout');
+
+// ── Free pages → PageController ──────────────────────────────
+$router->get('/',                    'PageController', 'show');
+$router->get('/ueber-uns',           'PageController', 'show');
+$router->get('/alsergrund',          'PageController', 'show');
+$router->get('/partner',             'PageController', 'show');
+$router->get('/sponsoren',           'PageController', 'show');
+$router->get('/mitglied-werden',     'PageController', 'show');
+$router->get('/archiv',              'PageController', 'show');
+
+// ── Section CRUD → PageController ────────────────────────────
+$router->post('/page/section/add',              'PageController', 'addSection');
+$router->post('/page/section/{id}/save',        'PageController', 'saveSection');
+$router->post('/page/section/{id}/delete',      'PageController', 'deleteSection');
+$router->post('/page/section/reorder',          'PageController', 'reorderSections');
