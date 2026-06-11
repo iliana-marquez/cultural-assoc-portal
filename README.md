@@ -842,6 +842,135 @@ Always display existing entity URLs before showing add form.
 One URL per url_type per entity may be enforced in future (e.g. only
 one Instagram per organisation) — monitor per client deployment.
 
+## Feature: Universal Pages
+
+v1
+
+```
+section_types   → registry only (name + label)
+                  templates are hardcoded PHP partials
+                  section_types just says "this type exists"
+
+page_sections   → content per page (for now 'pages')
+                  page_key + type_key + order + JSON content
+
+partials/       → actual templates (hardcoded PHP)
+├── _content.php
+├── _image.php
+└── _controls.php
+```
+
+v2 vision:
+
+```
+
+pages           ← NEW table — page registry
+├── id
+├── page_key    → 'home', 'ueber-uns', custom pages
+├── title
+├── slug
+└── created_at
+
+page_sections   ← renamed from current 'pages' table
+├── page_id     → FK to pages table (replaces page_key string)
+├── type_key    → FK to section_types
+├── order_index
+└── content     → JSON
+
+section_types   ← template registry + dynamic field definitions
+├── type_key
+├── label
+└── fields_schema → drives dynamic template rendering
+
+```
+
+- Editor creates new pages from admin panel — no developer needed ✅
+- Pages managed in DB — not hardcoded in routes
+- Dynamic routes based on pages.slug
+- section_types.fields_schema drives template UI
+
+markdown## feat/pages-universal
+
+### Overview
+
+Universal page system replacing HomeController with a single PageController
+that handles all free-section pages. Hero section promoted to a proper
+section type — renderable on any page via the pages table. All pages
+driven by DB content with no hardcoded page logic.
+
+### Architecture
+
+Request → PageController::show()
+↓
+derives page_key from URI
+↓
+PagesModel::getForPage()
+↓
+render-sections.php
+↓
+type: 'hero' → hero.php ($org data)
+type: 'section' → section.php (JSON content)
+
+### Pages handled by PageController
+
+/ → home
+/ueber-uns → about
+/alsergrund → district portrait
+/partner → partners
+/sponsoren → sponsors
+/mitglied-werden → membership
+/archiv → archive
+
+### Section CRUD routes (edit mode)
+
+POST /page/section/add → add section to page
+POST /page/section/{id}/save → update section content
+POST /page/section/{id}/delete → hard delete section
+POST /page/section/reorder → update order_index
+
+### Key decisions
+
+- HomeController removed — PageController handles all free pages
+- Hero promoted to section type — DB-driven, renderable on any page
+- page_key derived from URI — no hardcoding per page
+- Hard delete for free sections — content blocks are recreatable
+- buildSeo() moved to BaseController — available to all controllers
+- $org loaded once in BaseController constructor — no duplicate DB calls
+- section type mapped in PagesModel — type_key → $section->type
+
+### v2 notes
+
+- pages table → page_sections (rename)
+- NEW pages table for page registry — dynamic routing from slug
+- section_types.fields_schema → drives dynamic template system
+- i18n — UI strings via gettext .po/.mo files
+- SEO keywords column on organisation_info and page_sections
+
+### Bugs fixed
+
+- type_key not mapped in PagesModel::getForPage() → hero not rendering
+- hero hardcoded in home.php → moved to section type in pages table
+- OrganisationModel duplicate fetch → $this->org in BaseController
+- SchemaBuilder not loaded globally → added to index.php
+- Missing requires in index.php → AuthController, core files
+
+### Testing
+
+✅ Homepage renders — hero from DB + intro section from DB
+✅ Hero pulls org name, tagline, description, logo from organisation_info
+✅ /ueber-uns — placeholder renders, logged-in editor sees add button
+✅ /alsergrund — placeholder renders
+✅ /partner — placeholder renders
+✅ /sponsoren — placeholder renders
+✅ /mitglied-werden — placeholder renders
+✅ /archiv — placeholder renders
+✅ /kontakt — unaffected, ContactController still handles it
+✅ Edit bar visible on all pages when logged in
+✅ Section controls visible on sections when logged in
+✅ SEO title correct per page
+✅ 404 still works
+✅ Deployed and tested on Hostinger staging
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
@@ -865,7 +994,7 @@ name        varchar(100) null
 confirmed   boolean default false
 token       varchar(255) null      ← temporary, cleared after confirmation
 created_at  timestamp
-```
+````
 
 ```
 Enter email → "Check your inbox for confirmation"
