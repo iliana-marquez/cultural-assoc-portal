@@ -11,7 +11,7 @@
  *  $router->post('/path', 'ControllerClass', 'method'); 
  */
 
-// Editor
+// ── Editor ────────────────────────────────────────────────
 $adminPath = $config['admin_path'];
 $router->get('/' . $adminPath,             'AuthController', 'showLogin');
 $router->post('/' . $adminPath,            'AuthController', 'sendOtp');
@@ -20,7 +20,7 @@ $router->post('/' . $adminPath . '/verify', 'AuthController', 'verifyOtp');
 $router->get('/kontakt',                    'ContactController', 'index');
 $router->get('/logout',                    'AuthController', 'logout');
 
-// ── Free pages → PageController ──────────────────────────────
+// ── Free Pages (non entity-specific) → PageController ───────
 $router->get('/',                    'PageController', 'show');
 $router->get('/ueber-uns',           'PageController', 'show');
 $router->get('/alsergrund',          'PageController', 'show');
