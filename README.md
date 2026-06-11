@@ -782,6 +782,66 @@ render-sections.php ← free sections from pages table
 ✅ Deployed on Hostinger — sections render from production DB
 ```
 
+## feat/contact-page
+
+### Overview
+
+Contact page displaying organisation info and a static contact form.
+All data driven from DB — zero hardcoded content except website credit.
+
+### Structure
+
+```
+Free section (pages table) ← editor customisable intro
+Contact info (organisation_info + urls table)
+├── Anfragen & Feedback → email (mailto link)
+├── Veranstalter → org name + address
+├── Social links → from urls table (Instagram, Facebook, YouTube)
+├── ZVR registration number
+└── Website credit (hardcoded — product attribution)
+Static contact form ← functionality in feat/contact-form
+
+```
+
+### Key decisions
+
+```
+
+- Social links fetched from `urls` table — not hardcoded
+- `mailto:` link on email — opens visitor's email client directly
+- Form extracted as component-ready structure for reuse across pages
+- Website credit hardcoded — deployment-independent product attribution
+```
+
+### Testing
+
+```
+✅ Org name, email, address render from organisation_info
+✅ Social icons render with correct URLs from urls table
+✅ mailto link opens email client
+✅ Registration number renders
+✅ Website credit displays correctly
+✅ Static form renders — name, email, message, send button
+✅ Bootstrap two column layout — info left, form right
+✅ Stacks to single column on mobile
+✅ Free intro section renders from pages table
+✅ Page renders correctly on Hostinger staging
+```
+
+## URL Uniqueness — Edge Case
+
+**DB level:** `UNIQUE KEY unique_entity_url (entity_type, entity_id, url)`
+prevents duplicate URLs at database level regardless of app logic.
+
+**App level:** `UrlModel::add()` checks for existing URL before INSERT —
+returns `false` if duplicate detected.
+
+**UX note (feat/edit-mode):**
+Always display existing entity URLs before showing add form.
+`add()` returning false → show "URL already exists" message to editor.
+One URL per url_type per entity may be enforced in future (e.g. only
+one Instagram per organisation) — monitor per client deployment.
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
@@ -877,3 +937,11 @@ Mentions:
 [Tabler-Icons](https://tabler.io/icons)
 
 🛠️ _Developed by [Iliana Márquez](https://ilianamarquez.com)_
+
+```
+
+```
+
+```
+
+```
