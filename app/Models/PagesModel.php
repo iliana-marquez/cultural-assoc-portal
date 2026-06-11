@@ -3,7 +3,7 @@
 /**
  * PagesModel
  *
- * Fetches page sections from the pages table.
+ * Fetches page sections (pages table) from the pages table.
  * Each row is a section belonging to a page.
  * Content stored as JSON — decoded to object on fetch.
  */
@@ -32,6 +32,7 @@ class PagesModel extends BaseModel
         return array_map(function ($row) {
             $content = json_decode($row->content ?? '{}');
             // Merge page metadata with content fields
+            $content->type        = $row->type_key;
             $content->id          = $row->id;
             $content->page_key    = $row->page_key;
             $content->section_key = $row->section_key;
@@ -85,6 +86,22 @@ class PagesModel extends BaseModel
         return $this->execute(
             "DELETE FROM {$this->table} WHERE id = ?",
             [$id]
+        );
+    }
+
+    /**
+     * Update section order index.
+     * Used by reorderSections() in PageController.
+     *
+     * @param int $id         Section row ID
+     * @param int $orderIndex New order index
+     * @return bool
+     */
+    public function updateOrder(int $id, int $orderIndex): bool
+    {
+        return $this->execute(
+            "UPDATE {$this->table} SET order_index = ? WHERE id = ?",
+            [$orderIndex, $id]
         );
     }
 }
