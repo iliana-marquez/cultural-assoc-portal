@@ -42,7 +42,7 @@
                     <?php if (!empty($org->street)): ?>
                         <p class="contact-address">
                             <i class="ti ti-map-pin"></i>
-                            <?= htmlspecialchars($org->street) ?>,<br>
+                            <?= htmlspecialchars($org->street) ?>,
                             <?= htmlspecialchars($org->postcode) ?>
                             <?= htmlspecialchars($org->city) ?>
                         </p>
@@ -57,7 +57,7 @@
                                 <a href="<?= htmlspecialchars($url->url) ?>"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    title="<?= htmlspecialchars($url->label) ?>">
+                                    title="<?= htmlspecialchars($url->type_label) ?>">
                                     <i class="ti <?= htmlspecialchars($url->icon) ?>"></i>
                                 </a>
                             <?php endforeach; ?>
@@ -68,16 +68,14 @@
                 <!-- Registration number -->
                 <?php if (!empty($org->registration_number)): ?>
                     <div class="contact-block">
-                        <p>
-                            ZVR-Zahl: <?= htmlspecialchars($org->registration_number) ?>
-                        </p>
+                        <small>ZVR: <?= htmlspecialchars($org->registration_number) ?></small>
                     </div>
                 <?php endif; ?>
 
                 <!-- Website credit -->
                 <div class="contact-block contact-credit">
                     <h2>Websitegestaltung</h2>
-                    <p>Christina Mayer <small>(2025)</small></p>
+                    <p>Christina Mayer <small>(2025)</small> </p>
                     <a href="https://ilianamarquez.com" target="_blank" rel="noopener noreferrer">
                         Iliana Márquez <small>(2026)</small>
                     </a>
@@ -91,7 +89,7 @@
                 <div class="contact-form-wrap">
                     <h2>Nachricht senden</h2>
 
-                    <div class="form">
+                    <div class="contact-form">
 
                         <div class="form-group">
                             <label for="contact-name">Name</label>

@@ -1021,6 +1021,259 @@ ALTER TABLE team ADD COLUMN profession varchar(150) null AFTER role;
 - ✅ Edit bar visible when logged in
 - ✅ Free intro sections render on listing page
 
+## feat/programme
+
+```
+
+Models:
+├── VenueModel
+├── ParticipantModel
+├── EventModel
+└── MediaModel
+
+Controllers:
+├── ParticipantController  (listing + detail)
+└── EventController        (listing + detail + CRUD)
+
+Views:
+├── pages/events.php           ← listing (upcoming + past)
+├── pages/event-detail.php     ← single event
+├── pages/participants.php     ← listing
+└── pages/participant-detail.php ← single participant
+```
+
+- Entities: venues, participants, events, media — all polymorphic where needed
+- Controllers: EventController, ParticipantController, VenueController, MediaController
+- Public pages: /veranstaltungen, /veranstaltungen/{slug}, /kuenstlerinnen, /kuenstlerinnen/{slug}
+- No public page: venues, media — managed through edit mode only
+- Archive: EventModel::getArchive() — pre-2025 filter, same table
+- Media: polymorphic — promo/gallery per entity, usable in sections
+- Participants: persons + ensembles, name auto-generated from fields
+- Status: date-derived at app level — no DB column
+
+On Controllers and Entities:
+
+- Hard delete on Venue, Media and Participants, cascade effect - if a picture belongs to may events, or a venue... ? Revise relations
+- if the name is automatic handled by the app, should we have 4 entries? (fist, last, title + name?) when editing the app level validation for data entry should be enogh, or?
+-
+
+## feat/programme
+
+### Overview
+
+Full cultural programme system — events, participants, venues and media.
+Archive driven by date filter — no separate table needed.
+URLs and media use pivot architecture — one record shared across many entities.
+
+---
+
+### Entities and Models
+
+#### VenueModel
+
+Physical locations reused across events.
+
+```
+venues
+├── name, street, postcode, city, country
+└── FK: events.venue_id → ON DELETE SET NULL
+Delete venue → events unlinked (venue_id = null), events preserved. ✅
+```
+
+#### ParticipantModel
+
+External contributors — individuals and groups.
+
+```
+participants
+├── type: 'individual' | 'group'
+├── individual → title + first_name + last_name
+├── group → first_name only (full group name)
+└── FK: category_id → participants_categories ON DELETE SET NULL
+`displayName()` builds display string at app level — not stored in DB.
+`generateSlug()` builds URL slug from displayName — not stored in DB.
+Categories optional — participant stays if category deleted. ✅
+```
+
+#### EventModel
+
+Programme events — current and historical.
+
+```
+events
+├── date NOT NULL — unknown historical dates use placeholder
+├── status derived at app level from date (upcoming/past)
+├── slug generated at app level from title
+├── FK: venue_id → ON DELETE SET NULL
+├── FK: category_id → ON DELETE SET NULL
+└── FK: project_id → ON DELETE SET NULL
+Archive threshold: `ARCHIVE_YEAR = 2025`
+/veranstaltungen → date >= 2025-01-01
+/archiv → date < 2025-01-01
+```
+
+#### MediaModel — pivot architecture
+
+```
+media (stored once)
+├── media_url UNIQUE
+├── stage: 'promo' | 'gallery'
+└── order_index
+entity_media (pivot)
+├── media_id → FK media ON DELETE CASCADE
+├── entity_type → 'event' | 'participant' | 'venue' | 'organisation' | 'team'
+└── entity_id
+One media item linked to many entities.
+Fix caption once → reflects everywhere. ✅
+Delete entity → unlink pivot row → media preserved if linked elsewhere.
+Delete media → CASCADE removes all pivot links. ✅
+```
+
+#### UrlModel — pivot architecture
+
+```
+urls (stored once)
+├── url UNIQUE
+├── url_type_id → FK url_types
+└── label
+entity_urls (pivot)
+├── url_id → FK urls ON DELETE CASCADE
+├── entity_type → 'event' | 'participant' | 'team' | 'organisation' | 'venue'
+└── entity_id
+One URL linked to many entities.
+Barockfestival URL stored once → linked to events 7, 8, 9. ✅
+Fix URL once → reflects on all linked entities. ✅
+Manager never deals with duplicate URL maintenance. ✅
+```
+
+#### EventModel — pivot relationships
+
+```
+event_participants (many-to-many pivot)
+├── event_id → FK events ON DELETE CASCADE
+└── participant_id → FK participants ON DELETE CASCADE
+Delete event → pivot rows cascade. ✅
+Delete participant → removed from all events automatically. ✅
+```
+
+---
+
+### Why pivot over polymorphic direct linking
+
+**Before (polymorphic direct):**
+
+```
+urls
+├── entity_type → 'event'
+├── entity_id → 7
+└── url → 'barockfestival.at'
+
+urls
+├── entity_type → 'event'
+├── entity_id → 8
+└── url → 'barockfestival.at' ← stored twice
+```
+
+URL changes → must update 3 rows. Manager may only find one. ❌
+
+**After (pivot):**
+
+```
+urls
+└── id: 10, url: 'barockfestival.at' ← stored once
+entity_urls
+├── url_id: 10, entity_type: 'event', entity_id: 7
+├── url_id: 10, entity_type: 'event', entity_id: 8
+└── url_id: 10, entity_type: 'event', entity_id: 9
+```
+
+URL changes → update once → all linked entities reflect change. ✅
+
+---
+
+### Participant type system
+
+```
+type: individual
+├── title (optional) → Dr., Mag., Prof.
+├── first_name → required
+├── last_name → required
+└── displayName() → "Dr. Anton Guberov"
+type: group
+├── first_name → full group name e.g. "Ensemble Freymut"
+├── last_name → null
+└── displayName() → "Ensemble Freymut"
+Categories handle what kind of group (Ensemble, Orchestra, Theatre).
+Type handles HOW the name is displayed. ✅
+```
+
+---
+
+### Slug generation
+
+No slug column in DB — generated at app level:
+
+```php
+// Events
+EventModel::generateSlug($event->title)
+→ 'wortwitz-saitenspiel'
+
+// Participants
+ParticipantModel::generateSlug($participant)
+→ calls displayName() first
+→ 'peter-nolan' | 'ensemble-musik'
+
+// Team
+TeamModel::generateSlug($member->first_name, $member->last_name)
+→ 'monica-schuhmacher'
+```
+
+Name changes → slug changes automatically. No migration needed. ✅
+
+---
+
+### Controllers
+
+```
+EventController
+├── GET /veranstaltungen → index() — upcoming + past
+├── GET /veranstaltungen/{slug} → show() — detail
+├── GET /archiv → archive() — pre-2025
+├── POST /events/add → add()
+├── POST /events/{id}/save → save()
+├── POST /events/{id}/delete → delete()
+├── POST /events/{id}/participant/add → addParticipant()
+└── POST /events/{id}/participant/remove → removeParticipant()
+ParticipantController
+├── GET /kuenstlerinnen → index()
+├── GET /kuenstlerinnen/{slug} → show()
+├── POST /participants/add → add()
+├── POST /participants/{id}/save → save()
+└── POST /participants/{id}/delete → delete()
+```
+
+---
+
+### Testing
+
+- ✅ /veranstaltungen — upcoming and past events render
+- ✅ Event cards — title, date, venue, category, promo image
+- ✅ /veranstaltungen/{slug} — full event detail
+- ✅ Participants render as chips with links on event detail
+- ✅ Review renders on past events
+- ✅ /archiv — pre-2025 events render
+- ✅ /kuenstlerinnen — all participants render as cards
+- ✅ individual: title + first + last name displayed
+- ✅ group: first_name only displayed
+- ✅ /kuenstlerinnen/{slug} — participant detail
+- ✅ Events list on participant detail
+- ✅ Cross-reference: event → participant → event ✅
+- ✅ Social URLs render via entity_urls pivot
+- ✅ Promo images render via entity_media pivot
+- ✅ 404 for unknown slugs
+- ✅ Edit bar visible when logged in
+- ✅ Deployed and tested on Hostinger staging
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES

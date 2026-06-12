@@ -24,6 +24,10 @@ require_once __DIR__ . '/../app/Models/OrganisationModel.php';
 require_once __DIR__ . '/../app/Models/UrlModel.php';
 require_once __DIR__ . '/../app/Models/PagesModel.php';
 require_once __DIR__ . '/../app/Models/TeamModel.php';
+require_once __DIR__ . '/../app/Models/VenueModel.php';
+require_once __DIR__ . '/../app/Models/ParticipantModel.php';
+require_once __DIR__ . '/../app/Models/EventModel.php';
+require_once __DIR__ . '/../app/Models/MediaModel.php';
 
 // Controllers
 require_once __DIR__ . '/../app/Controllers/BaseController.php';
@@ -31,6 +35,8 @@ require_once __DIR__ . '/../app/Controllers/AuthController.php';
 require_once __DIR__ . '/../app/Controllers/PageController.php';
 require_once __DIR__ . '/../app/Controllers/ContactController.php';
 require_once __DIR__ . '/../app/Controllers/TeamController.php';
+require_once __DIR__ . '/../app/Controllers/EventController.php';
+require_once __DIR__ . '/../app/Controllers/ParticipantController.php';
 
 // Environment 
 $envPaths = [

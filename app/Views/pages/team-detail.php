@@ -31,7 +31,7 @@
                         </span>
                     <?php endif; ?>
                 <?php else: ?>
-                    <div class="team-detail-image-placeholder">
+                    <div class="section-image-placeholder">
                         <i class="ti ti-user"></i>
                     </div>
                 <?php endif; ?>
@@ -47,6 +47,9 @@
                         <h2><?= htmlspecialchars($member->role) ?></h2>
                     <?php endif; ?>
 
+                    <?php if (!empty($member->profession)): ?>
+                        <p><strong><?= htmlspecialchars($member->profession) ?></strong></p>
+                    <?php endif; ?>
 
                     <?php if (!empty($member->motto)): ?>
                         <blockquote>
@@ -59,26 +62,24 @@
                     <?php endif; ?>
 
                     <!-- URLs -->
-                    <hr>
                     <?php if (!empty($urls)): ?>
                         <nav class="nav-socials" aria-label="<?= htmlspecialchars(TeamModel::displayName($member)) ?> Links">
                             <?php foreach ($urls as $url): ?>
                                 <a href="<?= htmlspecialchars($url->url) ?>"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    title="<?= htmlspecialchars($url->label) ?>">
+                                    title="<?= htmlspecialchars($url->type_label) ?>">
                                     <i class="ti <?= htmlspecialchars($url->icon) ?>"></i>
-                                    <?= htmlspecialchars($url->label) ?>
                                 </a>
                             <?php endforeach; ?>
                         </nav>
                     <?php endif; ?>
 
                 </div>
-
             </div>
-            <a href="/team" class="justify-content-end">
-                <i class="ti ti-arrow-left"></i>
+            <hr>
+            <a href="/team" class="d-flex align-items-end">
+                <i class="ti ti-arrow-left align-items-"></i> Team
             </a>
 
         </div>

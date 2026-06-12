@@ -27,7 +27,6 @@ $router->get('/alsergrund',          'PageController', 'show');
 $router->get('/partner',             'PageController', 'show');
 $router->get('/sponsoren',           'PageController', 'show');
 $router->get('/mitglied-werden',     'PageController', 'show');
-$router->get('/archiv',              'PageController', 'show');
 
 // ── Section CRUD → PageController ────────────────────────────
 $router->post('/page/section/add',              'PageController', 'addSection');
@@ -44,3 +43,22 @@ $router->get('/team/{slug}',      'TeamController', 'show');
 $router->post('/team/add',       'TeamController', 'add');
 $router->post('/team/{id}/save', 'TeamController', 'save');
 $router->post('/team/{id}/delete', 'TeamController', 'delete');
+
+
+// ── Events CRUD → EventController ──────────────────────────────
+$router->get('/veranstaltungen',              'EventController', 'index');
+$router->get('/veranstaltungen/{slug}',       'EventController', 'show');
+$router->get('/archiv',                       'EventController', 'archive');
+$router->post('/events/add',                  'EventController', 'add');
+$router->post('/events/{id}/save',            'EventController', 'save');
+$router->post('/events/{id}/delete',          'EventController', 'delete');
+$router->post('/events/{id}/participant/add', 'EventController', 'addParticipant');
+$router->post('/events/{id}/participant/remove', 'EventController', 'removeParticipant');
+
+
+// ── Participants CRUD → ParticipantController ─────────────────────
+$router->get('/kuenstlerinnen',               'ParticipantController', 'index');
+$router->get('/kuenstlerinnen/{slug}',        'ParticipantController', 'show');
+$router->post('/participants/add',            'ParticipantController', 'add');
+$router->post('/participants/{id}/save',      'ParticipantController', 'save');
+$router->post('/participants/{id}/delete',    'ParticipantController', 'delete');
