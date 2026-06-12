@@ -59,6 +59,7 @@
                     <?php endif; ?>
 
                     <!-- URLs -->
+                    <hr>
                     <?php if (!empty($urls)): ?>
                         <nav class="nav-socials" aria-label="<?= htmlspecialchars(TeamModel::displayName($member)) ?> Links">
                             <?php foreach ($urls as $url): ?>
@@ -67,11 +68,11 @@
                                     rel="noopener noreferrer"
                                     title="<?= htmlspecialchars($url->label) ?>">
                                     <i class="ti <?= htmlspecialchars($url->icon) ?>"></i>
+                                    <?= htmlspecialchars($url->label) ?>
                                 </a>
                             <?php endforeach; ?>
                         </nav>
                     <?php endif; ?>
-
 
                 </div>
 
