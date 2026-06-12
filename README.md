@@ -889,7 +889,7 @@ section_types   ← template registry + dynamic field definitions
 - Dynamic routes based on pages.slug
 - section_types.fields_schema drives template UI
 
-markdown## feat/pages-universal
+## feat/pages-universal
 
 ### Overview
 
@@ -956,20 +956,70 @@ POST /page/section/reorder → update order_index
 
 ### Testing
 
-✅ Homepage renders — hero from DB + intro section from DB
-✅ Hero pulls org name, tagline, description, logo from organisation_info
-✅ /ueber-uns — placeholder renders, logged-in editor sees add button
-✅ /alsergrund — placeholder renders
-✅ /partner — placeholder renders
-✅ /sponsoren — placeholder renders
-✅ /mitglied-werden — placeholder renders
-✅ /archiv — placeholder renders
-✅ /kontakt — unaffected, ContactController still handles it
-✅ Edit bar visible on all pages when logged in
-✅ Section controls visible on sections when logged in
-✅ SEO title correct per page
-✅ 404 still works
-✅ Deployed and tested on Hostinger staging
+- ✅ Homepage renders — hero from DB + intro section from DB
+- ✅ Hero pulls org name, tagline, description, logo from organisation_info
+- ✅ /ueber-uns — placeholder renders, logged-in editor sees add button
+- ✅ /alsergrund — placeholder renders
+- ✅ /partner — placeholder renders
+- ✅ /sponsoren — placeholder renders
+- ✅ /mitglied-werden — placeholder renders
+- ✅ /archiv — placeholder renders
+- ✅ /kontakt — unaffected, ContactController still handles it
+- ✅ Edit bar visible on all pages when logged in
+- ✅ Section controls visible on sections when logged in
+- ✅ SEO title correct per page
+- ✅ 404 still works
+- ✅ Deployed and tested on Hostinger staging
+
+## feat/team
+
+### Overview
+
+Team listing and detail pages. Member cards link to individual
+profile pages with full biography, motto, profession and social links.
+Slug generated at app level — no DB column needed.
+
+### Architecture
+
+GET /team → TeamController::index()
+PagesModel::getForPage('team') — free intro sections
+TeamModel::getAll() — member cards
+GET /team/{slug} → TeamController::show()
+TeamModel::getBySlug() — finds member by app-generated slug
+UrlModel::getForEntity('team', $id) — member URLs
+POST /team/add → TeamController::add()
+POST /team/{id}/save → TeamController::save()
+POST /team/{id}/delete → TeamController::delete()
+
+### Key decisions
+
+- Slug generated from first + last name at app level — no DB column
+- `iconv UTF-8 → ASCII//TRANSLIT` handles umlauts in slugs
+- Hard delete — team members not historical record for this system
+- URLs via polymorphic urls table — same pattern as organisation
+- `TeamModel::displayName()` — static helper, title + first + last name
+- `TeamModel::generateSlug()` — static helper, single source of truth
+- Detail page SEO uses biography excerpt or motto as description
+
+### Schema changes
+
+```sql
+ALTER TABLE team ADD COLUMN profession varchar(150) null AFTER role;
+```
+
+### Testing
+
+- ✅ Team listing renders member cards
+- ✅ Cards link to /team/{slug}
+- ✅ Detail page renders all member fields
+- ✅ Placeholder renders when no image
+- ✅ Image credit renders when set
+- ✅ Member URLs render as icons
+- ✅ Back button returns to /team
+- ✅ 404 for unknown slug
+- ✅ SEO title correct on listing and detail
+- ✅ Edit bar visible when logged in
+- ✅ Free intro sections render on listing page
 
 <!--
 
@@ -1066,11 +1116,3 @@ Mentions:
 [Tabler-Icons](https://tabler.io/icons)
 
 🛠️ _Developed by [Iliana Márquez](https://ilianamarquez.com)_
-
-```
-
-```
-
-```
-
-```
