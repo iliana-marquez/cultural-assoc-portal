@@ -34,3 +34,13 @@ $router->post('/page/section/add',              'PageController', 'addSection');
 $router->post('/page/section/{id}/save',        'PageController', 'saveSection');
 $router->post('/page/section/{id}/delete',      'PageController', 'deleteSection');
 $router->post('/page/section/reorder',          'PageController', 'reorderSections');
+
+// ── Tean CRUD → TeamController ───────────────────────────────
+// GET
+$router->get('/team',             'TeamController', 'index');
+$router->get('/team/{slug}',      'TeamController', 'show');
+
+// POST
+$router->post('/team/add',       'TeamController', 'add');
+$router->post('/team/{id}/save', 'TeamController', 'save');
+$router->post('/team/{id}/delete', 'TeamController', 'delete');

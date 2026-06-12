@@ -124,6 +124,7 @@ create table if not exists team (
     last_name       varchar(100)    not null,
     title           varchar(100)    null,
     role            varchar(150)    not null,
+    profession      varchar(150)    null,
     motto           text            null,
     biography       text            null,
     image           varchar(255)    null,
