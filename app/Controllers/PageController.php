@@ -37,7 +37,6 @@ class PageController extends BaseController
         'partner'         => 'Partner',
         'sponsoren'       => 'Sponsoren',
         'mitglied-werden' => 'Mitglied werden',
-        'archiv'          => 'Archiv',
     ];
 
     public function __construct()
