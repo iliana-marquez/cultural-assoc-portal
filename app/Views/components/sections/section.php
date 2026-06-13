@@ -12,7 +12,7 @@
  *   $image       string|null Cloudinary URL for section image
  *   $imageCredit string|null Photographer credit
  *   $imagePos    string      'left' | 'right' | 'none'
- *   $layout      string      '50-50' | '75-25' | '25-75'
+ *   $layout      string      '50-50' | '75-25' | '25-75' | '100-100'
  *   $align       string      'left' | 'center' | 'right'
  *   $title       string|null
  *   $subtitle    string|null
@@ -28,9 +28,10 @@ $bgStyle = !empty($bgImage)
     : '';
 
 $cols = match ($layout ?? '50-50') {
-    '75-25' => ['text' => 'col-12 col-md-8', 'image' => 'col-12 col-md-4'],
-    '25-75' => ['text' => 'col-12 col-md-4', 'image' => 'col-12 col-md-8'],
-    default  => ['text' => 'col-12 col-md-6', 'image' => 'col-12 col-md-6'],
+    '75-25'   => ['text' => 'col-12 col-md-8', 'image' => 'col-12 col-md-4'],
+    '25-75'   => ['text' => 'col-12 col-md-4', 'image' => 'col-12 col-md-8'],
+    '100-100' => ['text' => 'col-12',          'image' => 'col-12'],
+    default   => ['text' => 'col-12 col-md-6', 'image' => 'col-12 col-md-6'],
 };
 
 $alignClass = match ($align ?? 'left') {
