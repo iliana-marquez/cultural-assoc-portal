@@ -1,26 +1,16 @@
 <?php
 
 /**
- * _image.php
- *
- * Section image partial.
- * Three states:
- *   1. Has image         → image + edit overlay (logged in)
- *   2. No image, logged in → placeholder + upload btn (always rendered, JS shows/hides col)
- *   3. No image, visitor  → nothing (col never rendered for visitors)
- *
- * Note: PHP cannot know if editor will toggle to image block later.
- * Placeholder always rendered when logged in — JS controls col visibility.
+ * _image.php — Section image partial.
+ * Uses .img-placeholder.block-img for consistent dimensions.
  */
 ?>
 
 <?php if (!empty($image)): ?>
 
-    <!-- Has image -->
-    <div class="section-image-wrap">
+    <div class="img-placeholder block-img">
         <img src="<?= htmlspecialchars($image) ?>"
             alt="<?= htmlspecialchars($title ?? '') ?>"
-            class="section-image"
             style="object-fit: <?= htmlspecialchars($objectFit ?? 'cover') ?>;">
 
         <?php if ($isLoggedIn): ?>
@@ -45,8 +35,7 @@
 
 <?php elseif ($isLoggedIn): ?>
 
-    <!-- No image — placeholder with upload btn (always for logged in editors) -->
-    <div class="section-image-placeholder">
+    <div class="img-placeholder block-img">
         <i class="ti ti-photo"></i>
         <label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">
             <i class="ti ti-photo-plus"></i> Bild hinzufügen
