@@ -1274,6 +1274,165 @@ ParticipantController
 - ✅ Edit bar visible when logged in
 - ✅ Deployed and tested on Hostinger staging
 
+## feat/cloudinary
+
+### Overview
+
+Server-side Cloudinary integration for image and video uploads.
+No SDK — pure PHP curl against Cloudinary REST API.
+Files organised per client deployment via CLOUDINARY_FOLDER env var.
+Media linked to any entity via polymorphic pivot table.
+
+---
+
+### Architecture
+
+```
+Editor uploads file (edit mode)
+↓
+MediaController::upload()
+↓
+CloudinaryService::upload()
+├── detects resource_type (image | video)
+├── generates public_id from entity context
+├── signs request with API secret
+└── POSTs to Cloudinary REST API
+↓
+Returns secure_url + public_id + resource_type
+↓
+MediaModel::addForEntity()
+├── inserts into media table (url, resource_type, stage, caption)
+└── links to entity via entity_media pivot
+↓
+Views read resource_type → render <img> or <video>
+```
+
+### Cloudinary folder structure
+
+```
+CLOUDINARY_FOLDER/ ← from .env e.g. 'ows/wkk'
+├── team/ ← team member photos
+├── events/ ← event promo + gallery
+├── participants/ ← artist photos
+└── pages/ ← section background images
+
+Per client deployment — set `CLOUDINARY_FOLDER=ows/client-name` in `.env`. ✅
+```
+
+### Resource types
+
+- image → jpg, png, webp, gif — renders as <img> with zoomable class
+- video → mp4, mov, webm — renders as <video controls>
+- Detected automatically from file mime type — no editor choice needed. ✅
+
+### Signature generation
+
+Cloudinary requires signed requests for server-side uploads:
+
+```php
+ksort($params);
+$paramString = key=value&key=value (plain concatenation, no URL encoding)
+$signature   = sha1($paramString . $apiSecret)
+```
+
+No URL encoding — common mistake that causes Invalid Signature errors. ✅
+
+### Environment variables
+
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key ← Admin role for full access
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_FOLDER=ows/client-name ← per deployment
+
+### Media delete flow
+
+```
+Editor deletes media item
+↓
+MediaModel::unlinkFromEntity() → removes pivot row
+↓
+Check remaining links → if none → delete media record
+↓
+CloudinaryService::delete(publicId, resourceType)
+→ removes from Cloudinary storage ✅
+```
+
+### Additional features
+
+**Zoomable images** — event detail media renders with `.zoomable` class:
+
+```css
+.zoomable {
+  cursor: zoom-in;
+}
+```
+
+Click → opens full Cloudinary URL in new tab. No library needed. ✅
+
+### Files
+
+core/CloudinaryService.php ← upload, delete, generatePublicId
+app/Controllers/MediaController.php ← upload, delete, reorder routes
+app/Models/MediaModel.php ← resource_type added
+app/Models/EventModel.php ← admission + ticket_url added
+app/Views/pages/event-detail.php ← zoomable media, admission display
+public/assets/css/main.css ← zoomable CSS
+public/assets/js/app.js ← click-to-zoom JS
+
+### Testing
+
+- ✅ CloudinaryService uploads image — returns secure_url
+- ✅ CloudinaryService uploads video — returns secure_url
+- ✅ Signature generation correct — no Invalid Signature error
+- ✅ File appears in Cloudinary Media Library under correct folder
+- ✅ resource_type stored correctly in media table
+- ✅ entity_media pivot linked correctly
+- ✅ event-detail renders image with zoomable class
+- ✅ event-detail renders video with controls
+- ✅ Click zoomable image → opens full size in new tab
+- ✅ Admission free → Eintritt frei renders
+- ✅ Admission donation → Spenden willkommen renders
+- ✅ Admission ticket → Tickets kaufen link renders
+
+## feat/event-detail-enhancements (on main)
+
+**Event admission** — new column on events table:
+
+Admission system:
+
+```
+3 types:
+├── free → 🤝 Eintritt frei · Spenden willkommen
+├── donation → 🤝 Eintritt frei · Spenden willkommen ab {amount}
+├── reserve → 🎫 Anmeldung erforderlich + Jetzt anmelden button
+└── ticket → 🎫 Tickets: {amount} + Tickets kaufen button
+
+3 columns on events table:
+├── admission varchar(50) — type
+├── admission_amount varchar(100) — flexible amount string
+└── admission_url varchar(255) — action link (reserve + ticket only)
+```
+
+Event detail layout restructure:
+
+- Row 1: [Promo image / carousel] | [Title, meta, description, participants, admission]
+- Row 2: [Review] | [Video] (only if content exists)
+- Row 3: [Gallery grid — zoomable]
+- Back link
+
+Media improvements:
+
+- Multiple promo images → Bootstrap carousel
+- Single promo image → static + zoomable
+- Gallery images → grid, zoomable
+- Videos → detected by URL extension (no DB column)
+- Zoomable → scale on hover + click opens full size
+
+CSS/UX fixes:
+
+- btn-section → inline-flex, icon + text aligned
+- nav-icon-ux → new class for back links with icon
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
@@ -1297,7 +1456,7 @@ name        varchar(100) null
 confirmed   boolean default false
 token       varchar(255) null      ← temporary, cleared after confirmation
 created_at  timestamp
-````
+```
 
 ```
 Enter email → "Check your inbox for confirmation"
