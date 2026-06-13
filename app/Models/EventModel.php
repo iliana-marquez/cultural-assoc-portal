@@ -195,8 +195,8 @@ class EventModel extends BaseModel
         return $this->execute(
             "INSERT INTO {$this->table}
              (project_id, category_id, title, subtitle, description,
-              date, time, venue_id, review)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              date, time, venue_id, review, admission, ticket_url)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $data['project_id']   ?? null,
                 $data['category_id']  ?? null,
@@ -207,6 +207,8 @@ class EventModel extends BaseModel
                 $data['time']         ?? null,
                 $data['venue_id']     ?? null,
                 $data['review']       ?? null,
+                $data['admission']    ?? null,
+                $data['admission_url']   ?? null,
             ]
         );
     }
@@ -219,7 +221,8 @@ class EventModel extends BaseModel
         return $this->execute(
             "UPDATE {$this->table}
              SET project_id = ?, category_id = ?, title = ?, subtitle = ?,
-                 description = ?, date = ?, time = ?, venue_id = ?, review = ?
+                 description = ?, date = ?, time = ?, venue_id = ?,
+                 review = ?, admission = ?, ticket_url = ?
              WHERE id = ?",
             [
                 $data['project_id']   ?? null,
@@ -231,6 +234,8 @@ class EventModel extends BaseModel
                 $data['time']         ?? null,
                 $data['venue_id']     ?? null,
                 $data['review']       ?? null,
+                $data['admission']    ?? null,
+                $data['admission_url']  ?? null,
                 $id,
             ]
         );
