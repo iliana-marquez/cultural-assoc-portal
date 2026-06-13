@@ -15,6 +15,8 @@ require_once __DIR__ . '/../core/Router.php';
 require_once __DIR__ . '/../core/Mailer.php';
 require_once __DIR__ . '/../core/RateLimiter.php';
 require_once __DIR__ . '/../core/SchemaBuilder.php';
+require_once __DIR__ . '/../core/CloudinaryService.php';
+require_once __DIR__ . '/../app/Controllers/MediaController.php';
 
 // Models
 require_once __DIR__ . '/../app/Models/BaseModel.php';
