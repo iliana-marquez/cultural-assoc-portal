@@ -1,13 +1,6 @@
 /**
  * edit-mode.js
  * kulturCMS — Inline edit mode for sections and entity records.
- *
- * Behaviours:
- *   - Edit button visible on all blocks when editor logged in
- *   - Click Edit → activates block (border, controls, contenteditable)
- *   - Click Save → AJAX POST → saves to DB → deactivates
- *   - Click Cancel → discards changes → deactivates
- *   - One active block at a time — warns on unsaved changes
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -17,16 +10,15 @@ document.addEventListener('DOMContentLoaded', function () {
     let hasUnsaved = false;
     let originalValues = {};
 
-    // ── Block activation ──────────────────────────────────────
+    // ──────────────────────────────────────────────────────────
+    // FREE SECTIONS — editable-block
+    // ──────────────────────────────────────────────────────────
 
     function activateBlock(block) {
-        // Warn if another block has unsaved changes
         if (activeBlock && activeBlock !== block && hasUnsaved) {
             if (!confirm('Ungespeicherte Änderungen verwerfen?')) return;
             cancelBlock(activeBlock);
         }
-
-        // Deactivate previous
         if (activeBlock && activeBlock !== block) {
             deactivateBlock(activeBlock);
         }
@@ -34,7 +26,6 @@ document.addEventListener('DOMContentLoaded', function () {
         activeBlock = block;
         block.classList.add('editing');
 
-        // Store original values for cancel
         originalValues = {};
         block.querySelectorAll('[data-field]').forEach(function (el) {
             originalValues[el.dataset.field] = el.innerHTML;
@@ -42,18 +33,13 @@ document.addEventListener('DOMContentLoaded', function () {
             el.classList.add('editable-field');
         });
 
-        // Show save/cancel, hide edit button
-        block.querySelector('.btn-edit')?.classList.add('d-none');
-        block.querySelector('.block-controls')?.classList.remove('d-none');
-
         hasUnsaved = false;
 
-        // Track changes
         block.querySelectorAll('[data-field]').forEach(function (el) {
-            el.addEventListener('input', function () {
-                hasUnsaved = true;
-            });
+            el.addEventListener('input', function () { hasUnsaved = true; });
         });
+
+        initToggles(block);
     }
 
     function deactivateBlock(block) {
@@ -62,15 +48,12 @@ document.addEventListener('DOMContentLoaded', function () {
             el.contentEditable = 'false';
             el.classList.remove('editable-field');
         });
-        block.querySelector('.btn-edit')?.classList.remove('d-none');
-        block.querySelector('.block-controls')?.classList.add('d-none');
         activeBlock = null;
         hasUnsaved = false;
         originalValues = {};
     }
 
     function cancelBlock(block) {
-        // Restore original values
         block.querySelectorAll('[data-field]').forEach(function (el) {
             if (originalValues[el.dataset.field] !== undefined) {
                 el.innerHTML = originalValues[el.dataset.field];
@@ -79,77 +62,56 @@ document.addEventListener('DOMContentLoaded', function () {
         deactivateBlock(block);
     }
 
-    // ── Save ──────────────────────────────────────────────────
-
     function saveBlock(block) {
-        const sectionId = block.dataset.sectionId;
-        const entityType = block.dataset.entityType;
-        const entityId = block.dataset.entityId;
         const saveUrl = block.dataset.saveUrl;
-
-        // Collect field values
         const data = new FormData();
+
         block.querySelectorAll('[data-field]').forEach(function (el) {
             data.append(el.dataset.field, el.innerText.trim());
         });
 
-        // Collect toggle values
         block.querySelectorAll('[data-toggle]').forEach(function (el) {
             data.append(el.dataset.toggle, el.dataset.value);
         });
 
-        // Show saving state
         const saveBtn = block.querySelector('.btn-save');
-        if (saveBtn) {
-            saveBtn.textContent = 'Speichern...';
-            saveBtn.disabled = true;
-        }
+        if (saveBtn) { saveBtn.textContent = 'Speichern...'; saveBtn.disabled = true; }
 
         fetch(saveUrl, {
             method: 'POST',
             body: data,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
-            .then(function (res) { return res.json(); })
+            .then(res => res.json())
             .then(function (json) {
                 if (json.success) {
-                    showFeedback(block, 'Gespeichert ✓', 'success');
+                    showBlockFeedback(block, 'Gespeichert ✓', 'success');
                     deactivateBlock(block);
                 } else {
-                    showFeedback(block, 'Fehler: '.json.error, 'error');
-                    if (saveBtn) {
-                        saveBtn.textContent = 'Speichern';
-                        saveBtn.disabled = false;
-                    }
+                    showBlockFeedback(block, 'Fehler: ' + (json.error ?? ''), 'error');
+                    if (saveBtn) { saveBtn.textContent = 'Speichern'; saveBtn.disabled = false; }
                 }
             })
             .catch(function () {
-                showFeedback(block, 'Verbindungsfehler', 'error');
-                if (saveBtn) {
-                    saveBtn.textContent = 'Speichern';
-                    saveBtn.disabled = false;
-                }
+                showBlockFeedback(block, 'Verbindungsfehler', 'error');
+                if (saveBtn) { saveBtn.textContent = 'Speichern'; saveBtn.disabled = false; }
             });
     }
 
-    // ── Feedback message ──────────────────────────────────────
-
-    function showFeedback(block, message, type) {
-        let feedback = block.querySelector('.block-feedback');
-        if (!feedback) {
-            feedback = document.createElement('span');
-            feedback.className = 'block-feedback';
-            block.querySelector('.block-controls')?.appendChild(feedback);
+    function showBlockFeedback(block, message, type) {
+        let fb = block.querySelector('.block-feedback');
+        if (!fb) {
+            fb = document.createElement('span');
+            fb.className = 'block-feedback';
+            block.querySelector('.block-controls')?.appendChild(fb);
         }
-        feedback.textContent = message;
-        feedback.className = 'block-feedback block-feedback--' + type;
-        setTimeout(function () { feedback.textContent = ''; }, 3000);
+        fb.textContent = message;
+        fb.className = 'block-feedback block-feedback--' + type;
+        setTimeout(function () { fb.textContent = ''; }, 3000);
     }
 
-    // ── Toggle controls ───────────────────────────────────────
-
     function initToggles(block) {
-        // Theme toggle
+        // Theme
         block.querySelectorAll('[data-action="toggle-theme"]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 const section = block.querySelector('.segment');
@@ -162,36 +124,32 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        // Layout toggle
+        // Layout
         block.querySelectorAll('[data-action="toggle-layout"]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 const layouts = ['50-50', '75-25', '25-75'];
-                const current = btn.closest('[data-toggle]').dataset.value || '50-50';
-                const next = layouts[(layouts.indexOf(current) + 1) % layouts.length];
-                btn.closest('[data-toggle]').dataset.value = next;
+                const toggle = btn.closest('[data-toggle]');
+                const next = layouts[(layouts.indexOf(toggle.dataset.value) + 1) % layouts.length];
+                toggle.dataset.value = next;
                 btn.querySelector('.layout-label').textContent = next;
                 hasUnsaved = true;
-                // Full re-render needed for layout change — mark for save
             });
         });
 
-        // Flip image position
+        // Flip
         block.querySelectorAll('[data-action="toggle-flip"]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 const toggle = btn.closest('[data-toggle]');
-                const current = toggle.dataset.value;
-                const next = current === 'left' ? 'right' : 'left';
-                toggle.dataset.value = next;
+                toggle.dataset.value = toggle.dataset.value === 'left' ? 'right' : 'left';
                 hasUnsaved = true;
             });
         });
 
-        // Object fit toggle
+        // Object fit
         block.querySelectorAll('[data-action="toggle-fit"]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 const toggle = btn.closest('[data-toggle]');
-                const current = toggle.dataset.value || 'cover';
-                const next = current === 'cover' ? 'contain' : 'cover';
+                const next = toggle.dataset.value === 'cover' ? 'contain' : 'cover';
                 toggle.dataset.value = next;
                 const img = block.querySelector('.section-image');
                 if (img) img.style.objectFit = next;
@@ -200,44 +158,97 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ── Event listeners ───────────────────────────────────────
-
+    // Init section blocks
     document.querySelectorAll('.editable-block').forEach(function (block) {
-        // Edit button
-        const editBtn = block.querySelector('.btn-edit');
-        if (editBtn) {
-            editBtn.addEventListener('click', function () {
-                activateBlock(block);
-                initToggles(block);
-            });
-        }
+        block.addEventListener('click', function (e) {
+            if (e.target.closest('.btn-save') || e.target.closest('.btn-cancel')) return;
+            if (!block.classList.contains('editing')) activateBlock(block);
+        });
 
-        // Save button
-        const saveBtn = block.querySelector('.btn-save');
-        if (saveBtn) {
-            saveBtn.addEventListener('click', function () {
-                saveBlock(block);
-            });
-        }
+        block.querySelector('.btn-save')?.addEventListener('click', function () {
+            saveBlock(block);
+        });
 
-        // Cancel button
-        const cancelBtn = block.querySelector('.btn-cancel');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', function () {
-                if (hasUnsaved) {
-                    if (!confirm('Änderungen verwerfen?')) return;
-                }
-                cancelBlock(block);
-            });
-        }
+        block.querySelector('.btn-cancel')?.addEventListener('click', function () {
+            if (hasUnsaved && !confirm('Änderungen verwerfen?')) return;
+            cancelBlock(block);
+        });
     });
 
-    // ── Warn on page leave with unsaved changes ───────────────
-    window.addEventListener('beforeunload', function (e) {
-        if (hasUnsaved) {
-            e.preventDefault();
-            e.returnValue = '';
+    // ──────────────────────────────────────────────────────────
+    // ENTITY EDIT ROWS — inline pencil/save/cancel
+    // ──────────────────────────────────────────────────────────
+
+    document.querySelectorAll('.entity-edit-row').forEach(function (row) {
+        const field = row.querySelector('.entity-field');
+        const editBtn = row.querySelector('.entity-edit-btn');
+        const saveBtn = row.querySelector('.entity-save-btn');
+        const cancelBtn = row.querySelector('.entity-cancel-btn');
+        const saveUrl = row.dataset.saveUrl;
+        const fieldName = field?.dataset.field;
+        let original = field?.innerText ?? '';
+
+        editBtn?.addEventListener('click', function () {
+            original = field.innerText;
+            field.contentEditable = 'true';
+            field.classList.add('editing');
+            row.classList.add('editing');
+            field.focus();
+        });
+
+        cancelBtn?.addEventListener('click', function () {
+            field.innerText = original;
+            field.contentEditable = 'false';
+            field.classList.remove('editing');
+            row.classList.remove('editing');
+        });
+
+        saveBtn?.addEventListener('click', function () {
+            const value = field.innerText.trim();
+            const data = new FormData();
+            data.append(fieldName, value);
+
+            saveBtn.disabled = true;
+
+            fetch(saveUrl, {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        field.contentEditable = 'false';
+                        field.classList.remove('editing');
+                        row.classList.remove('editing');
+                        showEntityFeedback(row, 'Gespeichert ✓', 'success');
+                    } else {
+                        showEntityFeedback(row, 'Fehler', 'error');
+                    }
+                    saveBtn.disabled = false;
+                })
+                .catch(function () {
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                    saveBtn.disabled = false;
+                });
+        });
+    });
+
+    function showEntityFeedback(row, message, type) {
+        let fb = row.querySelector('.entity-feedback');
+        if (!fb) {
+            fb = document.createElement('span');
+            fb.className = 'entity-feedback';
+            row.appendChild(fb);
         }
+        fb.textContent = message;
+        fb.className = 'entity-feedback entity-feedback--' + type;
+        setTimeout(function () { fb.textContent = ''; }, 3000);
+    }
+
+    // ── Warn on page leave ────────────────────────────────────
+    window.addEventListener('beforeunload', function (e) {
+        if (hasUnsaved) { e.preventDefault(); e.returnValue = ''; }
     });
 
 });
