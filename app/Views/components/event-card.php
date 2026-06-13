@@ -16,15 +16,12 @@
         class="event-card">
 
         <!-- Promo image -->
-        <div class="event-card__image">
+        <div class="img-placeholder event-card-img">
             <?php if (!empty($event->promo)): ?>
                 <img src="<?= htmlspecialchars($event->promo->media_url) ?>"
-                    alt="<?= htmlspecialchars($event->title) ?>"
-                    class="section-image">
+                    alt="<?= htmlspecialchars($event->title) ?>">
             <?php else: ?>
-                <div class="section-image-placeholder">
-                    <i class="ti ti-music"></i>
-                </div>
+                <i class="ti ti-music"></i>
             <?php endif; ?>
         </div>
 
