@@ -57,10 +57,16 @@ class MediaController extends BaseController
         }
 
         try {
+            // Auto-generate public_id from entity context
+            $publicId = CloudinaryService::generatePublicId(
+                $entityType . '-' . $entityId . '-' . time()
+            );
+
             // Upload to Cloudinary
             $result = CloudinaryService::upload(
                 $_FILES['image'],
-                $subfolder
+                $subfolder,
+                $publicId
             );
 
             // Insert media + link to entity via pivot
