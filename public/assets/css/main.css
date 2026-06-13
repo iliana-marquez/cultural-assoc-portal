@@ -396,36 +396,36 @@ footer {
     z-index: 1; }
 
 
-/* ── Section image ──────────────────────────────────────────── */
-.section-image {
+/* ── Universal image container ──────────────────────────────── */
+.img-placeholder {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 4px;
-}
-
-.section-image-wrap {
-    width: 100%;
-    height: 100%;
-    aspect-ratio: 4/3;
-    overflow: hidden;
-    border-radius: 4px;
-}
-
-/* Image placeholder when no image uploaded */
-.section-image-placeholder {
-    width: 100%;
-    aspect-ratio: 4/3;
-    border-radius: 4px;
     background: var(--neutral);
+    border-radius: 4px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 1rem;
+    overflow: hidden;
+    position: relative;
 }
 
-.section-image-placeholder i { font-size: 3rem; opacity: 0.4; }
+.img-placeholder i { font-size: 3rem; opacity: 0.4; }
+
+.img-placeholder img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ── Ratio modifiers ─────────────────────────────────────────── */
+.portrait-img      { aspect-ratio: 3/4; }
+.event-card-img    { aspect-ratio: 16/9; }
+.event-promo-img   { aspect-ratio: 4/3; }
+.event-gallery-img { aspect-ratio: 1/1; }
+.block-img         { aspect-ratio: 4/3; }
 
 /* ── Zoomable images ────────────────────────────────────────── */
 .zoomable {
@@ -590,21 +590,7 @@ form {
 
 .team-card:hover { opacity: 1; }
 
-.team-card__image {
-    width: 100%;
-    overflow: hidden;
-}
-
-.team-card__image .section-image,
-.team-card__image .section-image-placeholder,
-.team-detail-image,
-.team-detail-image-placeholder {
-    width: 100%;
-    height: 100%;
-    aspect-ratio: 3/4;
-    object-fit: cover;
-    border-radius: 4px;
-}
+/* team-card__image replaced by .img-placeholder.portrait-img */
 
 .team-card__content {
     padding: 1rem 0;
@@ -626,18 +612,7 @@ form {
 
 .event-card:hover { opacity: 0.85; }
 
-.event-card__image {
-    width: 100%;
-    aspect-ratio: 16/9;
-    overflow: hidden;
-}
-
-.event-card__image .section-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    max-height: unset;
-}
+/* event-card__image replaced by .img-placeholder.event-card-img */
 
 .event-card__content {
     padding: 1rem 0;
