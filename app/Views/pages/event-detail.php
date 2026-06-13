@@ -205,6 +205,7 @@ foreach ($event->media ?? [] as $media) {
 
         <!-- Row 2: Review | Video -->
         <?php if (!empty($event->review) || !empty($videos)): ?>
+            <hr>
             <div class="row g-5 align-items-start event-review-row">
 
                 <!-- Review -->
@@ -254,6 +255,7 @@ foreach ($event->media ?? [] as $media) {
         <?php endif; ?>
 
         <!-- Back link -->
+        <hr>
         <div class="row mt-4">
             <div class="col-12">
                 <a href="/veranstaltungen" class="nav-icon-ux">
