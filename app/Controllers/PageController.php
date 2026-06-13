@@ -224,24 +224,5 @@ class PageController extends BaseController
 
     // ── Helpers ──────────────────────────────────────────────
 
-    /**
-     * JSON success response for AJAX POST requests.
-     */
-    private function jsonSuccess(array $data = []): void
-    {
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true] + $data);
-        exit;
-    }
-
-    /**
-     * JSON error response for AJAX POST requests.
-     */
-    private function jsonError(string $message): void
-    {
-        header('Content-Type: application/json');
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => $message]);
-        exit;
-    }
+    // jsonSuccess() and jsonError() inherited from BaseController
 }
