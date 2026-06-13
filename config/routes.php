@@ -56,9 +56,14 @@ $router->post('/events/{id}/participant/add', 'EventController', 'addParticipant
 $router->post('/events/{id}/participant/remove', 'EventController', 'removeParticipant');
 
 
-// ── Participants CRUD → ParticipantController ─────────────────────
+// ── Participants CRUD → ParticipantController ──────────────────
 $router->get('/kuenstlerinnen',               'ParticipantController', 'index');
 $router->get('/kuenstlerinnen/{slug}',        'ParticipantController', 'show');
 $router->post('/participants/add',            'ParticipantController', 'add');
 $router->post('/participants/{id}/save',      'ParticipantController', 'save');
 $router->post('/participants/{id}/delete',    'ParticipantController', 'delete');
+
+// ── Cloudinary service ─────────────────────────────────────────
+$router->post('/media/upload',        'MediaController', 'upload');
+$router->post('/media/{id}/delete',   'MediaController', 'delete');
+$router->post('/media/reorder',       'MediaController', 'reorder');
