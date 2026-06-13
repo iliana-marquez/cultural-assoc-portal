@@ -6,7 +6,7 @@
  * Manages media via pivot architecture.
  * Media stored once in media table — linked to any entity via entity_media pivot.
  * One media item can be linked to multiple entities.
- * Update caption/URL once → reflects everywhere it's linked. 
+ * Update caption/URL once → reflects everywhere it's linked. ✅
  *
  * stage values:
  *   'promo'   → promotional material (before event, profile photo)
@@ -19,6 +19,17 @@ class MediaModel extends BaseModel
 {
     private string $table      = 'media';
     private string $pivotTable = 'entity_media';
+
+    /**
+     * Get media by ID.
+     */
+    public function getById(int $id): ?object
+    {
+        return $this->fetchOne(
+            "SELECT * FROM {$this->table} WHERE id = ?",
+            [$id]
+        );
+    }
 
     /**
      * Get all media for an entity via pivot, ordered by order_index.
@@ -117,13 +128,14 @@ class MediaModel extends BaseModel
             $mediaId = $existing->id;
         } else {
             $this->execute(
-                "INSERT INTO {$this->table} (media_url, caption, stage, order_index)
-                 VALUES (?, ?, ?, ?)",
+                "INSERT INTO {$this->table} (media_url, resource_type, caption, stage, order_index)
+                 VALUES (?, ?, ?, ?, ?)",
                 [
-                    $data['media_url']   ?? null,
-                    $data['caption']     ?? null,
-                    $data['stage']       ?? 'promo',
-                    $data['order_index'] ?? 0,
+                    $data['media_url']     ?? null,
+                    $data['resource_type'] ?? 'image',
+                    $data['caption']       ?? null,
+                    $data['stage']         ?? 'promo',
+                    $data['order_index']   ?? 0,
                 ]
             );
             $mediaId = $this->lastInsertId();
@@ -183,13 +195,14 @@ class MediaModel extends BaseModel
     {
         return $this->execute(
             "UPDATE {$this->table}
-             SET media_url = ?, caption = ?, stage = ?, order_index = ?
+             SET media_url = ?, resource_type = ?, caption = ?, stage = ?, order_index = ?
              WHERE id = ?",
             [
-                $data['media_url']   ?? null,
-                $data['caption']     ?? null,
-                $data['stage']       ?? 'promo',
-                $data['order_index'] ?? 0,
+                $data['media_url']     ?? null,
+                $data['resource_type'] ?? 'image',
+                $data['caption']       ?? null,
+                $data['stage']         ?? 'promo',
+                $data['order_index']   ?? 0,
                 $mediaId,
             ]
         );
