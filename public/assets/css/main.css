@@ -464,6 +464,8 @@ footer {
 
 .section-content p { opacity: 0.9; }
 
+.section-image-col { align-self: start; }
+
 /* ── CTA Button ─────────────────────────────────────────────── */
 .btn-section {
     display: inline-flex;
