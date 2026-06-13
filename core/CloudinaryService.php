@@ -97,9 +97,8 @@ class CloudinaryService
         }
 
         return [
-            'secure_url'    => $result['secure_url'],
-            'public_id'     => $result['public_id'],
-            'resource_type' => $resourceType,
+            'secure_url' => $result['secure_url'],
+            'public_id'  => $result['public_id'],
         ];
     }
 
