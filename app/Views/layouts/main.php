@@ -61,6 +61,9 @@
 
     <!-- Script -->
     <script src="/assets/js/app.js"></script>
+    <?php if ($isLoggedIn): ?>
+        <script src="/assets/js/edit-mode.js"></script>
+    <?php endif; ?>
 </body>
 
 </html>
