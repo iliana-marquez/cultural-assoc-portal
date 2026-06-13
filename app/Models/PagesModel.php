@@ -3,7 +3,7 @@
 /**
  * PagesModel
  *
- * Fetches page sections (pages table) from the pages table.
+ * Fetches page sections from the pages table.
  * Each row is a section belonging to a page.
  * Content stored as JSON — decoded to object on fetch.
  */
@@ -39,6 +39,17 @@ class PagesModel extends BaseModel
             $content->order_index = $row->order_index;
             return $content;
         }, $rows);
+    }
+
+    /**
+     * Get single section by ID.
+     */
+    public function getById(int $id): ?object
+    {
+        return $this->fetchOne(
+            "SELECT * FROM {$this->table} WHERE id = ?",
+            [$id]
+        );
     }
 
     /**
