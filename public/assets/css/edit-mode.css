@@ -1,6 +1,6 @@
 /* ============================================================
    edit-mode.css
-   kulturCMS — Edit mode styles
+   OWS — Edit mode styles
    Variables: --edit-inactive, --edit-active (from :root in main.css)
    ============================================================ */
 
@@ -219,10 +219,6 @@ body.is-editing .edit-bar__indicator i {
 
 
 /* ── Image edit overlay ─────────────────────────────────────── */
-.section-image-wrap {
-    position: relative;
-}
-
 .image-edit-overlay {
     display: none;
     position: absolute;
@@ -234,19 +230,11 @@ body.is-editing .edit-bar__indicator i {
     z-index: 5;
 }
 
-.editable-block.editing .section-image-wrap:hover .image-edit-overlay {
+.editable-block.editing .img-placeholder:hover .image-edit-overlay {
     display: flex;
 }
 
 /* ── Placeholder upload button ───────────────────────────────── */
-.section-image-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-}
-
 .placeholder-upload-btn {
     background: var(--edit-active);
     opacity: 0;
@@ -256,6 +244,3 @@ body.is-editing .edit-bar__indicator i {
 .editable-block.editing .placeholder-upload-btn {
     opacity: 1;
 }
-
-
-
