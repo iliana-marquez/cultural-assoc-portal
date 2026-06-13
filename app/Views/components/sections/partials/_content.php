@@ -4,36 +4,35 @@
  * _content.php
  *
  * Section content partial.
- * data-field attributes enable contenteditable in edit mode.
- *
- * Variables from parent section:
- *   $title      string|null
- *   $subtitle   string|null
- *   $text       string|null
- *   $cta        object|null  { label, url }
- *   $isLoggedIn bool
+ * edit-field-label appears ABOVE the field it labels.
  */
 ?>
 
 <div class="section-content">
 
     <?php if (!empty($title) || $isLoggedIn): ?>
-        <h2 data-field="title"
-            <?= $isLoggedIn ? 'contenteditable="false"' : '' ?>>
+        <?php if ($isLoggedIn): ?>
+            <small class="edit-field-label">Titel</small>
+        <?php endif; ?>
+        <h2 data-field="title">
             <?= htmlspecialchars($title ?? '') ?>
         </h2>
     <?php endif; ?>
 
     <?php if (!empty($subtitle) || $isLoggedIn): ?>
-        <p data-field="subtitle"
-            <?= $isLoggedIn ? 'contenteditable="false"' : '' ?>>
+        <?php if ($isLoggedIn): ?>
+            <small class="edit-field-label">Untertitel</small>
+        <?php endif; ?>
+        <p data-field="subtitle">
             <strong><?= htmlspecialchars($subtitle ?? '') ?></strong>
         </p>
     <?php endif; ?>
 
     <?php if (!empty($text) || $isLoggedIn): ?>
-        <p data-field="text"
-            <?= $isLoggedIn ? 'contenteditable="false"' : '' ?>>
+        <?php if ($isLoggedIn): ?>
+            <small class="edit-field-label">Text</small>
+        <?php endif; ?>
+        <p data-field="text">
             <?= nl2br(htmlspecialchars($text ?? '')) ?>
         </p>
     <?php endif; ?>

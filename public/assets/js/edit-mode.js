@@ -1,6 +1,6 @@
 /**
  * edit-mode.js
- * OWS — Inline edit mode for sections and entity records.
+ * kulturCMS — Inline edit mode for sections and entity records.
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -47,6 +47,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         activeBlock = block;
         block.classList.add('editing');
+
+        // Show field labels
+        block.querySelectorAll('.edit-field-label').forEach(el => {
+            el.style.display = 'block';
+        });
 
         originalValues = {};
         block.querySelectorAll('[data-field]').forEach(function (el) {
@@ -97,6 +102,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const icon = saveBtn.querySelector('i');
             if (icon) icon.className = 'ti ti-check';
         }
+        // Hide field labels
+        block.querySelectorAll('.edit-field-label').forEach(el => {
+            el.style.display = 'none';
+        });
+
         activeBlock = null;
         hasUnsaved = false;
         originalValues = {};
@@ -173,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Layout
         block.querySelectorAll('[data-action="toggle-layout"]').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                const layouts = ['50-50', '75-25', '25-75'];
+                const layouts = ['50-50', '75-25', '25-75', '100-100'];
                 const toggle = btn.closest('[data-toggle]');
                 const next = layouts[(layouts.indexOf(toggle.dataset.value) + 1) % layouts.length];
                 toggle.dataset.value = next;
@@ -282,6 +292,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '50-50': { text: 'col-12 col-md-6', image: 'col-12 col-md-6' },
             '75-25': { text: 'col-12 col-md-8', image: 'col-12 col-md-4' },
             '25-75': { text: 'col-12 col-md-4', image: 'col-12 col-md-8' },
+            '100-100': { text: 'col-12', image: 'col-12' },
         };
         const s = sizes[layout] || sizes['50-50'];
         const textCol = row.querySelector('.section-text-col');

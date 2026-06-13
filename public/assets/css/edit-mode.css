@@ -63,6 +63,18 @@ body.is-editing .edit-bar__indicator i {
     border: 10px double var(--edit-active);
 }
 
+.edit-field-label {
+    display: none;
+}
+
+.editable-block.editing .edit-field-label {
+    display: block;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--edit-active);
+    margin-bottom: 0.15rem;  /* tight gap between label and field */
+}
 
 /* ── Block controls — free sections ─────────────────────────── */
 .block-controls {
@@ -129,7 +141,7 @@ body.is-editing .edit-bar__indicator i {
 /* ── Editable fields (contenteditable) ──────────────────────── */
 .editable-field {
     outline: none;
-    border-bottom: 3px dashed var(--edit-inactive);
+    border-bottom: 3px dashed var(--edit-active);
     min-height: 1em;
     padding: 0.1rem 0;
     transition: border-color var(--transition);
