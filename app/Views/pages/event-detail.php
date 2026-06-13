@@ -35,15 +35,15 @@ foreach ($event->media ?? [] as $media) {
         <div class="row g-5 align-items-start">
 
             <!-- Promo image / carousel -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
                 <?php if (!empty($promoImages)): ?>
 
                     <?php if (count($promoImages) === 1): ?>
                         <!-- Single promo image -->
-                        <div class="section-image-wrap">
+                        <div class="img-placeholder event-promo-img">
                             <img src="<?= htmlspecialchars($promoImages[0]->media_url) ?>"
                                 alt="<?= htmlspecialchars($event->title) ?>"
-                                class="section-image zoomable">
+                                class="zoomable">
                         </div>
                         <?php if (!empty($promoImages[0]->caption)): ?>
                             <small class="image-credit">
@@ -60,7 +60,7 @@ foreach ($event->media ?? [] as $media) {
                                     <div class="carousel-item <?= $i === 0 ? 'active' : '' ?>">
                                         <img src="<?= htmlspecialchars($media->media_url) ?>"
                                             alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
-                                            class="d-block w-100 section-image zoomable">
+                                            class="zoomable">
                                         <?php if (!empty($media->caption)): ?>
                                             <div class="carousel-caption d-none d-md-block">
                                                 <small><?= htmlspecialchars($media->caption) ?></small>
@@ -81,14 +81,14 @@ foreach ($event->media ?? [] as $media) {
                     <?php endif; ?>
 
                 <?php else: ?>
-                    <div class="section-image-placeholder">
+                    <div class="img-placeholder event-promo-img">
                         <i class="ti ti-music"></i>
                     </div>
                 <?php endif; ?>
             </div>
 
             <!-- Event details -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-8">
                 <div class="section-content">
 
                     <?php if (!empty($event->category_label)): ?>
@@ -205,7 +205,6 @@ foreach ($event->media ?? [] as $media) {
 
         <!-- Row 2: Review | Video -->
         <?php if (!empty($event->review) || !empty($videos)): ?>
-            <hr>
             <div class="row g-5 align-items-start event-review-row">
 
                 <!-- Review -->
@@ -224,7 +223,7 @@ foreach ($event->media ?? [] as $media) {
                         <?php foreach ($videos as $video): ?>
                             <div class="event-media-item">
                                 <video src="<?= htmlspecialchars($video->media_url) ?>"
-                                    class="section-image"
+                                    class=""
                                     controls>
                                 </video>
                                 <?php if (!empty($video->caption)): ?>
@@ -245,7 +244,7 @@ foreach ($event->media ?? [] as $media) {
                     <div class="col-6 col-md-4 col-lg-3">
                         <img src="<?= htmlspecialchars($media->media_url) ?>"
                             alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
-                            class="section-image zoomable">
+                            class="zoomable">
                         <?php if (!empty($media->caption)): ?>
                             <small><?= htmlspecialchars($media->caption) ?></small>
                         <?php endif; ?>
@@ -255,7 +254,6 @@ foreach ($event->media ?? [] as $media) {
         <?php endif; ?>
 
         <!-- Back link -->
-        <hr>
         <div class="row mt-4">
             <div class="col-12">
                 <a href="/veranstaltungen" class="nav-icon-ux">
