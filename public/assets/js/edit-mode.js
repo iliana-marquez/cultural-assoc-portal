@@ -1,6 +1,6 @@
 /**
  * edit-mode.js
- * kulturCMS — Inline edit mode for sections and entity records.
+ * OWS — Inline edit mode for sections and entity records.
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -39,19 +39,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // ──────────────────────────────────────────────────────────
 
     function activateBlock(block) {
-        // Warn if another block has unsaved changes
         if (activeBlock && activeBlock !== block && hasUnsaved) {
             if (!confirm('Ungespeicherte Änderungen verwerfen?')) return;
             cancelBlock(activeBlock);
         }
-        if (activeBlock && activeBlock !== block) {
-            deactivateBlock(activeBlock);
-        }
+        if (activeBlock && activeBlock !== block) deactivateBlock(activeBlock);
 
         activeBlock = block;
         block.classList.add('editing');
 
-        // Store originals + make fields editable
         originalValues = {};
         block.querySelectorAll('[data-field]').forEach(function (el) {
             originalValues[el.dataset.field] = el.innerHTML;
@@ -64,6 +60,12 @@ document.addEventListener('DOMContentLoaded', function () {
             el.addEventListener('input', function () { hasUnsaved = true; });
         });
 
+        // Save current toggle values before clone
+        const toggleValues = {};
+        block.querySelectorAll('[data-toggle]').forEach(function (el) {
+            toggleValues[el.dataset.toggle] = el.dataset.value;
+        });
+
         // Clone toggle controls to clear stale listeners
         const editControls = block.querySelector('.block-edit-controls');
         if (editControls) {
@@ -71,7 +73,13 @@ document.addEventListener('DOMContentLoaded', function () {
             editControls.replaceWith(fresh);
         }
 
-        // Init toggles and image controls on fresh clone
+        // Restore saved values on fresh clone
+        block.querySelectorAll('[data-toggle]').forEach(function (el) {
+            if (toggleValues[el.dataset.toggle] !== undefined) {
+                el.dataset.value = toggleValues[el.dataset.toggle];
+            }
+        });
+
         initToggles(block);
         initImageControls(block);
     }
@@ -83,7 +91,6 @@ document.addEventListener('DOMContentLoaded', function () {
             el.contentEditable = 'false';
             el.classList.remove('editable-field');
         });
-        // Reset save button state
         const saveBtn = block.querySelector('.btn-save');
         if (saveBtn) {
             saveBtn.disabled = false;
@@ -112,12 +119,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const saveUrl = block.dataset.saveUrl;
         const data = new FormData();
 
-        // Text fields
         block.querySelectorAll('[data-field]').forEach(function (el) {
             data.append(el.dataset.field, el.innerText.trim());
         });
-
-        // Toggle values
         block.querySelectorAll('[data-toggle]').forEach(function (el) {
             data.append(el.dataset.toggle, el.dataset.value);
         });
@@ -140,18 +144,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     deactivateBlock(block);
                 } else {
                     showBlockFeedback(block, 'Fehler: ' + (json.error ?? ''), 'error');
-                    if (saveBtn) {
-                        saveBtn.disabled = false;
-                        saveBtn.querySelector('i').className = 'ti ti-check';
-                    }
+                    if (saveBtn) { saveBtn.disabled = false; saveBtn.querySelector('i').className = 'ti ti-check'; }
                 }
             })
             .catch(function () {
                 showBlockFeedback(block, 'Verbindungsfehler', 'error');
-                if (saveBtn) {
-                    saveBtn.disabled = false;
-                    saveBtn.querySelector('i').className = 'ti ti-check';
-                }
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.querySelector('i').className = 'ti ti-check'; }
             });
     }
 
@@ -180,18 +178,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 const next = layouts[(layouts.indexOf(toggle.dataset.value) + 1) % layouts.length];
                 toggle.dataset.value = next;
                 btn.querySelector('.layout-label').textContent = next;
-                // Update column classes
                 updateColumns(block, next);
                 hasUnsaved = true;
             });
         });
 
-        // Flip image position
+        // Flip
         block.querySelectorAll('[data-action="toggle-flip"]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 const toggle = btn.closest('[data-toggle]');
-                const current = toggle.dataset.value;
-                const next = current === 'left' ? 'right' : 'left';
+                const next = toggle.dataset.value === 'left' ? 'right' : 'left';
                 toggle.dataset.value = next;
                 flipImage(block, next);
                 hasUnsaved = true;
@@ -204,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 const toggle = btn.closest('[data-toggle]');
                 const next = toggle.dataset.value === 'cover' ? 'contain' : 'cover';
                 toggle.dataset.value = next;
-                const img = block.querySelector('.section-image');
+                const img = block.querySelector('.section-image-col img');
                 if (img) img.style.objectFit = next;
                 hasUnsaved = true;
             });
@@ -218,7 +214,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 const next = current === 'text' ? 'image' : 'text';
                 toggle.dataset.value = next;
 
-                // Update button label and icon
                 btn.querySelector('.block-type-label').textContent =
                     next === 'image' ? 'Bildspalte entfernen' : '+ Bildspalte';
                 btn.querySelector('i').className =
@@ -226,7 +221,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         ? 'ti ti-layout-sidebar-right-collapse'
                         : 'ti ti-layout-sidebar-right';
 
-                // Show/hide relevant controls
                 block.querySelectorAll('.ctrl-text-block').forEach(el => {
                     el.classList.toggle('d-none', next !== 'text');
                 });
@@ -234,20 +228,26 @@ document.addEventListener('DOMContentLoaded', function () {
                     el.classList.toggle('d-none', next !== 'image');
                 });
 
-                // Show/hide image column — preserve image URL in DB
                 const imageCol = block.querySelector('.section-image-col');
-                if (imageCol) imageCol.classList.toggle('d-none', next !== 'image');
+                const contentCol = block.querySelector('.section-text-col');
 
-                // Also update image_pos toggle value — 'none' for text, 'right' for image
+                if (next === 'image') {
+                    if (imageCol) imageCol.classList.remove('d-none');
+                    const layoutToggle = block.querySelector('[data-toggle="layout"]');
+                    const layout = layoutToggle?.dataset.value || '50-50';
+                    updateColumns(block, layout);
+                } else {
+                    if (imageCol) imageCol.classList.add('d-none');
+                    if (contentCol) {
+                        const id = contentCol.id;
+                        contentCol.className = 'col-12 section-text-col';
+                        if (id) contentCol.id = id;
+                    }
+                }
+
                 const imagePosToggle = block.querySelector('[data-toggle="image_pos"]');
                 if (imagePosToggle) {
                     imagePosToggle.dataset.value = next === 'image' ? 'right' : 'none';
-                }
-
-                // Update content col width
-                const contentCol = block.querySelector('.section-content')?.closest('[class*="col-"]');
-                if (contentCol) {
-                    contentCol.className = next === 'text' ? 'col-12' : 'col-12 col-md-6';
                 }
 
                 hasUnsaved = true;
@@ -273,33 +273,34 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ── Column update helpers ─────────────────────────────────
+    // ── Column helpers ────────────────────────────────────────
 
     function updateColumns(block, layout) {
         const row = block.querySelector('.row');
         if (!row) return;
-        const cols = {
+        const sizes = {
             '50-50': { text: 'col-12 col-md-6', image: 'col-12 col-md-6' },
             '75-25': { text: 'col-12 col-md-8', image: 'col-12 col-md-4' },
             '25-75': { text: 'col-12 col-md-4', image: 'col-12 col-md-8' },
         };
-        const c = cols[layout] || cols['50-50'];
-        const textCol = row.querySelector('.section-content')?.closest('[class*="col-"]');
+        const s = sizes[layout] || sizes['50-50'];
+        const textCol = row.querySelector('.section-text-col');
         const imageCol = row.querySelector('.section-image-col');
-        if (textCol) textCol.className = c.text;
-        if (imageCol) imageCol.className = c.image;
+        const hidden = imageCol?.classList.contains('d-none') ? ' d-none' : '';
+        const id = textCol?.id;
+        if (textCol) { textCol.className = s.text + ' section-text-col'; if (id) textCol.id = id; }
+        if (imageCol) { imageCol.className = s.image + ' section-image-col' + hidden; }
     }
 
     function flipImage(block, position) {
         const row = block.querySelector('.row');
-        if (!row) return;
-        const imageCol = row.querySelector('.section-image-col');
-        const contentCol = row.querySelector('.section-content')?.closest('[class*="col-"]');
-        if (!imageCol || !contentCol) return;
+        const imageCol = row?.querySelector('.section-image-col');
+        const contentCol = row?.querySelector('.section-text-col');
+        if (!row || !imageCol || !contentCol) return;
         if (position === 'left') {
             row.insertBefore(imageCol, contentCol);
         } else {
-            row.appendChild(imageCol);
+            row.insertBefore(contentCol, imageCol);
         }
     }
 
@@ -308,7 +309,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function initImageControls(block) {
         const sectionId = block.dataset.sectionId;
 
-        // Upload image — placeholder + overlay (multiple elements possible)
         block.querySelectorAll('[data-action="upload-image"]').forEach(function (input) {
             input.addEventListener('change', function () {
                 if (!this.files[0]) return;
@@ -316,7 +316,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        // Remove image — overlay button
         block.querySelectorAll('[data-action="remove-image"]').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 if (!confirm('Bild entfernen?')) return;
@@ -324,13 +323,11 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        // Upload BG image
         block.querySelector('[data-action="upload-bg"]')?.addEventListener('change', function () {
             if (!this.files[0]) return;
             uploadSectionImage(block, this.files[0], 'bg_image', sectionId);
         });
 
-        // Remove BG image
         block.querySelector('[data-action="remove-bg"]')?.addEventListener('click', function () {
             if (!confirm('Hintergrundbild entfernen?')) return;
             removeSectionImage(block, 'bg_image', sectionId);
@@ -356,15 +353,13 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(function (json) {
                 if (json.success) {
                     if (field === 'image') {
-                        const placeholder = block.querySelector('.section-image-placeholder');
-                        const existingImg = block.querySelector('.section-image');
                         const imageCol = block.querySelector('.section-image-col');
+                        const imgContainer = imageCol?.querySelector('.img-placeholder');
+                        const existingImg = imgContainer?.querySelector('img');
 
-                        if (placeholder) {
-                            // Replace placeholder with image + edit overlay
-                            placeholder.outerHTML =
-                                '<div class="section-image-wrap">' +
-                                '<img src="' + json.url + '" class="section-image">' +
+                        if (imgContainer && !existingImg) {
+                            imgContainer.innerHTML =
+                                '<img src="' + json.url + '">' +
                                 '<div class="image-edit-overlay">' +
                                 '<label class="section-control-btn" style="cursor:pointer;">' +
                                 '<i class="ti ti-refresh"></i> Ändern' +
@@ -373,24 +368,19 @@ document.addEventListener('DOMContentLoaded', function () {
                                 '<button class="section-control-btn" data-action="remove-image">' +
                                 '<i class="ti ti-trash"></i> Entfernen' +
                                 '</button>' +
-                                '</div>' +
                                 '</div>';
-                            // Re-init image controls for new DOM nodes
                             initImageControls(block);
                         } else if (existingImg) {
                             existingImg.src = json.url;
                         }
 
-                        // Show image column if hidden
                         if (imageCol) imageCol.classList.remove('d-none');
 
-                        // Update column widths
                         const layoutToggle = block.querySelector('[data-toggle="layout"]');
                         const layout = layoutToggle?.dataset.value || '50-50';
                         updateColumns(block, layout);
 
                     } else {
-                        // BG image
                         const segment = block.querySelector('.segment');
                         segment.style.backgroundImage = 'url(' + json.url + ')';
                         if (!block.querySelector('.segment-overlay')) {
@@ -424,21 +414,17 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(function (json) {
                 if (json.success) {
                     if (field === 'image') {
-                        const wrap = block.querySelector('.section-image-wrap');
-                        if (wrap) {
-                            wrap.outerHTML =
-                                '<div class="section-image-placeholder">' +
+                        const imageCol = block.querySelector('.section-image-col');
+                        const imgContainer = imageCol?.querySelector('.img-placeholder');
+                        if (imgContainer) {
+                            imgContainer.innerHTML =
                                 '<i class="ti ti-photo"></i>' +
                                 '<label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">' +
                                 '<i class="ti ti-photo-plus"></i> Bild hinzufügen' +
                                 '<input type="file" accept="image/*" class="d-none" data-action="upload-image">' +
-                                '</label>' +
-                                '</div>';
-                            // Re-init image controls for new DOM nodes
+                                '</label>';
                             initImageControls(block);
                         }
-                        // Keep image column visible — placeholder stays
-                        // Content col stays at current layout width
                     } else {
                         const segment = block.querySelector('.segment');
                         segment.style.backgroundImage = '';
@@ -452,31 +438,25 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // ── Init section blocks — attach save/cancel ONCE ─────────
+    // ── Init blocks — attach save/cancel ONCE ─────────────────
 
     document.querySelectorAll('.editable-block').forEach(function (block) {
 
-        // Pencil — activates block only if inactive (ONCE)
         block.querySelector('.btn-edit')?.addEventListener('click', function (e) {
             e.stopPropagation();
-            if (!block.classList.contains('editing')) {
-                activateBlock(block);
-            }
+            if (!block.classList.contains('editing')) activateBlock(block);
         });
 
-        // Save — attached ONCE
         block.querySelector('.btn-save')?.addEventListener('click', function (e) {
             e.stopPropagation();
             saveBlock(block);
         });
 
-        // Cancel — attached ONCE
         block.querySelector('.btn-cancel')?.addEventListener('click', function (e) {
             e.stopPropagation();
             if (hasUnsaved && !confirm('Änderungen verwerfen?')) return;
             cancelBlock(block);
         });
-
     });
 
     // ──────────────────────────────────────────────────────────
