@@ -32,9 +32,9 @@ foreach ($event->media ?? [] as $media) {
     <div class="container">
 
         <!-- Row 1: Promo image | Event details -->
-        <div class="row g-5">
+        <div class="row g-5 align-items-start">
 
-            <!-- Promo Media -->
+            <!-- Promo image / carousel -->
             <div class="col-12 col-md-6">
                 <?php if (!empty($promoImages)): ?>
 
@@ -91,7 +91,6 @@ foreach ($event->media ?? [] as $media) {
             <div class="col-12 col-md-6">
                 <div class="section-content">
 
-                    <!-- Category -->
                     <?php if (!empty($event->category_label)): ?>
                         <small class="event-card__category">
                             <?= htmlspecialchars($event->category_label) ?>
@@ -115,7 +114,6 @@ foreach ($event->media ?? [] as $media) {
                                 <?php endif; ?>
                             </span>
                         <?php endif; ?>
-
                         <?php if (!empty($event->venue_name)): ?>
                             <span>
                                 <i class="ti ti-map-pin"></i>
@@ -155,21 +153,58 @@ foreach ($event->media ?? [] as $media) {
                     <!-- Admission -->
                     <?php if (!empty($event->admission)): ?>
                         <div class="event-admission">
-                            <?php match ($event->admission) {
-                                'free'     => print('<span><i class="ti ti-ticket"></i> Eintritt frei</span>'),
-                                'donation' => print('<span><i class="ti ti-ticket"></i> Eintritt frei — Spenden willkommen</span>'),
-                                'ticket'   => print('<a href="' . htmlspecialchars($event->ticket_url ?? '#') . '" target="_blank" class="btn-section"><i class="ti ti-ticket"></i> Tickets kaufen</a>'),
-                                default    => null,
+                            <?php
+                            $admissionUrl    = htmlspecialchars($event->admission_url    ?? '#');
+                            $admissionAmount = htmlspecialchars($event->admission_amount ?? '');
+                            match ($event->admission) {
+                                'free' => print(
+                                    '<span class="event-admission-label">'
+                                    . '<i class="ti ti-heart-handshake"></i>'
+                                    . ' Eintritt frei &middot; Spenden willkommen'
+                                    . '</span>'
+                                ),
+                                'donation' => print(
+                                    '<span class="event-admission-label">'
+                                    . '<i class="ti ti-heart-handshake"></i>'
+                                    . ' Eintritt frei &middot; Spenden willkommen ab ' . $admissionAmount
+                                    . '</span>'
+                                ),
+                                'reserve' => print(
+                                    '<div class="admission-action">'
+                                    . '<span class="event-admission-label">'
+                                    . '<i class="ti ti-ticket"></i>'
+                                    . ' Anmeldung erforderlich'
+                                    . ($admissionAmount ? ' &middot; ' . $admissionAmount : '')
+                                    . '</span>'
+                                    . '<a href="' . $admissionUrl . '" class="btn-section">'
+                                    . '<i class="ti ti-ticket"></i> Jetzt anmelden'
+                                    . '</a>'
+                                    . '</div>'
+                                ),
+                                'ticket' => print(
+                                    '<div class="admission-action">'
+                                    . '<span class="event-admission-label">'
+                                    . '<i class="ti ti-ticket"></i>'
+                                    . ' Tickets'
+                                    . ($admissionAmount ? ': ' . $admissionAmount : '')
+                                    . '</span>'
+                                    . '<a href="' . $admissionUrl . '" target="_blank" class="btn-section">'
+                                    . '<i class="ti ti-ticket"></i> Tickets kaufen'
+                                    . '</a>'
+                                    . '</div>'
+                                ),
+                                default => null,
                             }; ?>
                         </div>
                     <?php endif; ?>
+
                 </div>
             </div>
+
         </div>
 
         <!-- Row 2: Review | Video -->
         <?php if (!empty($event->review) || !empty($videos)): ?>
-            <hr>
             <div class="row g-5 align-items-start event-review-row">
 
                 <!-- Review -->
@@ -219,10 +254,13 @@ foreach ($event->media ?? [] as $media) {
         <?php endif; ?>
 
         <!-- Back link -->
-        <hr>
-        <a href="/veranstaltungen" class="d-flex align-items-end">
-            <i class="ti ti-arrow-left"></i> Veranstaltungen
-        </a>
+        <div class="row mt-4">
+            <div class="col-12">
+                <a href="/veranstaltungen" class="btn-section">
+                    <i class="ti ti-arrow-left"></i> Veranstaltungen
+                </a>
+            </div>
+        </div>
 
     </div>
 </section>
