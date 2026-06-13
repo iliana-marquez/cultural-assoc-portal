@@ -14,13 +14,13 @@
 
 // Split media by stage and resource_type
 $promoImages = [];
-$videos     = [];
-$gallery    = [];
+$videos      = [];
+$gallery     = [];
 
 foreach ($event->media ?? [] as $media) {
-    if ($media->stage === 'promo' && ($media->resource_type ?? 'image') === 'image') {
+    if ($media->stage === 'promo' && !MediaModel::isVideo($media->media_url)) {
         $promoImages[] = $media;
-    } elseif (($media->resource_type ?? 'image') === 'video') {
+    } elseif (MediaModel::isVideo($media->media_url)) {
         $videos[] = $media;
     } elseif ($media->stage === 'gallery') {
         $gallery[] = $media;
