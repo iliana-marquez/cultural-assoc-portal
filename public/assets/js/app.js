@@ -69,6 +69,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // ── Zoomable images — click opens full size in new tab ──────
+    document.querySelectorAll('.zoomable').forEach(function (img) {
+        img.addEventListener('click', function () {
+            window.open(img.src, '_blank');
+        });
+    });
+
 
     // ── Edit mode ─────────────────────────────────────────────
     // document.body.classList.add('is-editing')    ← when edit form opens
