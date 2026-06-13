@@ -256,7 +256,7 @@ foreach ($event->media ?? [] as $media) {
         <!-- Back link -->
         <div class="row mt-4">
             <div class="col-12">
-                <a href="/veranstaltungen" class="btn-section">
+                <a href="/veranstaltungen" class="nav-icon-ux">
                     <i class="ti ti-arrow-left"></i> Veranstaltungen
                 </a>
             </div>

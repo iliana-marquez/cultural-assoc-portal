@@ -489,7 +489,9 @@ body.is-editing .edit-bar__indicator i {
 
 /* ── CTA Button ─────────────────────────────────────────────── */
 .btn-section {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     padding: 0.65rem 1.5rem;
     border: 2px solid currentColor;
     border-radius: 4px;
@@ -507,6 +509,13 @@ button {
     color: inherit;
     background: transparent;
     opacity: none;
+}
+
+/* ── Navigation icons to return───────────────────────────────── */
+.nav-icon-ux {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 /* ── Edit mode section controls ─────────────────────────────── */
