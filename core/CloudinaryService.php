@@ -57,8 +57,13 @@ class CloudinaryService
 
         // Generate signature
         ksort($params);
-        $paramString = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
-        $signature   = sha1($paramString . $apiSecret);
+        $paramString = '';
+        foreach ($params as $key => $value) {
+            $paramString .= $key . '=' . $value . '&';
+        }
+        $paramString = rtrim($paramString, '&');
+
+        $signature = sha1($paramString . $apiSecret);
 
         // Build POST data
         $postData = $params + [
