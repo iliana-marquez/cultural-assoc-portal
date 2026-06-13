@@ -15,7 +15,7 @@
  */
 ?>
 
-<div class="edit-bar text-center bg-warning" id="edit-bar">
+<div class="edit-bar text-center" id="edit-bar">
     <span class="edit-bar__indicator">
         <i class="ti ti-circle-filled"></i>
         <span class="edit-bar__label">Editing</span>

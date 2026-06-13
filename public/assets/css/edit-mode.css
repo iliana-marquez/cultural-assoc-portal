@@ -1,0 +1,211 @@
+/* ============================================================
+   edit-mode.css
+   kulturCMS — Edit mode styles
+   Variables: --edit-inactive, --edit-active (from :root in main.css)
+   ============================================================ */
+
+
+/* ── Edit bar ───────────────────────────────────────────────── */
+.edit-bar {
+    position: sticky;
+    top: var(--nav-height);
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1.5rem;
+    background: var(--edit-active);
+    color: #fff;
+}
+
+.edit-bar__indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.edit-bar__indicator i {
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.5);
+    transition: color var(--transition);
+}
+
+body.is-editing .edit-bar__indicator i {
+    color: #4ade51;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+}
+
+.edit-bar__exit {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.8);
+    transition: color var(--transition);
+}
+
+.edit-bar__exit:hover { color: #fff; }
+
+
+/* ── Editable blocks (free sections) ────────────────────────── */
+.editable-block {
+    position: relative;
+    border: 10px double var(--edit-inactive);
+    transition: border-color var(--transition);
+}
+
+.editable-block.editing {
+    border: 10px double var(--edit-active);
+}
+
+
+/* ── Block controls — free sections ─────────────────────────── */
+.block-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--edit-inactive);
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 10;
+    border-radius: 0 0 0 4px;
+    transition: background var(--transition);
+}
+
+/* Active — switch to indigo */
+.editable-block.editing .block-controls {
+    background: var(--edit-active);
+}
+
+/* Toggle controls — hidden when inactive */
+.block-edit-controls {
+    display: none;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.editable-block.editing .block-edit-controls {
+    display: flex;
+}
+
+/* Pencil — hidden when active */
+.editable-block.editing .btn-edit {
+    display: none;
+}
+
+.section-control-btn {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: var(--transition);
+}
+
+.section-control-btn:hover { background: rgba(255,255,255,0.35); }
+
+.btn-save   { font-weight: var(--font-semibold); }
+.btn-cancel { opacity: 0.7; }
+
+
+/* ── Editable fields (contenteditable) ──────────────────────── */
+.editable-field {
+    outline: none;
+    border-bottom: 3px dashed var(--edit-inactive);
+    min-height: 1em;
+    padding: 0.1rem 0;
+    transition: border-color var(--transition);
+}
+
+.editable-field:focus {
+    border-bottom: 3px solid var(--edit-active);
+}
+
+
+/* ── Entity edit rows (contact, team, events etc.) ───────────── */
+.entity-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.entity-field {
+    flex: 1;
+    outline: none;
+    border-bottom: 2px dashed transparent;
+    transition: border-color var(--transition);
+    padding: 0.1rem 0;
+}
+
+.entity-field.editing {
+    border-bottom: 2px dashed var(--edit-active);
+}
+
+.entity-field.editing:focus {
+    border-bottom: 2px solid var(--edit-active);
+}
+
+/* Pencil — always visible, subtle */
+.entity-edit-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--edit-inactive);
+    padding: 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    transition: color var(--transition);
+}
+
+.entity-edit-btn:hover { color: var(--edit-active); }
+
+/* Save / Cancel — hidden until active */
+.entity-save-btn,
+.entity-cancel-btn {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: none;
+    align-items: center;
+    transition: color var(--transition);
+}
+
+.entity-save-btn   { color: var(--edit-active); }
+.entity-cancel-btn { color: var(--edit-inactive); }
+
+.entity-edit-row.editing .entity-save-btn,
+.entity-edit-row.editing .entity-cancel-btn {
+    display: inline-flex;
+}
+
+.entity-edit-row.editing .entity-edit-btn {
+    display: none;
+}
+
+
+/* ── Feedback ───────────────────────────────────────────────── */
+.block-feedback,
+.entity-feedback {
+    font-size: var(--text-small);
+}
+
+.block-feedback--success,
+.entity-feedback--success { color: #4ade80; }
+
+.block-feedback--error,
+.entity-feedback--error   { color: #f87171; }

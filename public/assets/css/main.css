@@ -39,6 +39,10 @@
 
     --font-family: Arial, sans-serif;
 
+    /* edit controls*/
+    --edit-inactive: rgba(120, 120, 120, 0.5);  /* neutral grey */
+    --edit-active:   indigo;                     /* indigo when editing */
+
 }
 
 /* -- GLOBAL SEGMENT STYLING --------------------*/
@@ -362,45 +366,6 @@ footer {
     margin: 1rem;
 }
 
-
-/* ── Edit bar ───────────────────────────────────────────────── */
-.edit-bar {
-    position: sticky;
-    top: var(--nav-height);
-    z-index: 90;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem 1.5rem;
-
-}
-
-.edit-bar__indicator { display: flex; align-items: center; gap: 0.5rem; }
-
-.edit-bar__indicator i {
-    font-size: 0.75rem;
-    color: #888;
-    transition: color var(--transition);
-}
-
-body.is-editing .edit-bar__indicator i {
-    color: #4ade51;
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-}
-
-.edit-bar__exit {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.85rem;
-    transition: color var(--transition);
-}
-
 /* ============================================================
    SECTION COMPONENTS
    ============================================================ */
@@ -543,54 +508,6 @@ button {
 }
 
 .section-control-btn:hover { background: rgba(0,0,0,0.9); }
-
-/* ── Edit mode blocks ───────────────────────────────────────── */
-.editable-block {
-    position: relative;
-    border: 1px solid var(--neutral);
-    border-radius: 4px;
-    transition: border-color var(--transition);
-}
-
-.editable-block.editing {
-    border: 2px solid var(--dark);
-}
-
-/* Editable fields */
-.editable-field {
-    outline: none;
-    border-bottom: 1px dashed var(--neutral);
-    min-height: 1em;
-}
-
-.editable-field:focus {
-    border-bottom-color: var(--dark);
-}
-
-/* Block controls */
-.block-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    background: rgba(0,0,0,0.7);
-    position: absolute;
-    top: 0;
-    right: 0;
-    z-index: 10;
-    border-radius: 0 4px 0 4px;
-}
-
-/* Feedback */
-.block-feedback {
-    font-size: var(--text-small);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-}
-
-.block-feedback--success { color: #4ade80; }
-.block-feedback--error   { color: #f87171; }
-
 
 /* ── Contact page ───────────────────────────────────────────── */
 .contact-block {
