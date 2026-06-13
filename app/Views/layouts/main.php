@@ -36,6 +36,11 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/assets/css/main.css">
+
+    <!-- Edit-Mode Controls CSS -->
+    <?php if ($isLoggedIn): ?>
+        <link rel="stylesheet" href="/assets/css/edit-mode.css">
+    <?php endif; ?>
 </head>
 
 <body class="d-flex flex-column min-vh-100">
