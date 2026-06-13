@@ -95,10 +95,16 @@ body.is-editing .edit-bar__indicator i {
     display: flex;
 }
 
-/* Pencil — hidden when active */
-.editable-block.editing .btn-edit {
-    display: none;
-}
+/* Pencil — visible inactive, hidden when editing */
+.editable-block .btn-edit { display: inline-flex; }
+.editable-block.editing .btn-edit { display: none; }
+
+/* Save/Cancel — hidden inactive, visible when editing */
+.editable-block .btn-save,
+.editable-block .btn-cancel { display: none; }
+
+.editable-block.editing .btn-save,
+.editable-block.editing .btn-cancel { display: inline-flex; }
 
 .section-control-btn {
     background: rgba(255,255,255,0.2);
