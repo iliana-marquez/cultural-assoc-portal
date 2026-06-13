@@ -26,10 +26,21 @@
                 <div class="contact-block">
                     <h2>Anfragen &amp; Feedback</h2>
                     <?php if (!empty($org->email)): ?>
-                        <a href="mailto:<?= htmlspecialchars($org->email) ?>" class="contact-link">
-                            <i class="ti ti-mail"></i>
-                            <?= htmlspecialchars($org->email) ?>
-                        </a>
+                        <div class="entity-edit-row"
+                            data-save-url="/organisation/save"
+                            data-field="email">
+                            <a href="mailto:<?= htmlspecialchars($org->email) ?>" class="contact-link">
+                                <i class="ti ti-mail"></i>
+                                <span class="entity-field" data-field="email">
+                                    <?= htmlspecialchars($org->email) ?>
+                                </span>
+                            </a>
+                            <?php if ($isLoggedIn): ?>
+                                <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
+                                <button class="entity-save-btn"><i class="ti ti-check"></i></button>
+                                <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
                 </div>
 
@@ -37,7 +48,17 @@
                 <div class="contact-block">
                     <h2>Veranstalter</h2>
                     <?php if (!empty($org->name)): ?>
-                        <p><?= htmlspecialchars($org->name) ?></p>
+                        <div class="entity-edit-row"
+                            data-save-url="/organisation/save">
+                            <p class="entity-field" data-field="name">
+                                <?= htmlspecialchars($org->name) ?>
+                            </p>
+                            <?php if ($isLoggedIn): ?>
+                                <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
+                                <button class="entity-save-btn"><i class="ti ti-check"></i></button>
+                                <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
                     <?php if (!empty($org->street)): ?>
                         <p class="contact-address">
