@@ -33,5 +33,14 @@ return [
     // Admin path
     'admin_path' => $_ENV['ADMIN_PATH'] ?? throw new RuntimeException('ADMIN_PATH not set in .env'),
 
+    // Cloudinary
+    'cloudinary_cloud' => $_ENV['CLOUDINARY_CLOUD_NAME']
+        ?? throw new RuntimeException('CLOUDINARY_CLOUD_NAME not set'),
+    'cloudinary_key'   => $_ENV['CLOUDINARY_API_KEY']
+        ?? throw new RuntimeException('CLOUDINARY_API_KEY not set'),
+    'cloudinary_secret' => $_ENV['CLOUDINARY_API_SECRET']
+        ?? throw new RuntimeException('CLOUDINARY_API_SECRET not set'),
+    'cloudinary_folder' => $_ENV['CLOUDINARY_FOLDER'] ?? 'OWS',
+
 
 ];
