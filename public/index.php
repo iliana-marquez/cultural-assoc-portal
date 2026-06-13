@@ -16,7 +16,6 @@ require_once __DIR__ . '/../core/Mailer.php';
 require_once __DIR__ . '/../core/RateLimiter.php';
 require_once __DIR__ . '/../core/SchemaBuilder.php';
 require_once __DIR__ . '/../core/CloudinaryService.php';
-require_once __DIR__ . '/../app/Controllers/MediaController.php';
 
 // Models
 require_once __DIR__ . '/../app/Models/BaseModel.php';
@@ -39,6 +38,7 @@ require_once __DIR__ . '/../app/Controllers/ContactController.php';
 require_once __DIR__ . '/../app/Controllers/TeamController.php';
 require_once __DIR__ . '/../app/Controllers/EventController.php';
 require_once __DIR__ . '/../app/Controllers/ParticipantController.php';
+require_once __DIR__ . '/../app/Controllers/MediaController.php';
 
 // Environment 
 $envPaths = [
