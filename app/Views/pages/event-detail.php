@@ -4,36 +4,91 @@
  * event-detail.php
  *
  * Single event detail page.
+ * Row 1: promo image | event details
+ * Row 2: review | video (if any)
+ * Row 3: gallery (zoomable)
  *
  * Variables:
  *   $event object  Event with participants, media, status
  */
+
+// Split media by stage and resource_type
+$promoImages = [];
+$videos     = [];
+$gallery    = [];
+
+foreach ($event->media ?? [] as $media) {
+    if ($media->stage === 'promo' && ($media->resource_type ?? 'image') === 'image') {
+        $promoImages[] = $media;
+    } elseif (($media->resource_type ?? 'image') === 'video') {
+        $videos[] = $media;
+    } elseif ($media->stage === 'gallery') {
+        $gallery[] = $media;
+    }
+}
 ?>
 
 <section class="segment light-segment">
     <div class="container">
+
+        <!-- Row 1: Promo image | Event details -->
         <div class="row g-5">
 
+            <!-- Promo Media -->
+            <div class="col-12 col-md-6">
+                <?php if (!empty($promoImages)): ?>
 
-
-            <!-- Media sidebar -->
-            <div class="col-12 col-md-4">
-                <?php if (!empty($event->media)): ?>
-                    <?php foreach ($event->media as $media): ?>
-                        <div class="event-media-item">
-                            <img src="<?= htmlspecialchars($media->media_url) ?>"
-                                alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
-                                class="section-image">
-                            <?php if (!empty($media->caption)): ?>
-                                <small><?= htmlspecialchars($media->caption) ?></small>
-                            <?php endif; ?>
+                    <?php if (count($promoImages) === 1): ?>
+                        <!-- Single promo image -->
+                        <div class="section-image-wrap">
+                            <img src="<?= htmlspecialchars($promoImages[0]->media_url) ?>"
+                                alt="<?= htmlspecialchars($event->title) ?>"
+                                class="section-image zoomable">
                         </div>
-                    <?php endforeach; ?>
+                        <?php if (!empty($promoImages[0]->caption)): ?>
+                            <small class="image-credit">
+                                <i class="ti ti-camera"></i>
+                                <?= htmlspecialchars($promoImages[0]->caption) ?>
+                            </small>
+                        <?php endif; ?>
+
+                    <?php else: ?>
+                        <!-- Multiple promo images — Bootstrap carousel -->
+                        <div id="eventPromo" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-inner">
+                                <?php foreach ($promoImages as $i => $media): ?>
+                                    <div class="carousel-item <?= $i === 0 ? 'active' : '' ?>">
+                                        <img src="<?= htmlspecialchars($media->media_url) ?>"
+                                            alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
+                                            class="d-block w-100 section-image zoomable">
+                                        <?php if (!empty($media->caption)): ?>
+                                            <div class="carousel-caption d-none d-md-block">
+                                                <small><?= htmlspecialchars($media->caption) ?></small>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <button class="carousel-control-prev" type="button"
+                                data-bs-target="#eventPromo" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon"></span>
+                            </button>
+                            <button class="carousel-control-next" type="button"
+                                data-bs-target="#eventPromo" data-bs-slide="next">
+                                <span class="carousel-control-next-icon"></span>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+
+                <?php else: ?>
+                    <div class="section-image-placeholder">
+                        <i class="ti ti-music"></i>
+                    </div>
                 <?php endif; ?>
             </div>
 
-            <!-- Main content -->
-            <div class="col-12 col-md-8">
+            <!-- Event details -->
+            <div class="col-12 col-md-6">
                 <div class="section-content">
 
                     <!-- Category -->
@@ -97,23 +152,77 @@
                         </div>
                     <?php endif; ?>
 
-                    <!-- Review (past events) -->
-                    <?php if (!empty($event->review)): ?>
+                    <!-- Admission -->
+                    <?php if (!empty($event->admission)): ?>
+                        <div class="event-admission">
+                            <?php match ($event->admission) {
+                                'free'     => print('<span><i class="ti ti-ticket"></i> Eintritt frei</span>'),
+                                'donation' => print('<span><i class="ti ti-ticket"></i> Eintritt frei — Spenden willkommen</span>'),
+                                'ticket'   => print('<a href="' . htmlspecialchars($event->ticket_url ?? '#') . '" target="_blank" class="btn-section"><i class="ti ti-ticket"></i> Tickets kaufen</a>'),
+                                default    => null,
+                            }; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2: Review | Video -->
+        <?php if (!empty($event->review) || !empty($videos)): ?>
+            <hr>
+            <div class="row g-5 align-items-start event-review-row">
+
+                <!-- Review -->
+                <?php if (!empty($event->review)): ?>
+                    <div class="col-12 <?= !empty($videos) ? 'col-md-8' : 'col-12' ?>">
                         <div class="event-review">
                             <h3>Rückblick</h3>
                             <p><?= nl2br(htmlspecialchars($event->review)) ?></p>
                         </div>
-                    <?php endif; ?>
+                    </div>
+                <?php endif; ?>
 
+                <!-- Videos -->
+                <?php if (!empty($videos)): ?>
+                    <div class="col-12 col-md-4">
+                        <?php foreach ($videos as $video): ?>
+                            <div class="event-media-item">
+                                <video src="<?= htmlspecialchars($video->media_url) ?>"
+                                    class="section-image"
+                                    controls>
+                                </video>
+                                <?php if (!empty($video->caption)): ?>
+                                    <small><?= htmlspecialchars($video->caption) ?></small>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
 
-
-                </div>
             </div>
-            <hr>
-            <a href="/veranstaltungen" class="d-flex align-items-end">
-                <i class="ti ti-arrow-left"></i> Veranstaltungen
-            </a>
+        <?php endif; ?>
 
-        </div>
+        <!-- Row 3: Gallery -->
+        <?php if (!empty($gallery)): ?>
+            <div class="row g-3 event-gallery">
+                <?php foreach ($gallery as $media): ?>
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <img src="<?= htmlspecialchars($media->media_url) ?>"
+                            alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
+                            class="section-image zoomable">
+                        <?php if (!empty($media->caption)): ?>
+                            <small><?= htmlspecialchars($media->caption) ?></small>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <!-- Back link -->
+        <hr>
+        <a href="/veranstaltungen" class="d-flex align-items-end">
+            <i class="ti ti-arrow-left"></i> Veranstaltungen
+        </a>
+
     </div>
 </section>
