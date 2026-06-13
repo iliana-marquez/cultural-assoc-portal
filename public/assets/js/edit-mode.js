@@ -210,6 +210,50 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
+        // Block type toggle — add/remove image column
+        block.querySelectorAll('[data-action="toggle-block-type"]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const toggle = btn.closest('[data-toggle]');
+                const current = toggle.dataset.value;
+                const next = current === 'text' ? 'image' : 'text';
+                toggle.dataset.value = next;
+
+                // Update button label and icon
+                btn.querySelector('.block-type-label').textContent =
+                    next === 'image' ? 'Bildspalte entfernen' : '+ Bildspalte';
+                btn.querySelector('i').className =
+                    next === 'image'
+                        ? 'ti ti-layout-sidebar-right-collapse'
+                        : 'ti ti-layout-sidebar-right';
+
+                // Show/hide relevant controls
+                block.querySelectorAll('.ctrl-text-block').forEach(el => {
+                    el.classList.toggle('d-none', next !== 'text');
+                });
+                block.querySelectorAll('.ctrl-image-block').forEach(el => {
+                    el.classList.toggle('d-none', next !== 'image');
+                });
+
+                // Show/hide image column — preserve image URL in DB
+                const imageCol = block.querySelector('.section-image-col');
+                if (imageCol) imageCol.classList.toggle('d-none', next !== 'image');
+
+                // Also update image_pos toggle value — 'none' for text, 'right' for image
+                const imagePosToggle = block.querySelector('[data-toggle="image_pos"]');
+                if (imagePosToggle) {
+                    imagePosToggle.dataset.value = next === 'image' ? 'right' : 'none';
+                }
+
+                // Update content col width
+                const contentCol = block.querySelector('.section-content')?.closest('[class*="col-"]');
+                if (contentCol) {
+                    contentCol.className = next === 'text' ? 'col-12' : 'col-12 col-md-6';
+                }
+
+                hasUnsaved = true;
+            });
+        });
+
         // Text align
         block.querySelectorAll('[data-action="toggle-align"]').forEach(function (btn) {
             btn.addEventListener('click', function () {
@@ -241,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function () {
         };
         const c = cols[layout] || cols['50-50'];
         const textCol = row.querySelector('.section-content')?.closest('[class*="col-"]');
-        const imageCol = row.querySelector('.section-image-wrap, .section-image-placeholder')?.closest('[class*="col-"]');
+        const imageCol = row.querySelector('.section-image-col');
         if (textCol) textCol.className = c.text;
         if (imageCol) imageCol.className = c.image;
     }
@@ -249,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function flipImage(block, position) {
         const row = block.querySelector('.row');
         if (!row) return;
-        const imageCol = row.querySelector('.section-image-wrap, .section-image-placeholder')?.closest('[class*="col-"]');
+        const imageCol = row.querySelector('.section-image-col');
         const contentCol = row.querySelector('.section-content')?.closest('[class*="col-"]');
         if (!imageCol || !contentCol) return;
         if (position === 'left') {
@@ -264,16 +308,20 @@ document.addEventListener('DOMContentLoaded', function () {
     function initImageControls(block) {
         const sectionId = block.dataset.sectionId;
 
-        // Upload section image
-        block.querySelector('[data-action="upload-image"]')?.addEventListener('change', function () {
-            if (!this.files[0]) return;
-            uploadSectionImage(block, this.files[0], 'image', sectionId);
+        // Upload image — placeholder + overlay (multiple elements possible)
+        block.querySelectorAll('[data-action="upload-image"]').forEach(function (input) {
+            input.addEventListener('change', function () {
+                if (!this.files[0]) return;
+                uploadSectionImage(block, this.files[0], 'image', sectionId);
+            });
         });
 
-        // Remove section image
-        block.querySelector('[data-action="remove-image"]')?.addEventListener('click', function () {
-            if (!confirm('Bild entfernen?')) return;
-            removeSectionImage(block, 'image', sectionId);
+        // Remove image — overlay button
+        block.querySelectorAll('[data-action="remove-image"]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                if (!confirm('Bild entfernen?')) return;
+                removeSectionImage(block, 'image', sectionId);
+            });
         });
 
         // Upload BG image
@@ -308,20 +356,39 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(function (json) {
                 if (json.success) {
                     if (field === 'image') {
-                        // Replace placeholder or update existing image
                         const placeholder = block.querySelector('.section-image-placeholder');
                         const existingImg = block.querySelector('.section-image');
+                        const imageCol = block.querySelector('.section-image-col');
+
                         if (placeholder) {
+                            // Replace placeholder with image + edit overlay
                             placeholder.outerHTML =
                                 '<div class="section-image-wrap">' +
-                                '<img src="' + json.url + '" class="section-image zoomable">' +
+                                '<img src="' + json.url + '" class="section-image">' +
+                                '<div class="image-edit-overlay">' +
+                                '<label class="section-control-btn" style="cursor:pointer;">' +
+                                '<i class="ti ti-refresh"></i> Ändern' +
+                                '<input type="file" accept="image/*" class="d-none" data-action="upload-image">' +
+                                '</label>' +
+                                '<button class="section-control-btn" data-action="remove-image">' +
+                                '<i class="ti ti-trash"></i> Entfernen' +
+                                '</button>' +
+                                '</div>' +
                                 '</div>';
+                            // Re-init image controls for new DOM nodes
+                            initImageControls(block);
                         } else if (existingImg) {
                             existingImg.src = json.url;
                         }
-                        // Show image controls, hide no-image controls
-                        block.querySelectorAll('.ctrl-no-image').forEach(el => el.classList.add('d-none'));
-                        block.querySelectorAll('.ctrl-has-image').forEach(el => el.classList.remove('d-none'));
+
+                        // Show image column if hidden
+                        if (imageCol) imageCol.classList.remove('d-none');
+
+                        // Update column widths
+                        const layoutToggle = block.querySelector('[data-toggle="layout"]');
+                        const layout = layoutToggle?.dataset.value || '50-50';
+                        updateColumns(block, layout);
+
                     } else {
                         // BG image
                         const segment = block.querySelector('.segment');
@@ -361,10 +428,17 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (wrap) {
                             wrap.outerHTML =
                                 '<div class="section-image-placeholder">' +
-                                '<i class="ti ti-photo"></i></div>';
+                                '<i class="ti ti-photo"></i>' +
+                                '<label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">' +
+                                '<i class="ti ti-photo-plus"></i> Bild hinzufügen' +
+                                '<input type="file" accept="image/*" class="d-none" data-action="upload-image">' +
+                                '</label>' +
+                                '</div>';
+                            // Re-init image controls for new DOM nodes
+                            initImageControls(block);
                         }
-                        block.querySelectorAll('.ctrl-has-image').forEach(el => el.classList.add('d-none'));
-                        block.querySelectorAll('.ctrl-no-image').forEach(el => el.classList.remove('d-none'));
+                        // Keep image column visible — placeholder stays
+                        // Content col stays at current layout width
                     } else {
                         const segment = block.querySelector('.segment');
                         segment.style.backgroundImage = '';

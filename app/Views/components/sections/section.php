@@ -39,8 +39,10 @@ $alignClass = match ($align ?? 'left') {
     default  => '',
 };
 
-$hasImage  = !empty($image) && ($imagePos ?? 'none') !== 'none';
-$imageLeft = ($imagePos ?? 'none') === 'left';
+$hasImage     = !empty($image) && ($imagePos ?? 'none') !== 'none';
+$isImageBlock = in_array($imagePos ?? 'none', ['left', 'right']);
+$showImageCol = $hasImage || ($isLoggedIn && $isImageBlock);
+$imageLeft    = ($imagePos ?? 'none') === 'left';
 
 $objectFit = $section->object_fit ?? 'cover';
 
@@ -69,18 +71,26 @@ $ctaAlignClass = $hasImage
         <div class="container">
             <div class="row align-items-center g-5">
 
-                <?php if ($hasImage && $imageLeft): ?>
-                    <div class="<?= $cols['image'] ?>">
+                <?php
+                // Image col — always in DOM when logged in (hidden if text block)
+                // Position: left renders before content, right renders after
+                $imgHidden     = !$showImageCol && $isLoggedIn;
+                $imageColClass = $cols['image'] . ' section-image-col' . ($imgHidden ? ' d-none' : '');
+                $contentClass  = $showImageCol ? $cols['text'] : 'col-12 ' . $alignClass;
+                ?>
+
+                <?php if ($imageLeft || $imgHidden): ?>
+                    <div class="<?= $imageColClass ?>">
                         <?php require $partialsDir . '_image.php'; ?>
                     </div>
                 <?php endif; ?>
 
-                <div class="<?= $hasImage ? $cols['text'] : 'col-12 ' . $alignClass ?>">
+                <div class="<?= $contentClass ?>" id="section-content-col-<?= $section->id ?>">
                     <?php require $partialsDir . '_content.php'; ?>
                 </div>
 
-                <?php if ($hasImage && !$imageLeft): ?>
-                    <div class="<?= $cols['image'] ?>">
+                <?php if (!$imageLeft && !$imgHidden): ?>
+                    <div class="<?= $imageColClass ?>">
                         <?php require $partialsDir . '_image.php'; ?>
                     </div>
                 <?php endif; ?>
