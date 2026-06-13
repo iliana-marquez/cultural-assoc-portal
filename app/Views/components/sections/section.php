@@ -39,9 +39,9 @@ $alignClass = match ($align ?? 'left') {
     default  => '',
 };
 
-$hasImage     = !empty($image) && ($imagePos ?? 'none') !== 'none';
+$hasImage     = !empty($image);
 $isImageBlock = in_array($imagePos ?? 'none', ['left', 'right']);
-$showImageCol = $hasImage || ($isLoggedIn && $isImageBlock);
+$showImageCol = $isImageBlock && ($hasImage || $isLoggedIn);
 $imageLeft    = ($imagePos ?? 'none') === 'left';
 
 $objectFit = $section->object_fit ?? 'cover';
@@ -74,23 +74,25 @@ $ctaAlignClass = $hasImage
                 <?php
                 // Image col — always in DOM when logged in (hidden if text block)
                 // Position: left renders before content, right renders after
-                $imgHidden     = !$showImageCol && $isLoggedIn;
-                $imageColClass = $cols['image'] . ' section-image-col' . ($imgHidden ? ' d-none' : '');
-                $contentClass  = $showImageCol ? $cols['text'] : 'col-12 ' . $alignClass;
+                $contentClass = $showImageCol ? $cols['text'] : 'col-12 ' . $alignClass;
                 ?>
 
-                <?php if ($imageLeft || $imgHidden): ?>
-                    <div class="<?= $imageColClass ?>">
+                <?php if ($imageLeft && $showImageCol): ?>
+                    <div class="<?= $cols['image'] ?> section-image-col">
                         <?php require $partialsDir . '_image.php'; ?>
                     </div>
                 <?php endif; ?>
 
-                <div class="<?= $contentClass ?>" id="section-content-col-<?= $section->id ?>">
+                <div class="<?= $contentClass ?> section-text-col" id="section-content-col-<?= $section->id ?>">
                     <?php require $partialsDir . '_content.php'; ?>
                 </div>
 
-                <?php if (!$imageLeft && !$imgHidden): ?>
-                    <div class="<?= $imageColClass ?>">
+                <?php if (!$imageLeft && $showImageCol): ?>
+                    <div class="<?= $cols['image'] ?> section-image-col">
+                        <?php require $partialsDir . '_image.php'; ?>
+                    </div>
+                <?php elseif ($isLoggedIn): ?>
+                    <div class="<?= $cols['image'] ?> section-image-col d-none">
                         <?php require $partialsDir . '_image.php'; ?>
                     </div>
                 <?php endif; ?>
