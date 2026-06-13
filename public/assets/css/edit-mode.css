@@ -208,6 +208,7 @@ body.is-editing .edit-bar__indicator i {
 .block-feedback,
 .entity-feedback {
     font-size: var(--text-small);
+    padding: 0.25rem 0.5rem;
 }
 
 .block-feedback--success,
@@ -215,3 +216,46 @@ body.is-editing .edit-bar__indicator i {
 
 .block-feedback--error,
 .entity-feedback--error   { color: #f87171; }
+
+
+/* ── Image edit overlay ─────────────────────────────────────── */
+.section-image-wrap {
+    position: relative;
+}
+
+.image-edit-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    z-index: 5;
+}
+
+.editable-block.editing .section-image-wrap:hover .image-edit-overlay {
+    display: flex;
+}
+
+/* ── Placeholder upload button ───────────────────────────────── */
+.section-image-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.placeholder-upload-btn {
+    background: var(--edit-active);
+    opacity: 0;
+    transition: opacity var(--transition);
+}
+
+.editable-block.editing .placeholder-upload-btn {
+    opacity: 1;
+}
+
+
+
