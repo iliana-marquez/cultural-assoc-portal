@@ -33,6 +33,7 @@ $router->post('/page/section/add',              'PageController', 'addSection');
 $router->post('/page/section/{id}/save',        'PageController', 'saveSection');
 $router->post('/page/section/{id}/delete',      'PageController', 'deleteSection');
 $router->post('/page/section/reorder',          'PageController', 'reorderSections');
+$router->post('/page/section/{id}/remove-image',   'PageController',  'removeSectionImage');
 
 // ── Tean CRUD → TeamController ───────────────────────────────
 // GET
@@ -67,3 +68,4 @@ $router->post('/participants/{id}/delete',    'ParticipantController', 'delete')
 $router->post('/media/upload',        'MediaController', 'upload');
 $router->post('/media/{id}/delete',   'MediaController', 'delete');
 $router->post('/media/reorder',       'MediaController', 'reorder');
+$router->post('/media/upload-section', 'MediaController', 'uploadSection');
