@@ -15,14 +15,26 @@
  */
 ?>
 
-<div class="edit-bar text-center bg-warning" id="edit-bar">
+<div class="edit-bar text-center" id="edit-bar">
     <span class="edit-bar__indicator">
         <i class="ti ti-circle-filled"></i>
         <span class="edit-bar__label">Editing</span>
     </span>
 
-    <a href="/logout" class="edit-bar__exit" title="Exit edit mode">
-        Exit Edit Mode
-        <i class="ti ti-logout"></i>
-    </a>
+
+
+    <div class="d-flex justify-content-end gap-3">
+        <a href="/<?= htmlspecialchars($config['admin_path']) ?>/org"
+            class="edit-bar__exit" title="Exit edit mode">
+            <i class="ti ti-edit"></i>
+            Vereinsinfo
+        </a>
+        <span class="edit-bar__exit">|</span>
+
+        <a href="/logout" class="edit-bar__exit nav-icon-ux">
+            <i class="ti ti-logout"></i>
+            Abmelden
+        </a>
+    </div>
+
 </div>

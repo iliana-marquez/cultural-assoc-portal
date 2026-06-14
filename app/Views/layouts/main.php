@@ -36,6 +36,11 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/assets/css/main.css">
+
+    <!-- Edit-Mode Controls CSS -->
+    <?php if ($isLoggedIn): ?>
+        <link rel="stylesheet" href="/assets/css/edit-mode.css">
+    <?php endif; ?>
 </head>
 
 <body class="d-flex flex-column min-vh-100">
@@ -61,6 +66,9 @@
 
     <!-- Script -->
     <script src="/assets/js/app.js"></script>
+    <?php if ($isLoggedIn): ?>
+        <script src="/assets/js/edit-mode.js"></script>
+    <?php endif; ?>
 </body>
 
 </html>

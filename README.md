@@ -1433,6 +1433,215 @@ CSS/UX fixes:
 - btn-section → inline-flex, icon + text aligned
 - nav-icon-ux → new class for back links with icon
 
+## feat/edit-mode
+
+### Overview
+
+Inline editing system for OWS — free sections and entity data.
+No page reloads. All changes via AJAX. Two patterns:
+
+- **editable-block** → free sections (layout, content, images)
+- **entity-edit-row** → structured entity data (org info, events, team)
+
+---
+
+### Architecture
+
+#### Free Sections — editable-block
+
+PHP renders section with .editable-block wrapper
+
+Editor clicks pencil → activateBlock()
+
+```
+├── block.classList.add('editing') → indigo border + controls
+├── Toggle data-values saved before clone
+├── .block-edit-controls cloned → stale listeners cleared
+├── Toggle data-values restored on fresh clone
+├── contentEditable = true on [data-field] elements
+├── Field labels shown (Titel / Untertitel / Text)
+└── body.classList.add('is-editing') → pulse indicator
+On Speichern:
+├── All [data-field] innerText collected
+├── All [data-toggle] data-values collected
+├── AJAX POST → /page/section/{id}/save
+├── PageController merges into existing JSON
+└── deactivateBlock() → resets state
+```
+
+- Layout toggles → updateColumns() updates .section-text-col + .section-image-col
+- Flip → flipImage() uses insertBefore for correct DOM order
+- Image upload → Cloudinary → img-placeholder innerHTML swap
+- BG upload → .bg-btn-wrap innerHTML swap
+
+#### Entity Edit Rows — entity-edit-row
+
+```
+[label ─────────────── ✏️ / ✓ ✗]
+[span.entity-field data-field="x" ]
+```
+
+-Inactive: pencil visible, grey header
+-Active: save/cancel visible, indigo header, span contenteditable
+-Save: AJAX POST → field=value → OrganisationController::save()
+
+→ OrganisationModel::updateField()
+
+#### Edit bar
+
+[● Bearbeitungsmodus] [Vereinsinfo | Abmelden]
+body.is-editing → green pulsing indicator
+
+Vereinsinfo → /wkk/org (all org data)
+
+Abmelden → /logout
+
+---
+
+### CSS Variables
+
+```css
+--edit-inactive: rgba(120, 120, 120, 0.4) /* grey */ --edit-active: indigo /* active state */;
+```
+
+Change once in :root → entire edit UI recolours. ✅
+
+---
+
+### Key decisions
+
+- **No full page reloads** — all changes via AJAX, immediate DOM update
+- **Clone pattern** — .block-edit-controls cloned on each activation to clear stale listeners. Save/Cancel outside clone zone — attached once at init.
+- **Named col classes** — .section-image-col + .section-text-col for reliable JS targeting
+- **img-placeholder unified** — one class for image and placeholder, ratio modifiers per context
+- **Org data centralised** — /wkk/org only, contact.php display only
+- **BG button swap** — .bg-btn-wrap innerHTML swapped after upload/remove
+
+---
+
+### Files
+
+```
+public/assets/js/edit-mode.js ← edit mode JS — all interactions
+public/assets/css/edit-mode.css ← edit mode CSS — variables driven
+app/Views/components/sections/
+├── section.php ← editable-block wrapper, named col classes
+├── partials/
+│ ├── \_controls.php ← pencil/controls/save/cancel, bg-btn-wrap
+│ ├── \_content.php ← data-field attributes, field labels
+│ └── \_image.php ← img-placeholder block-img
+app/Controllers/OrganisationController.php ← edit + save
+app/Models/OrganisationModel.php ← updateField()
+app/Views/pages/org-edit.php ← /wkk/org edit page
+app/Views/components/edit-bar.php ← sticky edit bar
+```
+
+---
+
+### Testing
+
+- ✅ Free section text editing — saves and persists
+- ✅ Theme toggle — renders immediately
+- ✅ Layout toggle — both cols resize immediately
+- ✅ Flip — image moves left/right immediately
+- ✅ Fit toggle — object-fit changes immediately
+- ✅ Align toggle — text alignment changes immediately
+- ✅ Bildspalte — col appears/disappears correctly
+- ✅ 100-100 stacked layout
+- ✅ Image upload — renders in correct col immediately
+- ✅ Image remove → placeholder restores
+- ✅ BG upload → renders immediately, button swaps
+- ✅ BG remove → clears immediately, button swaps
+- ✅ Save/Cancel work on first and subsequent edits
+- ✅ Toggle state preserved across multiple activations
+- ✅ Blinking indicator when editing
+- ✅ Unsaved changes warning on page leave
+- ✅ /wkk/org — all org fields editable
+- ✅ Single field AJAX save with feedback
+- ✅ Edit bar — Vereinsinfo link + Abmelden
+
+## Bug Fixes — feat/edit-mode
+
+---
+
+### 1. Save/Cancel listeners duplicated on re-activation
+
+**Bug:** Save/Cancel stopped working after first edit session.  
+**Cause:** Listeners attached inside `activateBlock()` — called on every activation — stacking multiple listeners on same buttons.  
+**Fix:** Save/Cancel moved outside `.block-edit-controls` clone zone. Attached once at init via `document.querySelectorAll('.editable-block').forEach`.
+
+---
+
+### 2. Toggle data-values reset on re-activation
+
+**Bug:** Layout/flip/theme reverted to DB values on second edit without refresh.  
+**Cause:** `.block-edit-controls` clone on activation reset all `data-value` attributes to PHP-rendered values.  
+**Fix:** Save all `data-toggle` values before clone, restore on fresh clone in `activateBlock()`.
+
+---
+
+### 3. `updateColumns()` stripped named col classes
+
+**Bug:** Layout toggle worked once then broke — image col lost `section-image-col` class.  
+**Cause:** `imageCol.className = c.image` replaced entire className, removing `section-image-col`.  
+**Fix:** `imageCol.className = c.image + ' section-image-col' + hidden` — always preserves named class.
+
+---
+
+### 4. Image col not found by JS
+
+**Bug:** `block.querySelector('.section-image-col')` returned null.  
+**Cause:** Hidden image col (text block) rendered before content col in DOM — `section-image-col` class missing from second col.  
+**Fix:** Named classes `section-image-col` and `section-text-col` added to PHP output. Hidden col always renders after content col.
+
+---
+
+### 5. Flip moved cols vertically instead of horizontally
+
+**Bug:** Flip button pushed image col above or below text.  
+**Cause:** `row.appendChild(imageCol)` moved col to end but Bootstrap row had wrong col widths — both cols adding up to more than 12.  
+**Fix:** `updateColumns()` always sets complementary sizes (text + image = 12). `flipImage()` uses `insertBefore` for both directions.
+
+---
+
+### 6. Placeholder rendered outside col layout
+
+**Bug:** Image placeholder appeared outside the Bootstrap column.  
+**Cause:** `$isImageBlock` evaluated as false when `image: null` — image col not rendered at all, placeholder floated outside row.  
+**Fix:** `$showImageCol = $isImageBlock && ($hasImage || $isLoggedIn)` — col renders based on `image_pos`, not image presence.
+
+---
+
+### 7. `MediaController::jsonSuccess()` not found
+
+**Bug:** Image upload silently failed — no JSON response.  
+**Cause:** `jsonSuccess()` was `private` in `PageController` — not inherited by `MediaController`.  
+**Fix:** Moved `jsonSuccess()` and `jsonError()` to `BaseController` as `protected`.
+
+---
+
+### 8. BG button not swapping after upload/remove
+
+**Bug:** After BG upload, button stayed as `+ BG`. After remove, stayed as `BG entfernen`.  
+**Cause:** BG button was a direct PHP-rendered element — no JS DOM update after state change.  
+**Fix:** Wrapped in `.bg-btn-wrap`. JS swaps `innerHTML` of wrapper after upload/remove and re-runs `initImageControls()`.
+
+---
+
+### 9. Save button stuck disabled after first save
+
+**Bug:** Save button disabled after first successful save — second edit couldn't save.  
+**Cause:** `saveBlock()` set `saveBtn.disabled = true` but `deactivateBlock()` never reset it.  
+**Fix:** `deactivateBlock()` resets `saveBtn.disabled = false` and restores check icon.
+
+---
+
+### 10. Field labels visible when block inactive
+
+**Bug:** Titel / Untertitel / Text labels appeared on page load.  
+**Cause:** CSS `.edit-field-label { display: none }` overridden by cascade — later rule winning.  
+**Fix:** Labels get `style="display:none"` inline from PHP. JS explicitly sets `display: block/none` on activate/deactivate — bypasses CSS cascade entirely.
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES

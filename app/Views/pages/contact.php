@@ -3,11 +3,8 @@
 /**
  * contact.php
  *
- * Contact page.
- * Free intro sections from pages table.
- * Contact info from organisation_info ($org from BaseController).
- * Social URLs from urls table ($urls from ContactController).
- * Static contact form — functionality in feat/contact-form.
+ * Contact page — display only.
+ * Org data edited via /wkk/org (edit bar link).
  */
 ?>
 
@@ -19,35 +16,44 @@
     <div class="container">
         <div class="row g-5">
 
-            <!-- ── Contact info ───────────────────────────────── -->
+            <!-- Contact info -->
             <div class="col-12 col-md-5">
 
-                <!-- Anfragen & Feedback -->
-                <div class="contact-block">
-                    <h2>Anfragen &amp; Feedback</h2>
-                    <?php if (!empty($org->email)): ?>
+                <!-- Email -->
+                <?php if (!empty($org->email)): ?>
+                    <div class="contact-block">
+                        <h2>Anfragen &amp; Feedback</h2>
                         <a href="mailto:<?= htmlspecialchars($org->email) ?>" class="contact-link">
                             <i class="ti ti-mail"></i>
                             <?= htmlspecialchars($org->email) ?>
                         </a>
-                    <?php endif; ?>
-                </div>
+                    </div>
+                <?php endif; ?>
 
-                <!-- Veranstalter -->
-                <div class="contact-block">
-                    <h2>Veranstalter</h2>
-                    <?php if (!empty($org->name)): ?>
-                        <p><?= htmlspecialchars($org->name) ?></p>
-                    <?php endif; ?>
-                    <?php if (!empty($org->street)): ?>
-                        <p class="contact-address">
-                            <i class="ti ti-map-pin"></i>
-                            <?= htmlspecialchars($org->street) ?>,
-                            <?= htmlspecialchars($org->postcode) ?>
-                            <?= htmlspecialchars($org->city) ?>
-                        </p>
-                    <?php endif; ?>
-                </div>
+                <!-- Address -->
+                <?php if (!empty($org->name)): ?>
+                    <div class="contact-block">
+                        <h2>Veranstalter</h2>
+                        <p class="text-uppercase fw-bold"><?= htmlspecialchars($org->name) ?></p>
+                        <?php if (!empty($org->street)): ?>
+                            <p class="contact-address">
+                                <i class="ti ti-map-pin"></i>
+                                <?= htmlspecialchars($org->street) ?>, <br>
+                                <?= htmlspecialchars($org->postcode) ?>
+                                <?= htmlspecialchars($org->city) ?>
+                            </p>
+                        <?php endif; ?>
+                        <!-- Phone -->
+                        <?php if (!empty($org->phone)): ?>
+                            <p>
+                                <i class="ti ti-phone"></i>
+                                <?= htmlspecialchars($org->phone) ?>
+                            </p>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+
+
 
                 <!-- Social links -->
                 <?php if (!empty($urls)): ?>
@@ -65,10 +71,11 @@
                     </div>
                 <?php endif; ?>
 
-                <!-- Registration number -->
+                <!-- ZVR -->
                 <?php if (!empty($org->registration_number)): ?>
-                    <div class="contact-block">
-                        <small>ZVR: <?= htmlspecialchars($org->registration_number) ?></small>
+                    <div class="text-nowrap">
+                        <span class="fw-bold">ZVR: </span>
+                        <?= htmlspecialchars($org->registration_number) ?>
                     </div>
                 <?php endif; ?>
 

@@ -22,15 +22,12 @@
                         <a href="/kuenstlerinnen/<?= htmlspecialchars($participant->slug) ?>"
                             class="team-card">
 
-                            <div class="team-card__image">
+                            <div class="img-placeholder portrait-img">
                                 <?php if (!empty($participant->promo)): ?>
                                     <img src="<?= htmlspecialchars($participant->promo->media_url) ?>"
-                                        alt="<?= htmlspecialchars($participant->displayName) ?>"
-                                        class="section-image">
+                                        alt="<?= htmlspecialchars($participant->displayName) ?>">
                                 <?php else: ?>
-                                    <div class="section-image-placeholder">
-                                        <i class="ti ti-user"></i>
-                                    </div>
+                                    <i class="ti ti-user"></i>
                                 <?php endif; ?>
                             </div>
 

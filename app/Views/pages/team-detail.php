@@ -19,10 +19,9 @@
             <!-- Image -->
             <div class="col-12 col-md-5">
                 <?php if (!empty($member->image)): ?>
-                    <div class="team-detail-image">
+                    <div class="img-placeholder portrait-img">
                         <img src="<?= htmlspecialchars($member->image) ?>"
-                            alt="<?= htmlspecialchars(TeamModel::displayName($member)) ?>"
-                            class="team-detail-image">
+                            alt="<?= htmlspecialchars(TeamModel::displayName($member)) ?>">
                     </div>
                     <?php if (!empty($member->image_credits)): ?>
                         <span class="image-credit small">
@@ -31,7 +30,7 @@
                         </span>
                     <?php endif; ?>
                 <?php else: ?>
-                    <div class="section-image-placeholder">
+                    <div class="img-placeholder portrait-img">
                         <i class="ti ti-user"></i>
                     </div>
                 <?php endif; ?>
@@ -78,7 +77,7 @@
                 </div>
             </div>
             <hr>
-            <a href="/team" class="d-flex align-items-end">
+            <a href="/team" class="nav-icon-ux">
                 <i class="ti ti-arrow-left align-items-"></i> Team
             </a>
 

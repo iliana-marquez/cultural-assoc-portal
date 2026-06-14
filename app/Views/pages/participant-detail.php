@@ -13,10 +13,9 @@
             <!-- Image -->
             <div class="col-12 col-md-4">
                 <?php if (!empty($participant->media)): ?>
-                    <div class="section-image-wrap">
+                    <div class="img-placeholder portrait-img">
                         <img src="<?= htmlspecialchars($participant->media[0]->media_url) ?>"
-                            alt="<?= htmlspecialchars($participant->displayName) ?>"
-                            class="section-image">
+                            alt="<?= htmlspecialchars($participant->displayName) ?>">
                     </div>
                     <?php if (!empty($participant->image_credit)): ?>
                         <span class="image-credit small">
@@ -25,7 +24,7 @@
                         </span>
                     <?php endif; ?>
                 <?php else: ?>
-                    <div class="section-image-placeholder">
+                    <div class="img-placeholder portrait-img">
                         <i class="ti ti-user"></i>
                     </div>
                 <?php endif; ?>
@@ -80,11 +79,11 @@
                 </div>
             </div>
             <hr>
-            <a href="/kuenstlerinnen" class="d-flex align-items-end">
+            <a href="/kuenstlerinnen" class="nav-icon-ux">
                 <i class="ti ti-arrow-left"></i> Künstler:innen
             </a><br>
-            <a href="/veranstaltungen" class="d-flex align-items-end">
-                <i class="ti ti-arrow-left"></i> Veranstaltungen
+            <a href="/veranstaltungen" class="nav-icon-ux">
+                <i class=" ti ti-arrow-left"></i> Veranstaltungen
             </a>
 
         </div>

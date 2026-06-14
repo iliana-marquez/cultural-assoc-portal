@@ -74,6 +74,27 @@ class BaseController
      * Require login — redirect to admin login if not authenticated.
      * Uses admin_path from config — no hardcoded paths.
      */
+    /**
+     * JSON success response for AJAX requests.
+     */
+    protected function jsonSuccess(array $data = []): void
+    {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true] + $data);
+        exit;
+    }
+
+    /**
+     * JSON error response for AJAX requests.
+     */
+    protected function jsonError(string $message): void
+    {
+        header('Content-Type: application/json');
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => $message]);
+        exit;
+    }
+
     protected function requireLogin(): void
     {
         if (!$this->isLoggedIn()) {

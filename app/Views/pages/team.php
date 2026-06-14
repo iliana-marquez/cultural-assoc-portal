@@ -29,15 +29,12 @@
                         <a href="/team/<?= htmlspecialchars($member->slug) ?>"
                             class="team-card">
 
-                            <div class="team-card__image">
+                            <div class="img-placeholder portrait-img">
                                 <?php if (!empty($member->image)): ?>
                                     <img src="<?= htmlspecialchars($member->image) ?>"
-                                        alt="<?= htmlspecialchars(TeamModel::displayName($member)) ?>"
-                                        class="section-image">
+                                        alt="<?= htmlspecialchars(TeamModel::displayName($member)) ?>">
                                 <?php else: ?>
-                                    <div class="section-image-placeholder">
-                                        <i class="ti ti-user"></i>
-                                    </div>
+                                    <i class="ti ti-user"></i>
                                 <?php endif; ?>
                             </div>
 
@@ -48,7 +45,9 @@
                                         <?= htmlspecialchars($member->role) ?>
                                     </p>
                                 <?php endif; ?>
-
+                                <?php if (!empty($member->profession)): ?>
+                                    <small><?= htmlspecialchars($member->profession) ?></small>
+                                <?php endif; ?>
                             </div>
 
                         </a>

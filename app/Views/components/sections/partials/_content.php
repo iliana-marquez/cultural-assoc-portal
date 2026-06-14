@@ -4,33 +4,44 @@
  * _content.php
  *
  * Section content partial.
- * Renders title, subtitle, text and optional CTA button.
- *
- * Variables from parent section:
- *   $title    string|null
- *   $subtitle string|null
- *   $text     string|null
- *   $cta      object|null  { label, url }
+ * edit-field-label appears ABOVE the field it labels.
  */
 ?>
 
 <div class="section-content">
-    <?php if (!empty($title)): ?>
-        <h2><?= htmlspecialchars($title) ?></h2>
+
+    <?php if (!empty($title) || $isLoggedIn): ?>
+        <?php if ($isLoggedIn): ?>
+            <small class="edit-field-label">Titel</small>
+        <?php endif; ?>
+        <h2 data-field="title">
+            <?= htmlspecialchars($title ?? '') ?>
+        </h2>
     <?php endif; ?>
 
-    <?php if (!empty($subtitle)): ?>
-        <p><strong><?= htmlspecialchars($subtitle) ?></strong></p>
+    <?php if (!empty($subtitle) || $isLoggedIn): ?>
+        <?php if ($isLoggedIn): ?>
+            <small class="edit-field-label">Untertitel</small>
+        <?php endif; ?>
+        <p data-field="subtitle">
+            <strong><?= htmlspecialchars($subtitle ?? '') ?></strong>
+        </p>
     <?php endif; ?>
 
-    <?php if (!empty($text)): ?>
-        <p><?= nl2br(htmlspecialchars($text)) ?></p>
+    <?php if (!empty($text) || $isLoggedIn): ?>
+        <?php if ($isLoggedIn): ?>
+            <small class="edit-field-label">Text</small>
+        <?php endif; ?>
+        <p data-field="text">
+            <?= nl2br(htmlspecialchars($text ?? '')) ?>
+        </p>
     <?php endif; ?>
 
     <?php if (!empty($cta)): ?>
         <a href="<?= htmlspecialchars($cta->url) ?>"
-            class="btn-section <?= $ctaAlignClass ?>">
+            class="btn-section <?= $ctaAlignClass ?? 'align-self-start' ?>">
             <?= htmlspecialchars($cta->label) ?>
         </a>
     <?php endif; ?>
+
 </div>

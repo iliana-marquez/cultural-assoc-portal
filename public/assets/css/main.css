@@ -39,6 +39,10 @@
 
     --font-family: Arial, sans-serif;
 
+    /* edit controls*/
+    --edit-inactive: rgba(120, 120, 120, 0.5);  /* neutral grey */
+    --edit-active:   indigo;                     /* indigo when editing */
+
 }
 
 /* -- GLOBAL SEGMENT STYLING --------------------*/
@@ -161,7 +165,8 @@ a:hover {
     top: 0;
     z-index: 100;
     height: var(--nav-height);
-    padding: 1rem;
+    background: #fff;
+    border-bottom: 1px solid #e5e5e5;
 }
 
 .nav-container {
@@ -199,6 +204,7 @@ a:hover {
     display: block;
 }
 
+.nav-links > li > a:hover { background: #f5f5f5; }
 
 /* ── Dropdown ───────────────────────────────────────────────── */
 .has-dropdown { 
@@ -209,6 +215,7 @@ a:hover {
 .has-dropdown::after {
     content: '';
     position: absolute;
+    bottom: -8px;
     left: 0;
     width: 100%;
     height: 8px;
@@ -362,50 +369,11 @@ footer {
     margin: 1rem;
 }
 
-
-/* ── Edit bar ───────────────────────────────────────────────── */
-.edit-bar {
-    position: sticky;
-    top: var(--nav-height);
-    z-index: 90;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem 1.5rem;
-
-}
-
-.edit-bar__indicator { display: flex; align-items: center; gap: 0.5rem; }
-
-.edit-bar__indicator i {
-    font-size: 0.75rem;
-    color: #888;
-    transition: color var(--transition);
-}
-
-body.is-editing .edit-bar__indicator i {
-    color: #4ade51;
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-}
-
-.edit-bar__exit {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.85rem;
-    transition: color var(--transition);
-}
-
 /* ============================================================
    SECTION COMPONENTS
    ============================================================ */
 
-/* ── Segment with optional bg image ────────────────────────── */
+/* ── Segment base with optional bg image ───────────────────── */
 .segment {
     padding: 4rem 0;
     position: relative;
@@ -428,33 +396,36 @@ body.is-editing .edit-bar__indicator i {
     z-index: 1; }
 
 
-/* ── Section image ──────────────────────────────────────────── */
+/* ── Universal image container ──────────────────────────────── */
+.img-placeholder {
+    width: 100%;
+    background: var(--neutral);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    overflow: hidden;
+    position: relative;
+}
 
-.section-image {
+.img-placeholder i { font-size: 3rem; opacity: 0.4; }
+
+.img-placeholder img {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 4px;
 }
 
-.section-image-wrap {
-    width: 100%;
-    aspect-ratio: 4/3;
-    overflow: hidden;
-    border-radius: 4px;
-}
-
-.section-image-placeholder {
-    width: 100%;
-    aspect-ratio: 4/3;
-    border-radius: 4px;
-    background: var(--neutral);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.section-image-placeholder i { font-size: 3rem; opacity: 0.4; }
+/* ── Ratio modifiers ─────────────────────────────────────────── */
+.portrait-img      { aspect-ratio: 3/4; }
+.event-card-img    { aspect-ratio: 16/9; }
+.event-promo-img   { aspect-ratio: 4/3; }
+.event-gallery-img { aspect-ratio: 1/1; }
+.block-img         { aspect-ratio: 4/3; }
 
 /* ── Zoomable images ────────────────────────────────────────── */
 .zoomable {
@@ -485,7 +456,15 @@ body.is-editing .edit-bar__indicator i {
     flex-direction: column;
     gap: 1rem;
     justify-content: center;
+    gap: 1rem;
 }
+
+.section-content h1,
+.section-content h2 { margin-bottom: 0.5rem; }
+
+.section-content p { opacity: 0.9; }
+
+.section-image-col { align-self: start; }
 
 /* ── CTA Button ─────────────────────────────────────────────── */
 .btn-section {
@@ -518,32 +497,18 @@ button {
     gap: 0.35rem;
 }
 
-/* ── Edit mode section controls ─────────────────────────────── */
-.section-controls {
-    display: flex;
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
+
+/* ── Zoomable images ────────────────────────────────────────── */
+.zoomable {
+    cursor: zoom-in;
+    transition: transform var(--transition);
+}
+
+.zoomable:hover {
+    transform: scale(1.05);
+    position: relative;
     z-index: 10;
-    gap: 0.5rem;
-    flex-wrap: wrap;
 }
-
-.section-control-btn {
-    background: rgba(0,0,0,0.6);
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 0.3rem 0.6rem;
-    font-size: 0.75rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-
-.section-control-btn:hover { background: rgba(0,0,0,0.9); }
-
 
 /* ── Contact page ───────────────────────────────────────────── */
 .contact-block {
@@ -627,21 +592,7 @@ form {
 
 .team-card:hover { opacity: 1; }
 
-.team-card__image {
-    width: 100%;
-    overflow: hidden;
-}
-
-.team-card__image .section-image,
-.team-card__image .section-image-placeholder,
-.team-detail-image,
-.team-detail-image-placeholder {
-    width: 100%;
-    height: 100%;
-    aspect-ratio: 3/4;
-    object-fit: cover;
-    border-radius: 4px;
-}
+/* team-card__image replaced by .img-placeholder.portrait-img */
 
 .team-card__content {
     padding: 1rem 0;
@@ -663,18 +614,7 @@ form {
 
 .event-card:hover { opacity: 0.85; }
 
-.event-card__image {
-    width: 100%;
-    aspect-ratio: 16/9;
-    overflow: hidden;
-}
-
-.event-card__image .section-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    max-height: unset;
-}
+/* event-card__image replaced by .img-placeholder.event-card-img */
 
 .event-card__content {
     padding: 1rem 0;

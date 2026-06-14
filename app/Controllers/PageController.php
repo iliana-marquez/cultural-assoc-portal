@@ -115,17 +115,65 @@ class PageController extends BaseController
     {
         $this->requireLogin();
 
-        $id      = (int) ($params['id'] ?? 0);
-        $content = json_decode($_POST['content'] ?? '{}', true);
+        $id = (int) ($params['id'] ?? 0);
 
-        if (!$id || !$content) {
-            $this->jsonError('Invalid section data');
+        if (!$id) {
+            $this->jsonError('Invalid section ID');
             return;
         }
 
-        $success = $this->pagesModel->updateContent($id, $content);
+        // Get existing section content from DB
+        $existing = $this->pagesModel->getById($id);
+        $current  = json_decode($existing->content ?? '{}', true) ?: [];
+
+        // Merge POST fields into existing content
+        $updatable = [
+            'title',
+            'subtitle',
+            'text',
+            'theme',
+            'layout',
+            'image_pos',
+            'object_fit',
+            'align',
+            'image',
+            'bg_image'
+        ];
+
+        foreach ($updatable as $field) {
+            if (isset($_POST[$field])) {
+                $current[$field] = $_POST[$field];
+            }
+        }
+
+        $success = $this->pagesModel->updateContent($id, $current);
 
         $success ? $this->jsonSuccess() : $this->jsonError('Failed to save section');
+    }
+
+    /**
+     * POST /page/section/{id}/remove-image
+     * Remove image or bg_image from section JSON.
+     */
+    public function removeSectionImage(array $params = []): void
+    {
+        $this->requireLogin();
+
+        $id    = (int) ($params['id'] ?? 0);
+        $field = trim($_POST['field'] ?? '');
+
+        if (!$id || !in_array($field, ['image', 'bg_image'])) {
+            $this->jsonError('Invalid request');
+            return;
+        }
+
+        $existing = $this->pagesModel->getById($id);
+        $current  = json_decode($existing->content ?? '{}', true) ?: [];
+        $current[$field] = null;
+
+        $success = $this->pagesModel->updateContent($id, $current);
+
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to remove image');
     }
 
     /**
@@ -176,24 +224,5 @@ class PageController extends BaseController
 
     // ── Helpers ──────────────────────────────────────────────
 
-    /**
-     * JSON success response for AJAX POST requests.
-     */
-    private function jsonSuccess(array $data = []): void
-    {
-        header('Content-Type: application/json');
-        echo json_encode(['success' => true] + $data);
-        exit;
-    }
-
-    /**
-     * JSON error response for AJAX POST requests.
-     */
-    private function jsonError(string $message): void
-    {
-        header('Content-Type: application/json');
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => $message]);
-        exit;
-    }
+    // jsonSuccess() and jsonError() inherited from BaseController
 }

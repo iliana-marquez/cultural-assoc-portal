@@ -71,11 +71,10 @@ class MediaController extends BaseController
 
             // Insert media + link to entity via pivot
             $this->mediaModel->addForEntity($entityType, $entityId, [
-                'media_url'     => $result['secure_url'],
-                'resource_type' => $result['resource_type'],
-                'caption'       => $caption ?: null,
-                'stage'         => $stage,
-                'order_index'   => 0,
+                'media_url'  => $result['secure_url'],
+                'caption'    => $caption ?: null,
+                'stage'      => $stage,
+                'order_index' => 0,
             ]);
 
             $this->jsonSuccess([
@@ -122,6 +121,46 @@ class MediaController extends BaseController
         }
 
         $this->jsonSuccess();
+    }
+
+    /**
+     * POST /media/upload-section
+     * Upload image for a free section — stores URL in section JSON via PageController.
+     * Returns URL for JS to update DOM immediately.
+     */
+    public function uploadSection(array $params = []): void
+    {
+        $this->requireLogin();
+
+        if (empty($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+            $this->jsonError('No file uploaded');
+            return;
+        }
+
+        $sectionId = (int) ($_POST['entity_id'] ?? 0);
+        $field     = trim($_POST['field'] ?? 'image'); // 'image' or 'bg_image'
+
+        if (!$sectionId) {
+            $this->jsonError('Section ID required');
+            return;
+        }
+
+        try {
+            $publicId = CloudinaryService::generatePublicId('section-' . $sectionId . '-' . $field . '-' . time());
+            $result   = CloudinaryService::upload($_FILES['image'], 'pages', $publicId);
+
+            // Save URL directly into section JSON via PagesModel
+            require_once __DIR__ . '/../Models/PagesModel.php';
+            $pagesModel = new PagesModel();
+            $existing   = $pagesModel->getById($sectionId);
+            $current    = json_decode($existing->content ?? '{}', true) ?: [];
+            $current[$field] = $result['secure_url'];
+            $pagesModel->updateContent($sectionId, $current);
+
+            $this->jsonSuccess(['url' => $result['secure_url']]);
+        } catch (RuntimeException $e) {
+            $this->jsonError($e->getMessage());
+        }
     }
 
     /**
