@@ -295,9 +295,17 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     <?php endif; ?>
 
                     <!-- Participants -->
-                    <div class="event-participants">
+                    <div class="event-participants entity-edit-row">
+                        <div class="edit-row-header">
+                            <label class="edit-row-label">Mitwirkende</label>
+                            <div class="edit-row-actions">
+                                <span class="entity-feedback"></span>
+                                <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
+                                <button class="entity-save-btn"><i class="ti ti-check"></i></button>
+                                <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
+                            </div>
+                        </div>
                         <?php if (!empty($event->participants)): ?>
-                            <h3>Mitwirkende</h3>
                             <div class="event-participant-list">
                                 <?php foreach ($event->participants as $participant): ?>
                                     <div class="event-participant-item">
@@ -340,97 +348,98 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                             </div>
                         <?php endif; ?>
                     </div>
-
                 </div>
-            </div>
 
+            </div>
         </div>
 
-        <!-- Row 2: Review -->
-        <div class="row g-5 align-items-start event-review-row mt-4">
-            <div class="col-12 <?= !empty($videos) ? 'col-md-8' : '' ?>">
-                <?php if ($isLoggedIn): ?>
-                    <?= $editRow('Rückblick', 'review', $event->review ?? '', $saveUrl) ?>
-                <?php elseif (!empty($event->review)): ?>
-                    <div class="event-review">
-                        <h3>Rückblick</h3>
-                        <p><?= nl2br(htmlspecialchars($event->review)) ?></p>
-                    </div>
-                <?php endif; ?>
-            </div>
+    </div>
 
-            <?php if (!empty($videos)): ?>
-                <div class="col-12 col-md-4">
-                    <?php foreach ($videos as $video): ?>
-                        <div class="event-media-item">
-                            <video src="<?= htmlspecialchars($video->media_url) ?>" controls></video>
-                            <?php if (!empty($video->caption)): ?>
-                                <small><?= htmlspecialchars($video->caption) ?></small>
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
+    <!-- Row 2: Review -->
+    <div class="row g-5 align-items-start event-review-row mt-4">
+        <div class="col-12 <?= !empty($videos) ? 'col-md-8' : '' ?>">
+            <?php if ($isLoggedIn): ?>
+                <?= $editRow('Rückblick', 'review', $event->review ?? '', $saveUrl) ?>
+            <?php elseif (!empty($event->review)): ?>
+                <div class="event-review">
+                    <h3>Rückblick</h3>
+                    <p><?= nl2br(htmlspecialchars($event->review)) ?></p>
                 </div>
             <?php endif; ?>
         </div>
 
-        <!-- Row 3: Gallery -->
-        <?php if (!empty($gallery) || $isLoggedIn): ?>
-            <div class="row g-3 event-gallery mt-2">
-
-                <?php foreach ($gallery as $media): ?>
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <div class="img-placeholder event-gallery-img">
-                            <img src="<?= htmlspecialchars($media->media_url) ?>"
-                                alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
-                                class="zoomable">
-                            <?php if ($isLoggedIn): ?>
-                                <div class="image-edit-overlay">
-                                    <button class="section-control-btn"
-                                        data-action="delete-entity-image"
-                                        data-media-id="<?= $media->id ?>">
-                                        <i class="ti ti-trash"></i>
-                                    </button>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+        <?php if (!empty($videos)): ?>
+            <div class="col-12 col-md-4">
+                <?php foreach ($videos as $video): ?>
+                    <div class="event-media-item">
+                        <video src="<?= htmlspecialchars($video->media_url) ?>" controls></video>
+                        <?php if (!empty($video->caption)): ?>
+                            <small><?= htmlspecialchars($video->caption) ?></small>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
-
-                <?php if ($isLoggedIn): ?>
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <div class="img-placeholder event-gallery-img">
-                            <i class="ti ti-photo-plus"></i>
-                            <label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">
-                                Galeriebild hochladen
-                                <input type="file" accept="image/*" class="d-none"
-                                    data-action="upload-entity-image"
-                                    data-entity-type="event"
-                                    data-entity-id="<?= $event->id ?>"
-                                    data-stage="gallery">
-                            </label>
-                        </div>
-                    </div>
-                <?php endif; ?>
-
             </div>
         <?php endif; ?>
+    </div>
 
-        <!-- Back + Delete -->
-        <div class="row mt-4 ">
-            <div class="col-12 d-flex gap-3 align-items-center justify-content-between">
-                <a href="/veranstaltungen" class="nav-icon-ux">
-                    <i class="ti ti-arrow-left"></i> Veranstaltungen
-                </a>
-                <?php if ($isLoggedIn): ?>
-                    <button class="btn-section"
-                        data-action="delete-event"
-                        data-event-id="<?= $event->id ?>"
-                        data-event-slug="<?= htmlspecialchars($event->slug) ?>">
-                        <i class="ti ti-trash"></i> Veranstaltung löschen
-                    </button>
-                <?php endif; ?>
-            </div>
+    <!-- Row 3: Gallery -->
+    <?php if (!empty($gallery) || $isLoggedIn): ?>
+        <div class="row g-3 event-gallery mt-2">
+
+            <?php foreach ($gallery as $media): ?>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="img-placeholder event-gallery-img">
+                        <img src="<?= htmlspecialchars($media->media_url) ?>"
+                            alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
+                            class="zoomable">
+                        <?php if ($isLoggedIn): ?>
+                            <div class="image-edit-overlay">
+                                <button class="section-control-btn"
+                                    data-action="delete-entity-image"
+                                    data-media-id="<?= $media->id ?>">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+
+            <?php if ($isLoggedIn): ?>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="img-placeholder event-gallery-img">
+                        <i class="ti ti-photo-plus"></i>
+                        <label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">
+                            Galeriebild hochladen
+                            <input type="file" accept="image/*" class="d-none"
+                                data-action="upload-entity-image"
+                                data-entity-type="event"
+                                data-entity-id="<?= $event->id ?>"
+                                data-stage="gallery">
+                        </label>
+                    </div>
+                </div>
+            <?php endif; ?>
+
         </div>
+    <?php endif; ?>
+
+    <!-- Back + Delete -->
+    <div class="row mt-4 ">
+        <div class="col-12 d-flex gap-3 align-items-center justify-content-between">
+            <a href="/veranstaltungen" class="nav-icon-ux">
+                <i class="ti ti-arrow-left"></i> Veranstaltungen
+            </a>
+            <?php if ($isLoggedIn): ?>
+                <button class="btn-section"
+                    data-action="delete-event"
+                    data-event-id="<?= $event->id ?>"
+                    data-event-slug="<?= htmlspecialchars($event->slug) ?>">
+                    <i class="ti ti-trash"></i> Veranstaltung löschen
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
 
     </div>
 </section>

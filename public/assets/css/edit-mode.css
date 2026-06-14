@@ -160,6 +160,10 @@ body.is-editing .edit-bar__indicator i {
     margin-bottom: 0.75rem;
 }
 
+.entity-edit-row.editing {
+    border: 2px solid var(--edit-active);
+}
+
 .edit-row-header {
     display: flex;
     align-items: center;
