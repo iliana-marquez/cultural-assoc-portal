@@ -401,6 +401,15 @@ document.addEventListener('DOMContentLoaded', function () {
                             overlay.className = 'segment-overlay';
                             segment.prepend(overlay);
                         }
+                        // Swap + BG → BG entfernen
+                        const bgWrap = block.querySelector('.bg-btn-wrap');
+                        if (bgWrap) {
+                            bgWrap.innerHTML =
+                                '<button class="section-control-btn" data-action="remove-bg">' +
+                                '<i class="ti ti-wallpaper-off"></i> BG entfernen' +
+                                '</button>';
+                            initImageControls(block);
+                        }
                     }
                     hasUnsaved = true;
                     showBlockFeedback(block, 'Bild hochgeladen ✓', 'success');
@@ -442,6 +451,16 @@ document.addEventListener('DOMContentLoaded', function () {
                         const segment = block.querySelector('.segment');
                         segment.style.backgroundImage = '';
                         block.querySelector('.segment-overlay')?.remove();
+                        // Swap BG entfernen → + BG
+                        const bgWrap = block.querySelector('.bg-btn-wrap');
+                        if (bgWrap) {
+                            bgWrap.innerHTML =
+                                '<label class="section-control-btn" style="cursor:pointer;">' +
+                                '<i class="ti ti-wallpaper"></i> BG' +
+                                '<input type="file" accept="image/*" class="d-none" data-action="upload-bg">' +
+                                '</label>';
+                            initImageControls(block);
+                        }
                     }
                     hasUnsaved = true;
                     showBlockFeedback(block, 'Entfernt ✓', 'success');
