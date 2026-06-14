@@ -565,6 +565,152 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // ── Entity select rows (venue, admission) ────────────────
+    document.querySelectorAll('.entity-select-row').forEach(function (row) {
+        const select = row.querySelector('select');
+        const editBtn = row.querySelector('.entity-edit-btn');
+        const saveBtn = row.querySelector('.entity-save-btn');
+        const cancelBtn = row.querySelector('.entity-cancel-btn');
+        const saveUrl = row.dataset.saveUrl;
+        const fieldName = select?.dataset.field;
+        const display = row.querySelector('.entity-select-display');
+        let original = select?.value ?? '';
+
+
+        if (saveBtn) saveBtn.style.display = 'none';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+
+        editBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            original = select.value;
+            row.classList.add('editing');
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'inline-flex';
+            cancelBtn.style.display = 'inline-flex';
+            document.body.classList.add('is-editing');
+        });
+
+        cancelBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            select.value = original;
+            row.classList.remove('editing');
+            editBtn.style.display = 'inline-flex';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            document.body.classList.remove('is-editing');
+        });
+
+        saveBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const data = new FormData();
+            data.append(fieldName, select.value);
+            saveBtn.disabled = true;
+            fetch(saveUrl, {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        row.classList.remove('editing');
+                        editBtn.style.display = 'inline-flex';
+                        saveBtn.style.display = 'none';
+                        cancelBtn.style.display = 'none';
+                        document.body.classList.remove('is-editing');
+                        showEntityFeedback(row, 'Gespeichert ✓', 'success');
+                        if (display) display.textContent = select.options[select.selectedIndex]?.text ?? '—';
+                    } else {
+                        showEntityFeedback(row, 'Fehler', 'error');
+                    }
+                    saveBtn.disabled = false;
+                })
+                .catch(function () {
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                    saveBtn.disabled = false;
+                });
+        });
+    });
+
+    // ── Participants edit row ─────────────────────────────────
+    document.querySelectorAll('.participants-edit-row').forEach(function (row) {
+        const editBtn = row.querySelector('.entity-edit-btn');
+        const saveBtn = row.querySelector('.entity-save-btn');
+        const cancelBtn = row.querySelector('.entity-cancel-btn');
+        const addBtn = row.querySelector('[data-action="add-participant"]');
+        const addSelect = row.querySelector('.entity-select');
+
+        if (saveBtn) saveBtn.style.display = 'none';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+
+        editBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.add('editing');
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'inline-flex';
+            cancelBtn.style.display = 'inline-flex';
+            document.body.classList.add('is-editing');
+        });
+
+        cancelBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.remove('editing');
+            editBtn.style.display = 'inline-flex';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            document.body.classList.remove('is-editing');
+        });
+
+        saveBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.remove('editing');
+            editBtn.style.display = 'inline-flex';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            document.body.classList.remove('is-editing');
+        });
+
+        addBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const participantId = addSelect?.value;
+            const eventId = addBtn.dataset.eventId;
+            if (!participantId) return;
+            const data = new FormData();
+            data.append('participant_id', participantId);
+            fetch('/events/' + eventId + '/participant/add', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) window.location.reload();
+                    else showEntityFeedback(row, 'Fehler', 'error');
+                })
+                .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+        });
+
+        row.querySelectorAll('[data-action="remove-participant"]').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (!confirm('Mitwirkende:n entfernen?')) return;
+                const data = new FormData();
+                data.append('participant_id', btn.dataset.participantId);
+                fetch('/events/' + btn.dataset.eventId + '/participant/remove', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) btn.closest('.event-participant-item')?.remove();
+                        else showEntityFeedback(row, 'Fehler', 'error');
+                    })
+                    .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+            });
+        });
+    });
+
     // ── Warn on page leave ────────────────────────────────────
     window.addEventListener('beforeunload', function (e) {
         if (hasUnsaved) { e.preventDefault(); e.returnValue = ''; }
