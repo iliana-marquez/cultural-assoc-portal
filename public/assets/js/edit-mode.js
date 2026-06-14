@@ -483,21 +483,29 @@ document.addEventListener('DOMContentLoaded', function () {
         const fieldName = field?.dataset.field;
         let original = field?.innerText ?? '';
 
+        // Hide save/cancel on init
+        if (saveBtn) saveBtn.style.display = 'none';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+
         editBtn?.addEventListener('click', function (e) {
             e.stopPropagation();
             original = field.innerText;
             field.contentEditable = 'true';
-            field.classList.add('editing');
-            row.classList.add('editing');
             field.focus();
+            row.classList.add('editing');
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'inline-flex';
+            cancelBtn.style.display = 'inline-flex';
         });
 
         cancelBtn?.addEventListener('click', function (e) {
             e.stopPropagation();
             field.innerText = original;
             field.contentEditable = 'false';
-            field.classList.remove('editing');
             row.classList.remove('editing');
+            editBtn.style.display = 'inline-flex';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
         });
 
         saveBtn?.addEventListener('click', function (e) {
@@ -516,9 +524,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(function (json) {
                     if (json.success) {
                         field.contentEditable = 'false';
-                        field.classList.remove('editing');
                         row.classList.remove('editing');
-                        showEntityFeedback(row, 'Gespeichert ✓', 'success');
+                        editBtn.style.display = 'inline-flex';
+                        saveBtn.style.display = 'none';
+                        cancelBtn.style.display = 'none';
+                        showEntityFeedback(row, '✓ O.K.', 'success');
                     } else {
                         showEntityFeedback(row, 'Fehler', 'error');
                     }

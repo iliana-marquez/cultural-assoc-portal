@@ -152,69 +152,66 @@ body.is-editing .edit-bar__indicator i {
 }
 
 
-/* ── Entity edit rows (contact, team, events etc.) ───────────── */
+/* ── Entity edit rows ───────────────────────────────────────── */
 .entity-edit-row {
+    border: 2px solid var(--edit-inactive);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.edit-row-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: 0.25rem 0.5rem;
+    background: var(--edit-inactive);
+    transition: background var(--transition);
+    color: white;
+    font-weight: 700;
+}
+
+.entity-edit-row.editing .edit-row-header {
+    background: var(--edit-active);
+    color: #fff;
+}
+
+.edit-row-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.edit-row-actions {
+    display: flex;
+    gap: 0.25rem;
 }
 
 .entity-field {
-    flex: 1;
+    display: block;
+    padding: 0.5rem;
     outline: none;
-    border-bottom: 2px dashed transparent;
-    transition: border-color var(--transition);
-    padding: 0.1rem 0;
+    width: 100%;
+    min-height: 1.5rem;
 }
 
-.entity-field.editing {
-    border-bottom: 2px dashed var(--edit-active);
-}
-
-.entity-field.editing:focus {
-    border-bottom: 2px solid var(--edit-active);
-}
-
-/* Pencil — always visible, subtle */
-.entity-edit-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--edit-inactive);
-    padding: 0.25rem;
-    display: inline-flex;
-    align-items: center;
-    transition: color var(--transition);
-}
-
-.entity-edit-btn:hover { color: var(--edit-active); }
-
-/* Save / Cancel — hidden until active */
+/* Buttons */
+.entity-edit-btn,
 .entity-save-btn,
 .entity-cancel-btn {
-    display: none;
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0.25rem;
-    display: none;
-    align-items: center;
-    transition: color var(--transition);
+    padding: 0.15rem 0.3rem;
+    color: #fff;
+    opacity: 0.7;
+    transition: opacity var(--transition);
 }
 
-.entity-save-btn   { color: var(--edit-active); }
-.entity-cancel-btn { color: var(--edit-inactive); }
-
-.entity-edit-row.editing .entity-save-btn,
-.entity-edit-row.editing .entity-cancel-btn {
-    display: inline-flex;
-}
-
-.entity-edit-row.editing .entity-edit-btn {
-    display: none;
-}
-
+.entity-edit-btn { color: inherit; opacity: 0.5; }
+.entity-edit-btn:hover,
+.entity-save-btn:hover,
+.entity-cancel-btn:hover { opacity: 1; }
 
 /* ── Feedback ───────────────────────────────────────────────── */
 .block-feedback,
