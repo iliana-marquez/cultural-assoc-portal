@@ -168,6 +168,9 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                     <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
                                 </div>
                             </div>
+                            <p class="entity-select-display m-2">
+                                <?= !empty($event->venue_name) ? htmlspecialchars($event->venue_name) : '—' ?>
+                            </p>
                             <select class="entity-field entity-select" data-field="venue_id">
                                 <option value="">— kein Ort —</option>
                                 <?php foreach ($venues as $venue): ?>
@@ -190,6 +193,16 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                     <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
                                 </div>
                             </div>
+                            <p class="entity-select-display m-2">
+                                <?= !empty($event->admission) ? match ($event->admission) {
+                                    'free'     => 'Eintritt frei',
+                                    'donation' => 'Spende',
+                                    'reserve'  => 'Anmeldung erforderlich',
+                                    'ticket'   => 'Ticket',
+                                    'external' => 'Extern',
+                                    default    => '—'
+                                } : '—' ?>
+                            </p>
                             <select class="entity-field entity-select" data-field="admission">
                                 <option value="">— keine Angabe —</option>
                                 <?php foreach (['free', 'donation', 'reserve', 'ticket', 'external'] as $type): ?>
