@@ -85,16 +85,18 @@ $blockType = !empty($section->image) || ($section->image_pos ?? 'none') !== 'non
         </div>
 
         <!-- BG image — always available -->
-        <?php if (empty($section->bg_image)): ?>
-            <label class="section-control-btn" style="cursor:pointer;">
-                <i class="ti ti-wallpaper"></i> BG
-                <input type="file" accept="image/*" class="d-none" data-action="upload-bg">
-            </label>
-        <?php else: ?>
-            <button class="section-control-btn" data-action="remove-bg">
-                <i class="ti ti-wallpaper-off"></i> BG entfernen
-            </button>
-        <?php endif; ?>
+        <div class="bg-btn-wrap">
+            <?php if (empty($section->bg_image)): ?>
+                <label class="section-control-btn" style="cursor:pointer;">
+                    <i class="ti ti-wallpaper"></i> BG
+                    <input type="file" accept="image/*" class="d-none" data-action="upload-bg">
+                </label>
+            <?php else: ?>
+                <button class="section-control-btn" data-action="remove-bg">
+                    <i class="ti ti-wallpaper-off"></i> BG entfernen
+                </button>
+            <?php endif; ?>
+        </div>
 
     </div>
     <!-- END .block-edit-controls -->
