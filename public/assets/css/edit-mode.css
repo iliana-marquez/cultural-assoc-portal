@@ -25,7 +25,7 @@
 }
 
 .edit-bar__indicator i {
-    font-size: 0.75rem;
+    font-size: 1rem;
     color: rgba(255,255,255,0.5);
     transition: color var(--transition);
 }
@@ -36,8 +36,8 @@ body.is-editing .edit-bar__indicator i {
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.4; }
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50%       { opacity: 0.9; transform: scale(1.1); }
 }
 
 .edit-bar__exit {

@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         activeBlock = block;
         block.classList.add('editing');
+        document.body.classList.add('is-editing');
 
         // Show field labels
         block.querySelectorAll('.edit-field-label').forEach(el => {
@@ -107,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
             el.style.display = 'none';
         });
 
+        document.body.classList.remove('is-editing');
         activeBlock = null;
         hasUnsaved = false;
         originalValues = {};
@@ -496,6 +498,7 @@ document.addEventListener('DOMContentLoaded', function () {
             editBtn.style.display = 'none';
             saveBtn.style.display = 'inline-flex';
             cancelBtn.style.display = 'inline-flex';
+            document.body.classList.add('is-editing');
         });
 
         cancelBtn?.addEventListener('click', function (e) {
@@ -506,6 +509,7 @@ document.addEventListener('DOMContentLoaded', function () {
             editBtn.style.display = 'inline-flex';
             saveBtn.style.display = 'none';
             cancelBtn.style.display = 'none';
+            document.body.classList.remove('is-editing');
         });
 
         saveBtn?.addEventListener('click', function (e) {
@@ -528,7 +532,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         editBtn.style.display = 'inline-flex';
                         saveBtn.style.display = 'none';
                         cancelBtn.style.display = 'none';
-                        showEntityFeedback(row, '✓ O.K.', 'success');
+                        document.body.classList.remove('is-editing');
+                        showEntityFeedback(row, 'Gespeichert ✓', 'success');
                     } else {
                         showEntityFeedback(row, 'Fehler', 'error');
                     }
