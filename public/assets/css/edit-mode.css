@@ -270,3 +270,26 @@ body.is-editing .edit-bar__indicator i {
 .add-participant-wrap {
     border: 2px solid (var(--edit-inactive))
 }
+
+.entity-select-row,
+.participants-edit-row {
+    border: 2px solid var(--edit-inactive);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+.entity-select-row.editing,
+.participants-edit-row.editing {
+    border: 2px solid var(--edit-active);
+}
+.entity-select-row.editing .edit-row-header,
+.participants-edit-row.editing .edit-row-header {
+    background: var(--edit-active);
+    color: #fff;
+}
+.entity-select-row select { display: none; }
+.entity-select-row.editing select { display: block; }
+.participants-edit-row .entity-remove-btn { display: none; }
+.participants-edit-row.editing .entity-remove-btn { display: inline-flex; }
+.participants-edit-row .add-participant-wrap { display: none; }
+.participants-edit-row.editing .add-participant-wrap { display: flex; }
