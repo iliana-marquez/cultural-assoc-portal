@@ -3,16 +3,19 @@
 /**
  * event-detail.php
  *
- * Single event detail page.
- * Row 1: promo image | event details
- * Row 2: review | video (if any)
- * Row 3: gallery (zoomable)
+ * Single event detail page with inline editing for logged-in editors.
+ * Edit rows use entity-edit-row pattern from edit-mode.js.
  *
  * Variables:
- *   $event object  Event with participants, media, status
+ *   $event           object   Event with participants, media, status
+ *   $venues          array    All venues (for selector, logged in only)
+ *   $allParticipants array    All participants (for add, logged in only)
+ *   $categories      array    Event categories (for selector, logged in only)
  */
 
-// Split media by stage and resource_type
+$saveUrl = '/events/' . $event->id . '/save';
+
+// Split media by stage
 $promoImages = [];
 $videos      = [];
 $gallery     = [];
@@ -26,6 +29,23 @@ foreach ($event->media ?? [] as $media) {
         $gallery[] = $media;
     }
 }
+
+// Helper — entity edit row (guard against redeclaration if view included twice)
+$editRow = function (string $label, string $field, string $value, string $saveUrl): string {
+    return '
+    <div class="entity-edit-row" data-save-url="' . htmlspecialchars($saveUrl) . '">
+        <div class="edit-row-header">
+            <label class="edit-row-label">' . htmlspecialchars($label) . '</label>
+            <div class="edit-row-actions">
+                <span class="entity-feedback"></span>
+                <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
+                <button class="entity-save-btn"><i class="ti ti-check"></i></button>
+                <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
+            </div>
+        </div>
+        <span class="entity-field" data-field="' . htmlspecialchars($field) . '">' . htmlspecialchars($value) . '</span>
+    </div>';
+};
 ?>
 
 <section class="segment light-segment">
@@ -34,16 +54,32 @@ foreach ($event->media ?? [] as $media) {
         <!-- Row 1: Promo image | Event details -->
         <div class="row g-5 align-items-start">
 
-            <!-- Promo image / carousel -->
+            <!-- Promo image -->
             <div class="col-12 col-md-4">
-                <?php if (!empty($promoImages)): ?>
 
+                <?php if (!empty($promoImages)): ?>
                     <?php if (count($promoImages) === 1): ?>
-                        <!-- Single promo image -->
                         <div class="img-placeholder event-promo-img">
                             <img src="<?= htmlspecialchars($promoImages[0]->media_url) ?>"
                                 alt="<?= htmlspecialchars($event->title) ?>"
                                 class="zoomable">
+                            <?php if ($isLoggedIn): ?>
+                                <div class="image-edit-overlay">
+                                    <label class="section-control-btn" style="cursor:pointer;">
+                                        <i class="ti ti-refresh"></i> Ändern
+                                        <input type="file" accept="image/*" class="d-none"
+                                            data-action="upload-entity-image"
+                                            data-entity-type="event"
+                                            data-entity-id="<?= $event->id ?>"
+                                            data-stage="promo">
+                                    </label>
+                                    <button class="section-control-btn"
+                                        data-action="delete-entity-image"
+                                        data-media-id="<?= $promoImages[0]->id ?>">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <?php if (!empty($promoImages[0]->caption)): ?>
                             <small class="image-credit">
@@ -53,19 +89,25 @@ foreach ($event->media ?? [] as $media) {
                         <?php endif; ?>
 
                     <?php else: ?>
-                        <!-- Multiple promo images — Bootstrap carousel -->
+                        <!-- Carousel -->
                         <div id="eventPromo" class="carousel slide" data-bs-ride="carousel">
                             <div class="carousel-inner">
                                 <?php foreach ($promoImages as $i => $media): ?>
                                     <div class="carousel-item <?= $i === 0 ? 'active' : '' ?>">
-                                        <img src="<?= htmlspecialchars($media->media_url) ?>"
-                                            alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
-                                            class="zoomable">
-                                        <?php if (!empty($media->caption)): ?>
-                                            <div class="carousel-caption d-none d-md-block">
-                                                <small><?= htmlspecialchars($media->caption) ?></small>
-                                            </div>
-                                        <?php endif; ?>
+                                        <div class="img-placeholder event-promo-img">
+                                            <img src="<?= htmlspecialchars($media->media_url) ?>"
+                                                alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
+                                                class="zoomable">
+                                            <?php if ($isLoggedIn): ?>
+                                                <div class="image-edit-overlay">
+                                                    <button class="section-control-btn"
+                                                        data-action="delete-entity-image"
+                                                        data-media-id="<?= $media->id ?>">
+                                                        <i class="ti ti-trash"></i>
+                                                    </button>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -81,10 +123,22 @@ foreach ($event->media ?? [] as $media) {
                     <?php endif; ?>
 
                 <?php else: ?>
+                    <!-- No promo image -->
                     <div class="img-placeholder event-promo-img">
                         <i class="ti ti-music"></i>
+                        <?php if ($isLoggedIn): ?>
+                            <label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">
+                                <i class="ti ti-photo-plus"></i> Promobild hochladen
+                                <input type="file" accept="image/*" class="d-none"
+                                    data-action="upload-entity-image"
+                                    data-entity-type="event"
+                                    data-entity-id="<?= $event->id ?>"
+                                    data-stage="promo">
+                            </label>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
+
             </div>
 
             <!-- Event details -->
@@ -97,168 +151,284 @@ foreach ($event->media ?? [] as $media) {
                         </small>
                     <?php endif; ?>
 
-                    <h1><?= htmlspecialchars($event->title) ?></h1>
+                    <?php if ($isLoggedIn): ?>
+                        <?= $editRow('Titel', 'title', $event->title ?? '', $saveUrl) ?>
+                        <?= $editRow('Untertitel', 'subtitle', $event->subtitle ?? '', $saveUrl) ?>
+                        <?= $editRow('Datum (YYYY-MM-DD)', 'date', $event->date ?? '', $saveUrl) ?>
+                        <?= $editRow('Uhrzeit (HH:MM)', 'time', substr($event->time ?? '', 0, 5), $saveUrl) ?>
 
-                    <?php if (!empty($event->subtitle)): ?>
-                        <h2><?= htmlspecialchars($event->subtitle) ?></h2>
-                    <?php endif; ?>
+                        <!-- Venue selector -->
+                        <div class="entity-edit-row" data-save-url="<?= $saveUrl ?>">
+                            <div class="edit-row-header">
+                                <label class="edit-row-label">Veranstaltungsort</label>
+                                <div class="edit-row-actions">
+                                    <span class="entity-feedback"></span>
+                                    <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
+                                    <button class="entity-save-btn"><i class="ti ti-check"></i></button>
+                                    <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
+                                </div>
+                            </div>
+                            <select class="entity-field entity-select" data-field="venue_id">
+                                <option value="">— kein Ort —</option>
+                                <?php foreach ($venues as $venue): ?>
+                                    <option value="<?= $venue->id ?>"
+                                        <?= $event->venue_id == $venue->id ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($venue->name) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
 
-                    <!-- Meta -->
-                    <div class="event-meta">
-                        <?php if (!empty($event->date)): ?>
-                            <span>
-                                <i class="ti ti-calendar"></i>
-                                <?= date('d.m.Y', strtotime($event->date)) ?>
-                                <?php if (!empty($event->time)): ?>
-                                    · <?= date('H:i', strtotime($event->time)) ?> Uhr
-                                <?php endif; ?>
-                            </span>
+                        <!-- Admission type selector -->
+                        <div class="entity-edit-row" data-save-url="<?= $saveUrl ?>">
+                            <div class="edit-row-header">
+                                <label class="edit-row-label">Eintritt</label>
+                                <div class="edit-row-actions">
+                                    <span class="entity-feedback"></span>
+                                    <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
+                                    <button class="entity-save-btn"><i class="ti ti-check"></i></button>
+                                    <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
+                                </div>
+                            </div>
+                            <select class="entity-field entity-select" data-field="admission">
+                                <option value="">— keine Angabe —</option>
+                                <?php foreach (['free', 'donation', 'reserve', 'ticket', 'external'] as $type): ?>
+                                    <option value="<?= $type ?>" <?= $event->admission === $type ? 'selected' : '' ?>>
+                                        <?= match ($type) {
+                                            'free'     => 'Eintritt frei',
+                                            'donation' => 'Spende',
+                                            'reserve'  => 'Anmeldung erforderlich',
+                                            'ticket'   => 'Ticket',
+                                            'external' => 'Extern',
+                                        } ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <?= $editRow('Betrag / Preis', 'admission_amount', $event->admission_amount ?? '', $saveUrl) ?>
+                        <?= $editRow('Ticket / Anmelde-URL', 'admission_url', $event->admission_url ?? '', $saveUrl) ?>
+                        <?= $editRow('Beschreibung', 'description', $event->description ?? '', $saveUrl) ?>
+
+                    <?php else: ?>
+                        <!-- Public display -->
+                        <h1><?= htmlspecialchars($event->title) ?></h1>
+                        <?php if (!empty($event->subtitle)): ?>
+                            <h2><?= htmlspecialchars($event->subtitle) ?></h2>
                         <?php endif; ?>
-                        <?php if (!empty($event->venue_name)): ?>
-                            <span>
-                                <i class="ti ti-map-pin"></i>
-                                <?= htmlspecialchars($event->venue_name) ?>
-                                <?php if (!empty($event->venue_street)): ?>
-                                    · <?= htmlspecialchars($event->venue_street) ?>,
-                                    <?= htmlspecialchars($event->venue_postcode) ?>
-                                    <?= htmlspecialchars($event->venue_city) ?>
-                                <?php endif; ?>
-                            </span>
-                        <?php endif; ?>
-                    </div>
 
-                    <!-- Description -->
-                    <?php if (!empty($event->description)): ?>
-                        <p><?= nl2br(htmlspecialchars($event->description)) ?></p>
+                        <div class="event-meta">
+                            <?php if (!empty($event->date)): ?>
+                                <span>
+                                    <i class="ti ti-calendar"></i>
+                                    <?= date('d.m.Y', strtotime($event->date)) ?>
+                                    <?php if (!empty($event->time)): ?>
+                                        · <?= date('H:i', strtotime($event->time)) ?> Uhr
+                                    <?php endif; ?>
+                                </span>
+                            <?php endif; ?>
+                            <?php if (!empty($event->venue_name)): ?>
+                                <span>
+                                    <i class="ti ti-map-pin"></i>
+                                    <?= htmlspecialchars($event->venue_name) ?>
+                                    <?php if (!empty($event->venue_street)): ?>
+                                        · <?= htmlspecialchars($event->venue_street) ?>,
+                                        <?= htmlspecialchars($event->venue_postcode) ?>
+                                        <?= htmlspecialchars($event->venue_city) ?>
+                                    <?php endif; ?>
+                                </span>
+                            <?php endif; ?>
+                        </div>
+
+                        <?php if (!empty($event->description)): ?>
+                            <p><?= nl2br(htmlspecialchars($event->description)) ?></p>
+                        <?php endif; ?>
+
+                        <!-- Admission display -->
+                        <?php if (!empty($event->admission)): ?>
+                            <div class="event-admission">
+                                <?php
+                                $admissionUrl    = htmlspecialchars($event->admission_url    ?? '#');
+                                $admissionAmount = htmlspecialchars($event->admission_amount ?? '');
+                                match ($event->admission) {
+                                    'free' => print(
+                                        '<span class="event-admission-label">'
+                                        . '<i class="ti ti-heart-handshake"></i>'
+                                        . ' Eintritt frei &middot; Spenden willkommen'
+                                        . '</span>'
+                                    ),
+                                    'donation' => print(
+                                        '<span class="event-admission-label">'
+                                        . '<i class="ti ti-heart-handshake"></i>'
+                                        . ' Eintritt frei &middot; Spenden willkommen'
+                                        . ($admissionAmount ? ' ab ' . $admissionAmount : '')
+                                        . '</span>'
+                                    ),
+                                    'reserve' => print(
+                                        '<div class="admission-action">'
+                                        . '<span class="event-admission-label">'
+                                        . '<i class="ti ti-ticket"></i> Anmeldung erforderlich'
+                                        . '</span>'
+                                        . '<a href="' . $admissionUrl . '" class="btn-section">'
+                                        . '<i class="ti ti-ticket"></i> Jetzt anmelden'
+                                        . '</a></div>'
+                                    ),
+                                    'ticket' => print(
+                                        '<div class="admission-action">'
+                                        . '<span class="event-admission-label">'
+                                        . '<i class="ti ti-ticket"></i> Tickets'
+                                        . ($admissionAmount ? ': ' . $admissionAmount : '')
+                                        . '</span>'
+                                        . '<a href="' . $admissionUrl . '" target="_blank" class="btn-section">'
+                                        . '<i class="ti ti-ticket"></i> Tickets kaufen'
+                                        . '</a></div>'
+                                    ),
+                                    'external' => print(
+                                        '<a href="' . $admissionUrl . '" target="_blank" class="btn-section">'
+                                        . '<i class="ti ti-external-link"></i> Mehr Informationen'
+                                        . '</a>'
+                                    ),
+                                    default => null,
+                                }; ?>
+                            </div>
+                        <?php endif; ?>
                     <?php endif; ?>
 
                     <!-- Participants -->
-                    <?php if (!empty($event->participants)): ?>
-                        <div class="event-participants">
+                    <div class="event-participants">
+                        <?php if (!empty($event->participants)): ?>
                             <h3>Mitwirkende</h3>
-                            <div class="participant-chips">
+                            <div class="event-participant-list">
                                 <?php foreach ($event->participants as $participant): ?>
-                                    <a href="/kuenstlerinnen/<?= htmlspecialchars($participant->slug) ?>"
-                                        class="participant-chip">
-                                        <?= htmlspecialchars($participant->displayName) ?>
-                                        <?php if (!empty($participant->type) && $participant->type !== 'individual'): ?>
-                                            <small><?= htmlspecialchars($participant->type) ?></small>
+                                    <div class="event-participant-item">
+                                        <?php if ($isLoggedIn): ?>
+                                            <button class="entity-remove-btn border-0"
+                                                data-action="remove-participant"
+                                                data-event-id="<?= $event->id ?>"
+                                                data-participant-id="<?= $participant->id ?>">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
                                         <?php endif; ?>
-                                    </a>
+                                        <a href="/kuenstlerinnen/<?= htmlspecialchars($participant->slug) ?>">
+                                            <?= htmlspecialchars($participant->displayName) ?>
+                                            <?php if (!empty($participant->field)): ?>
+                                                · <span class="participant-field"><?= htmlspecialchars($participant->field) ?></span>
+                                            <?php endif; ?>
+                                        </a>
+                                    </div>
                                 <?php endforeach; ?>
                             </div>
-                        </div>
-                    <?php endif; ?>
+                        <?php endif; ?>
 
-                    <!-- Admission -->
-                    <?php if (!empty($event->admission)): ?>
-                        <div class="event-admission">
-                            <?php
-                            $admissionUrl    = htmlspecialchars($event->admission_url    ?? '#');
-                            $admissionAmount = htmlspecialchars($event->admission_amount ?? '');
-                            match ($event->admission) {
-                                'free' => print(
-                                    '<span class="event-admission-label">'
-                                    . '<i class="ti ti-heart-handshake"></i>'
-                                    . ' Eintritt frei &middot; Spenden willkommen'
-                                    . '</span>'
-                                ),
-                                'donation' => print(
-                                    '<span class="event-admission-label">'
-                                    . '<i class="ti ti-heart-handshake"></i>'
-                                    . ' Eintritt frei &middot; Spenden willkommen ab ' . $admissionAmount
-                                    . '</span>'
-                                ),
-                                'reserve' => print(
-                                    '<div class="admission-action">'
-                                    . '<span class="event-admission-label">'
-                                    . '<i class="ti ti-ticket"></i>'
-                                    . ' Anmeldung erforderlich'
-                                    . ($admissionAmount ? ' &middot; ' . $admissionAmount : '')
-                                    . '</span>'
-                                    . '<a href="' . $admissionUrl . '" class="btn-section">'
-                                    . '<i class="ti ti-ticket"></i> Jetzt anmelden'
-                                    . '</a>'
-                                    . '</div>'
-                                ),
-                                'ticket' => print(
-                                    '<div class="admission-action">'
-                                    . '<span class="event-admission-label">'
-                                    . '<i class="ti ti-ticket"></i>'
-                                    . ' Tickets'
-                                    . ($admissionAmount ? ': ' . $admissionAmount : '')
-                                    . '</span>'
-                                    . '<a href="' . $admissionUrl . '" target="_blank" class="btn-section">'
-                                    . '<i class="ti ti-ticket"></i> Tickets kaufen'
-                                    . '</a>'
-                                    . '</div>'
-                                ),
-                                default => null,
-                            }; ?>
-                        </div>
-                    <?php endif; ?>
+                        <?php if ($isLoggedIn): ?>
+                            <div class="add-participant-wrap mt-2">
+                                <select id="participant-select-<?= $event->id ?>" class="entity-select">
+                                    <option value="">— Mitwirkende:n hinzufügen —</option>
+                                    <?php foreach ($allParticipants as $p): ?>
+                                        <option value="<?= $p->id ?>">
+                                            <?= htmlspecialchars(ParticipantModel::displayName($p)) ?>
+                                            <?= !empty($p->field) ? ' · ' . htmlspecialchars($p->field) : '' ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <button class="entity-edit-btn"
+                                    data-action="add-participant"
+                                    data-event-id="<?= $event->id ?>"
+                                    data-select-id="participant-select-<?= $event->id ?>">
+                                    <i class="ti ti-plus"></i>
+                                </button>
+                            </div>
+                        <?php endif; ?>
+                    </div>
 
                 </div>
             </div>
 
         </div>
 
-        <!-- Row 2: Review | Video -->
-        <?php if (!empty($event->review) || !empty($videos)): ?>
-            <div class="row g-5 align-items-start event-review-row">
+        <!-- Row 2: Review -->
+        <div class="row g-5 align-items-start event-review-row mt-4">
+            <div class="col-12 <?= !empty($videos) ? 'col-md-8' : '' ?>">
+                <?php if ($isLoggedIn): ?>
+                    <?= $editRow('Rückblick', 'review', $event->review ?? '', $saveUrl) ?>
+                <?php elseif (!empty($event->review)): ?>
+                    <div class="event-review">
+                        <h3>Rückblick</h3>
+                        <p><?= nl2br(htmlspecialchars($event->review)) ?></p>
+                    </div>
+                <?php endif; ?>
+            </div>
 
-                <!-- Review -->
-                <?php if (!empty($event->review)): ?>
-                    <div class="col-12 <?= !empty($videos) ? 'col-md-8' : 'col-12' ?>">
-                        <div class="event-review">
-                            <h3>Rückblick</h3>
-                            <p><?= nl2br(htmlspecialchars($event->review)) ?></p>
+            <?php if (!empty($videos)): ?>
+                <div class="col-12 col-md-4">
+                    <?php foreach ($videos as $video): ?>
+                        <div class="event-media-item">
+                            <video src="<?= htmlspecialchars($video->media_url) ?>" controls></video>
+                            <?php if (!empty($video->caption)): ?>
+                                <small><?= htmlspecialchars($video->caption) ?></small>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Row 3: Gallery -->
+        <?php if (!empty($gallery) || $isLoggedIn): ?>
+            <div class="row g-3 event-gallery mt-2">
+
+                <?php foreach ($gallery as $media): ?>
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="img-placeholder event-gallery-img">
+                            <img src="<?= htmlspecialchars($media->media_url) ?>"
+                                alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
+                                class="zoomable">
+                            <?php if ($isLoggedIn): ?>
+                                <div class="image-edit-overlay">
+                                    <button class="section-control-btn"
+                                        data-action="delete-entity-image"
+                                        data-media-id="<?= $media->id ?>">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+
+                <?php if ($isLoggedIn): ?>
+                    <div class="col-6 col-md-4 col-lg-3">
+                        <div class="img-placeholder event-gallery-img">
+                            <i class="ti ti-photo-plus"></i>
+                            <label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">
+                                Galeriebild hochladen
+                                <input type="file" accept="image/*" class="d-none"
+                                    data-action="upload-entity-image"
+                                    data-entity-type="event"
+                                    data-entity-id="<?= $event->id ?>"
+                                    data-stage="gallery">
+                            </label>
                         </div>
                     </div>
                 <?php endif; ?>
 
-                <!-- Videos -->
-                <?php if (!empty($videos)): ?>
-                    <div class="col-12 col-md-4">
-                        <?php foreach ($videos as $video): ?>
-                            <div class="event-media-item">
-                                <video src="<?= htmlspecialchars($video->media_url) ?>"
-                                    class=""
-                                    controls>
-                                </video>
-                                <?php if (!empty($video->caption)): ?>
-                                    <small><?= htmlspecialchars($video->caption) ?></small>
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-
             </div>
         <?php endif; ?>
 
-        <!-- Row 3: Gallery -->
-        <?php if (!empty($gallery)): ?>
-            <div class="row g-3 event-gallery">
-                <?php foreach ($gallery as $media): ?>
-                    <div class="col-6 col-md-4 col-lg-3">
-                        <img src="<?= htmlspecialchars($media->media_url) ?>"
-                            alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
-                            class="zoomable">
-                        <?php if (!empty($media->caption)): ?>
-                            <small><?= htmlspecialchars($media->caption) ?></small>
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-
-        <!-- Back link -->
-        <div class="row mt-4">
-            <div class="col-12">
+        <!-- Back + Delete -->
+        <div class="row mt-4 ">
+            <div class="col-12 d-flex gap-3 align-items-center justify-content-between">
                 <a href="/veranstaltungen" class="nav-icon-ux">
                     <i class="ti ti-arrow-left"></i> Veranstaltungen
                 </a>
+                <?php if ($isLoggedIn): ?>
+                    <button class="btn-section"
+                        data-action="delete-event"
+                        data-event-id="<?= $event->id ?>"
+                        data-event-slug="<?= htmlspecialchars($event->slug) ?>">
+                        <i class="ti ti-trash"></i> Veranstaltung löschen
+                    </button>
+                <?php endif; ?>
             </div>
         </div>
 
