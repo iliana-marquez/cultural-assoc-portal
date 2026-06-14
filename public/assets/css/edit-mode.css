@@ -293,3 +293,35 @@ body.is-editing .edit-bar__indicator i {
 .participants-edit-row.editing .entity-remove-btn { display: inline-flex; }
 .participants-edit-row .add-participant-wrap { display: none; }
 .participants-edit-row.editing .add-participant-wrap { display: flex; }
+
+/* ── Media edit row ──────────────────────────────────────────── */
+.media-edit-row {
+    border: 2px solid var(--edit-inactive);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.media-edit-row.editing {
+    border: 2px solid var(--edit-active);
+}
+
+.media-edit-row.editing .edit-row-header {
+    background: var(--edit-active);
+    color: #fff;
+}
+
+.media-pencil-btn { display: inline-flex; }
+.media-edit-row.editing .media-pencil-btn { display: none; }
+
+.media-cancel-btn { display: none; }
+.media-edit-row.editing .media-cancel-btn { display: inline-flex; }
+
+.media-edit-row .image-edit-overlay { display: none; }
+.media-edit-row.editing .img-placeholder:hover .image-edit-overlay { display: flex; }
+
+.media-edit-row.editing img.zoomable { pointer-events: none; cursor: default; }
+.media-edit-row.editing .image-edit-overlay { z-index: 10; }
+
+.media-edit-row .media-upload-btn { display: none; }
+.media-edit-row.editing .media-upload-btn { display: inline-flex; }

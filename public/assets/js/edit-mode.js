@@ -576,7 +576,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const display = row.querySelector('.entity-select-display');
         let original = select?.value ?? '';
 
-
         if (saveBtn) saveBtn.style.display = 'none';
         if (cancelBtn) cancelBtn.style.display = 'none';
 
@@ -613,13 +612,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(res => res.json())
                 .then(function (json) {
                     if (json.success) {
+                        if (display) display.textContent = select.options[select.selectedIndex]?.text ?? '—';
                         row.classList.remove('editing');
                         editBtn.style.display = 'inline-flex';
                         saveBtn.style.display = 'none';
                         cancelBtn.style.display = 'none';
                         document.body.classList.remove('is-editing');
                         showEntityFeedback(row, 'Gespeichert ✓', 'success');
-                        if (display) display.textContent = select.options[select.selectedIndex]?.text ?? '—';
                     } else {
                         showEntityFeedback(row, 'Fehler', 'error');
                     }
@@ -710,6 +709,133 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     });
+
+    // ── Media edit rows (promo + gallery) ─────────────────────
+    document.querySelectorAll('.media-edit-row').forEach(function (row) {
+        const pencilBtn = row.querySelector('.media-pencil-btn');
+        const cancelBtn = row.querySelector('.media-cancel-btn');
+        const entityType = row.dataset.entityType;
+        const entityId = row.dataset.entityId;
+        const stage = row.dataset.stage;
+
+        // Pencil — activate
+        pencilBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.add('editing');
+            document.body.classList.add('is-editing');
+        });
+
+        // Cancel — deactivate
+        cancelBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.remove('editing');
+            document.body.classList.remove('is-editing');
+        });
+
+        // Upload image
+        row.querySelectorAll('[data-action="upload-entity-image"]').forEach(function (input) {
+            input.addEventListener('change', function () {
+                if (!this.files[0]) return;
+                const file = this.files[0];
+                const data = new FormData();
+                data.append('image', file);
+                data.append('entity_type', entityType);
+                data.append('entity_id', entityId);
+                data.append('stage', stage);
+
+                showEntityFeedback(row, 'Wird hochgeladen...', 'success');
+
+                fetch('/media/upload', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            if (stage === 'promo') {
+                                // Update existing or show new image
+                                const content = row.querySelector('.media-promo-content');
+                                const existingImg = content?.querySelector('img');
+                                const placeholder = content?.querySelector('.media-placeholder');
+                                if (existingImg) {
+                                    existingImg.src = json.media_url;
+                                } else if (placeholder && content) {
+                                    content.innerHTML =
+                                        '<div class="img-placeholder event-promo-img editing" data-media-id="' + json.id + '">' +
+                                        '<img src="' + json.media_url + '" class="zoomable">' +
+                                        '<div class="image-edit-overlay">' +
+                                        '<button class="section-control-btn" data-action="delete-entity-image" data-media-id="' + json.id + '" data-entity-type="' + entityType + '" data-entity-id="' + entityId + '">' +
+                                        '<i class="ti ti-trash"></i></button>' +
+                                        '</div></div>';
+                                    initMediaDeleteBtns(row);
+                                }
+                            } else {
+                                // Gallery — append new item
+                                const grid = row.querySelector('.media-gallery-grid');
+                                if (grid) {
+                                    const col = document.createElement('div');
+                                    col.className = 'col-6 col-md-4 col-lg-3 gallery-item';
+                                    col.dataset.mediaId = json.id;
+                                    col.innerHTML =
+                                        '<div class="img-placeholder event-gallery-img">' +
+                                        '<img src="' + json.media_url + '" class="zoomable">' +
+                                        '<div class="image-edit-overlay">' +
+                                        '<button class="section-control-btn" data-action="delete-entity-image" data-media-id="' + json.id + '" data-entity-type="' + entityType + '" data-entity-id="' + entityId + '">' +
+                                        '<i class="ti ti-trash"></i></button>' +
+                                        '</div></div>';
+                                    grid.appendChild(col);
+                                    initMediaDeleteBtns(row);
+                                }
+                            }
+                            showEntityFeedback(row, 'Hochgeladen ✓', 'success');
+                            this.value = '';
+                        } else {
+                            showEntityFeedback(row, 'Upload fehlgeschlagen', 'error');
+                        }
+                    }.bind(this))
+                    .catch(function () {
+                        showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                    });
+            });
+        });
+
+        initMediaDeleteBtns(row);
+    });
+
+    function initMediaDeleteBtns(row) {
+        row.querySelectorAll('[data-action="delete-entity-image"]').forEach(function (btn) {
+            if (btn._deleteInitialized) return;
+            btn._deleteInitialized = true;
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (!confirm('Bild löschen?')) return;
+                const mediaId = btn.dataset.mediaId;
+                const entityType = btn.dataset.entityType;
+                const entityId = btn.dataset.entityId;
+                const data = new FormData();
+                data.append('entity_type', entityType);
+                data.append('entity_id', entityId);
+                fetch('/media/' + mediaId + '/delete', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            // Remove closest gallery-item or img-placeholder
+                            const item = btn.closest('.gallery-item') ?? btn.closest('.img-placeholder');
+                            item?.remove();
+                            showEntityFeedback(row, 'Gelöscht ✓', 'success');
+                        } else {
+                            showEntityFeedback(row, 'Fehler', 'error');
+                        }
+                    })
+                    .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+            });
+        });
+    }
 
     // ── Warn on page leave ────────────────────────────────────
     window.addEventListener('beforeunload', function (e) {

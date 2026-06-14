@@ -48,101 +48,129 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
 };
 ?>
 
-<section class="segment light-segment">
-    <div class="container">
+<section class="segment light-segment container">
+    <div class="container-fluid">
 
         <!-- Row 1: Promo image | Event details -->
         <div class="row g-5 align-items-start">
 
             <!-- Promo image -->
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6">
+                <div class="media-edit-row"
+                    data-entity-type="event"
+                    data-entity-id="<?= $event->id ?>"
+                    data-stage="promo">
 
-                <?php if (!empty($promoImages)): ?>
-                    <?php if (count($promoImages) === 1): ?>
-                        <div class="img-placeholder event-promo-img">
-                            <img src="<?= htmlspecialchars($promoImages[0]->media_url) ?>"
-                                alt="<?= htmlspecialchars($event->title) ?>"
-                                class="zoomable">
-                            <?php if ($isLoggedIn): ?>
-                                <div class="image-edit-overlay">
-                                    <label class="section-control-btn" style="cursor:pointer;">
-                                        <i class="ti ti-refresh"></i> Ändern
+                    <?php if ($isLoggedIn): ?>
+                        <div class="edit-row-header">
+                            <label class="edit-row-label">Promobild</label>
+                            <div class="edit-row-actions">
+                                <span class="entity-feedback"></span>
+                                <label class="entity-edit-btn media-upload-btn" style="cursor:pointer;" title="Bild hinzufügen">
+                                    <i class="ti ti-photo-plus"></i>
+                                    <input type="file" accept="image/*" class="d-none"
+                                        data-action="upload-entity-image"
+                                        data-entity-type="event"
+                                        data-entity-id="<?= $event->id ?>"
+                                        data-stage="promo">
+                                </label>
+                                <button class="entity-edit-btn media-pencil-btn"><i class="ti ti-pencil"></i></button>
+                                <button class="entity-cancel-btn media-cancel-btn"><i class="ti ti-x"></i></button>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="media-promo-content">
+                        <?php if (!empty($promoImages)): ?>
+                            <?php if (count($promoImages) === 1): ?>
+                                <div class="img-placeholder event-promo-img" data-media-id="<?= $promoImages[0]->id ?>">
+                                    <img src="<?= htmlspecialchars($promoImages[0]->media_url) ?>"
+                                        alt="<?= htmlspecialchars($event->title) ?>"
+                                        class="zoomable">
+                                    <?php if ($isLoggedIn): ?>
+                                        <div class="image-edit-overlay">
+                                            <button class="section-control-btn"
+                                                data-action="delete-entity-image"
+                                                data-media-id="<?= $promoImages[0]->id ?>"
+                                                data-entity-type="event"
+                                                data-entity-id="<?= $event->id ?>">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (!empty($promoImages[0]->caption)): ?>
+                                    <small class="image-credit">
+                                        <i class="ti ti-camera"></i>
+                                        <?= htmlspecialchars($promoImages[0]->caption) ?>
+                                    </small>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <!-- Carousel -->
+                                <div id="eventPromo" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000">
+                                    <div class="carousel-inner">
+                                        <?php foreach ($promoImages as $i => $media): ?>
+                                            <div class="carousel-item <?= $i === 0 ? 'active' : '' ?>"
+                                                data-media-id="<?= $media->id ?>">
+                                                <div class="img-placeholder event-promo-img">
+                                                    <img src="<?= htmlspecialchars($media->media_url) ?>"
+                                                        alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
+                                                        class="zoomable">
+                                                    <?php if ($isLoggedIn): ?>
+                                                        <div class="image-edit-overlay">
+                                                            <button class="section-control-btn"
+                                                                data-action="delete-entity-image"
+                                                                data-media-id="<?= $media->id ?>"
+                                                                data-entity-type="event"
+                                                                data-entity-id="<?= $event->id ?>">
+                                                                <i class="ti ti-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <button class="carousel-control-prev" type="button"
+                                        data-bs-target="#eventPromo" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon"></span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button"
+                                        data-bs-target="#eventPromo" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon"></span>
+                                    </button>
+                                    <div class="carousel-indicators">
+                                        <?php foreach ($promoImages as $i => $media): ?>
+                                            <button type="button" data-bs-target="#eventPromo"
+                                                data-bs-slide-to="<?= $i ?>"
+                                                <?= $i === 0 ? 'class="active"' : '' ?>></button>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <!-- No promo image -->
+                            <div class="img-placeholder event-promo-img media-placeholder">
+                                <i class="ti ti-music"></i>
+                                <?php if ($isLoggedIn): ?>
+                                    <label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">
+                                        <i class="ti ti-photo-plus"></i> Promobild hochladen
                                         <input type="file" accept="image/*" class="d-none"
                                             data-action="upload-entity-image"
                                             data-entity-type="event"
                                             data-entity-id="<?= $event->id ?>"
                                             data-stage="promo">
                                     </label>
-                                    <button class="section-control-btn"
-                                        data-action="delete-entity-image"
-                                        data-media-id="<?= $promoImages[0]->id ?>">
-                                        <i class="ti ti-trash"></i>
-                                    </button>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <?php if (!empty($promoImages[0]->caption)): ?>
-                            <small class="image-credit">
-                                <i class="ti ti-camera"></i>
-                                <?= htmlspecialchars($promoImages[0]->caption) ?>
-                            </small>
-                        <?php endif; ?>
-
-                    <?php else: ?>
-                        <!-- Carousel -->
-                        <div id="eventPromo" class="carousel slide" data-bs-ride="carousel">
-                            <div class="carousel-inner">
-                                <?php foreach ($promoImages as $i => $media): ?>
-                                    <div class="carousel-item <?= $i === 0 ? 'active' : '' ?>">
-                                        <div class="img-placeholder event-promo-img">
-                                            <img src="<?= htmlspecialchars($media->media_url) ?>"
-                                                alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
-                                                class="zoomable">
-                                            <?php if ($isLoggedIn): ?>
-                                                <div class="image-edit-overlay">
-                                                    <button class="section-control-btn"
-                                                        data-action="delete-entity-image"
-                                                        data-media-id="<?= $media->id ?>">
-                                                        <i class="ti ti-trash"></i>
-                                                    </button>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
-                            <button class="carousel-control-prev" type="button"
-                                data-bs-target="#eventPromo" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon"></span>
-                            </button>
-                            <button class="carousel-control-next" type="button"
-                                data-bs-target="#eventPromo" data-bs-slide="next">
-                                <span class="carousel-control-next-icon"></span>
-                            </button>
-                        </div>
-                    <?php endif; ?>
-
-                <?php else: ?>
-                    <!-- No promo image -->
-                    <div class="img-placeholder event-promo-img">
-                        <i class="ti ti-music"></i>
-                        <?php if ($isLoggedIn): ?>
-                            <label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">
-                                <i class="ti ti-photo-plus"></i> Promobild hochladen
-                                <input type="file" accept="image/*" class="d-none"
-                                    data-action="upload-entity-image"
-                                    data-entity-type="event"
-                                    data-entity-id="<?= $event->id ?>"
-                                    data-stage="promo">
-                            </label>
                         <?php endif; ?>
                     </div>
-                <?php endif; ?>
 
+                </div>
             </div>
 
             <!-- Event details -->
-            <div class="col-12 col-md-8">
+            <div class="col-12 col-md-6">
                 <div class="section-content">
 
                     <?php if (!empty($event->category_label)): ?>
@@ -376,16 +404,20 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
     </div>
 
     <!-- Row 2: Review -->
-    <div class="row g-5 align-items-start event-review-row mt-4">
+    <hr>
+    <div class="row g-5 align-items-start event-review-row">
         <div class="col-12 <?= !empty($videos) ? 'col-md-8' : '' ?>">
             <?php if ($isLoggedIn): ?>
                 <?= $editRow('Rückblick', 'review', $event->review ?? '', $saveUrl) ?>
             <?php elseif (!empty($event->review)): ?>
+
                 <div class="event-review">
                     <h3>Rückblick</h3>
+
                     <p><?= nl2br(htmlspecialchars($event->review)) ?></p>
                 </div>
             <?php endif; ?>
+            <hr>
         </div>
 
         <?php if (!empty($videos)): ?>
@@ -404,48 +436,58 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
 
     <!-- Row 3: Gallery -->
     <?php if (!empty($gallery) || $isLoggedIn): ?>
-        <div class="row g-3 event-gallery mt-2">
-
-            <?php foreach ($gallery as $media): ?>
-                <div class="col-6 col-md-4 col-lg-3">
-                    <div class="img-placeholder event-gallery-img">
-                        <img src="<?= htmlspecialchars($media->media_url) ?>"
-                            alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
-                            class="zoomable">
-                        <?php if ($isLoggedIn): ?>
-                            <div class="image-edit-overlay">
-                                <button class="section-control-btn"
-                                    data-action="delete-entity-image"
-                                    data-media-id="<?= $media->id ?>">
-                                    <i class="ti ti-trash"></i>
-                                </button>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
+        <div class="media-edit-row mt-2"
+            data-entity-type="event"
+            data-entity-id="<?= $event->id ?>"
+            data-stage="gallery">
 
             <?php if ($isLoggedIn): ?>
-                <div class="col-6 col-md-4 col-lg-3">
-                    <div class="img-placeholder event-gallery-img">
-                        <i class="ti ti-photo-plus"></i>
-                        <label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">
-                            Galeriebild hochladen
+                <div class="edit-row-header">
+                    <label class="edit-row-label">Galerie</label>
+                    <div class="edit-row-actions">
+                        <span class="entity-feedback"></span>
+                        <label class="entity-edit-btn media-upload-btn" style="cursor:pointer;" title="Bild hinzufügen">
+                            <i class="ti ti-photo-plus"></i>
                             <input type="file" accept="image/*" class="d-none"
                                 data-action="upload-entity-image"
                                 data-entity-type="event"
                                 data-entity-id="<?= $event->id ?>"
                                 data-stage="gallery">
                         </label>
+                        <button class="entity-edit-btn media-pencil-btn"><i class="ti ti-pencil"></i></button>
+                        <button class="entity-cancel-btn media-cancel-btn"><i class="ti ti-x"></i></button>
                     </div>
                 </div>
             <?php endif; ?>
+
+            <div class="row g-3 event-gallery media-gallery-grid p-2">
+                <?php foreach ($gallery as $media): ?>
+                    <div class="col-6 col-md-4 col-lg-3 gallery-item" data-media-id="<?= $media->id ?>">
+                        <div class="img-placeholder event-gallery-img">
+                            <img src="<?= htmlspecialchars($media->media_url) ?>"
+                                alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
+                                class="zoomable">
+                            <?php if ($isLoggedIn): ?>
+                                <div class="image-edit-overlay">
+                                    <button class="section-control-btn"
+                                        data-action="delete-entity-image"
+                                        data-media-id="<?= $media->id ?>"
+                                        data-entity-type="event"
+                                        data-entity-id="<?= $event->id ?>">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
 
         </div>
     <?php endif; ?>
 
     <!-- Back + Delete -->
-    <div class="row mt-4 ">
+    <div class="row mt-4">
         <div class="col-12 d-flex gap-3 align-items-center justify-content-between">
             <a href="/veranstaltungen" class="nav-icon-ux">
                 <i class="ti ti-arrow-left"></i> Veranstaltungen
