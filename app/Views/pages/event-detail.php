@@ -158,7 +158,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <?= $editRow('Uhrzeit (HH:MM)', 'time', substr($event->time ?? '', 0, 5), $saveUrl) ?>
 
                         <!-- Venue selector -->
-                        <div class="entity-edit-row" data-save-url="<?= $saveUrl ?>">
+                        <div class="entity-select-row" data-save-url="<?= $saveUrl ?>">
                             <div class="edit-row-header">
                                 <label class="edit-row-label">Veranstaltungsort</label>
                                 <div class="edit-row-actions">
@@ -180,7 +180,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         </div>
 
                         <!-- Admission type selector -->
-                        <div class="entity-edit-row" data-save-url="<?= $saveUrl ?>">
+                        <div class="entity-select-row" data-save-url="<?= $saveUrl ?>">
                             <div class="edit-row-header">
                                 <label class="edit-row-label">Eintritt</label>
                                 <div class="edit-row-actions">
@@ -295,18 +295,23 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     <?php endif; ?>
 
                     <!-- Participants -->
-                    <div class="event-participants entity-edit-row">
-                        <div class="edit-row-header">
-                            <label class="edit-row-label">Mitwirkende</label>
-                            <div class="edit-row-actions">
-                                <span class="entity-feedback"></span>
-                                <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
-                                <button class="entity-save-btn"><i class="ti ti-check"></i></button>
-                                <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
+                    <div class="event-participants participants-edit-row">
+                        <?php if ($isLoggedIn): ?>
+                            <div class="edit-row-header">
+                                <label class="edit-row-label">Mitwirkende</label>
+                                <div class="edit-row-actions">
+                                    <span class="entity-feedback"></span>
+                                    <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
+                                    <button class="entity-save-btn"><i class="ti ti-check"></i></button>
+                                    <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
+                                </div>
                             </div>
-                        </div>
+                        <?php else: ?>
+                            <h3>Mitwirkende</h3>
+                        <?php endif; ?>
+
                         <?php if (!empty($event->participants)): ?>
-                            <div class="event-participant-list">
+                            <div class="event-participant-list p-2">
                                 <?php foreach ($event->participants as $participant): ?>
                                     <div class="event-participant-item">
                                         <?php if ($isLoggedIn): ?>
@@ -329,7 +334,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <?php endif; ?>
 
                         <?php if ($isLoggedIn): ?>
-                            <div class="add-participant-wrap mt-2">
+                            <div class="add-participant-wrap p-2">
                                 <select id="participant-select-<?= $event->id ?>" class="entity-select">
                                     <option value="">— Mitwirkende:n hinzufügen —</option>
                                     <?php foreach ($allParticipants as $p): ?>
@@ -347,11 +352,13 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                 </button>
                             </div>
                         <?php endif; ?>
+
                     </div>
                 </div>
-
             </div>
+
         </div>
+    </div>
 
     </div>
 
