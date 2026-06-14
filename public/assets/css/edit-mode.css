@@ -164,11 +164,11 @@ body.is-editing .edit-bar__indicator i {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.25rem 0.5rem;
+    padding: 0.15rem 0.5rem;
     background: var(--edit-inactive);
     transition: background var(--transition);
-    color: white;
-    font-weight: 700;
+    font-weight: 500;
+    height: 23px;
 }
 
 .entity-edit-row.editing .edit-row-header {
@@ -177,7 +177,7 @@ body.is-editing .edit-bar__indicator i {
 }
 
 .edit-row-label {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -252,4 +252,17 @@ body.is-editing .edit-bar__indicator i {
 
 .editable-block.editing .placeholder-upload-btn {
     opacity: 1;
+}
+
+
+/* -- Event-edit -------------------------------------------------*/
+.event-participant-item,
+.add-participant-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.add-participant-wrap {
+    border: 2px solid (var(--edit-inactive))
 }
