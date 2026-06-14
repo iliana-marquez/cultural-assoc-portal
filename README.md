@@ -1642,6 +1642,20 @@ app/Views/components/edit-bar.php ← sticky edit bar
 **Cause:** CSS `.edit-field-label { display: none }` overridden by cascade — later rule winning.  
 **Fix:** Labels get `style="display:none"` inline from PHP. JS explicitly sets `display: block/none` on activate/deactivate — bypasses CSS cascade entirely.
 
+### 11. OrganisationController save — DB not updating on production
+
+**Bug:** Org fields saved with `Gespeichert ✓` feedback but DB not updating on production.
+**Cause:** `updateField()` hardcoded `WHERE id = 1` but production DB had organisation record at `id = 2`.
+**Solution:** Updated `id` on production DB:
+
+```sql
+UPDATE organisation_info SET id = 1 WHERE id = 2;
+```
+
+**1. Organisation_info edit**
+
+- Deployed version doesnt updte org info from wkk/org/edit
+- Local version does
 <!--
 
 ## ROADMAP/KNOWN ISSUES
