@@ -64,6 +64,12 @@ $router->post('/participants/add',            'ParticipantController', 'add');
 $router->post('/participants/{id}/save',      'ParticipantController', 'save');
 $router->post('/participants/{id}/delete',    'ParticipantController', 'delete');
 
+
+// Organisation
+$router->get('/' . $_ENV['ADMIN_PATH'] . '/org',        'OrganisationController', 'edit');
+$router->post('/' . $_ENV['ADMIN_PATH'] . '/org/save',  'OrganisationController', 'save');
+
+
 // ── Cloudinary service ─────────────────────────────────────────
 $router->post('/media/upload',        'MediaController', 'upload');
 $router->post('/media/{id}/delete',   'MediaController', 'delete');
