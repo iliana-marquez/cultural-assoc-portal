@@ -404,7 +404,6 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
     </div>
 
     <!-- Row 2: Review -->
-    <hr>
     <div class="row g-5 align-items-start event-review-row">
         <div class="col-12 <?= !empty($videos) ? 'col-md-8' : '' ?>">
             <?php if ($isLoggedIn): ?>
@@ -412,12 +411,12 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
             <?php elseif (!empty($event->review)): ?>
 
                 <div class="event-review">
+                    <hr>
                     <h3>Rückblick</h3>
 
                     <p><?= nl2br(htmlspecialchars($event->review)) ?></p>
                 </div>
             <?php endif; ?>
-            <hr>
         </div>
 
         <?php if (!empty($videos)): ?>
@@ -446,6 +445,15 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     <label class="edit-row-label">Galerie</label>
                     <div class="edit-row-actions">
                         <span class="entity-feedback"></span>
+                        <button class="section-control-btn gallery-btn-caption" style="display:none;">
+                            <i class="ti ti-text-caption"></i> Caption
+                        </button>
+                        <button class="section-control-btn gallery-btn-credit" style="display:none;">
+                            <i class="ti ti-camera"></i> Credit
+                        </button>
+                        <label class="entity-edit-btn gallery-select-all" title="Alle auswählen" style="display:none; cursor:pointer;">
+                            <input type="checkbox" class="gallery-checkbox-all" style="margin:0;">
+                        </label>
                         <label class="entity-edit-btn media-upload-btn" style="cursor:pointer;" title="Bild hinzufügen">
                             <i class="ti ti-photo-plus"></i>
                             <input type="file" accept="image/*" class="d-none"
@@ -458,11 +466,43 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <button class="entity-cancel-btn media-cancel-btn"><i class="ti ti-x"></i></button>
                     </div>
                 </div>
+
+                <div class="media-upload-zone">
+                    <div class="media-dropzone">
+                        <i class="ti ti-photo-plus"></i>
+                        <span>Fotos hierher ziehen oder klicken</span>
+                        <input type="file" accept="image/*" multiple class="media-file-input">
+                    </div>
+                    <button class="section-control-btn media-upload-confirm mt-2">
+                        <i class="ti ti-upload"></i> Hochladen
+                    </button>
+                    <div class="media-upload-progress mt-1"></div>
+                </div>
+            <?php elseif (!empty($gallery)): ?>
+
+                <div class="event-review">
+                    <hr>
+                    <h3>Galerie</h3>
+                </div>
             <?php endif; ?>
 
             <div class="row g-3 event-gallery media-gallery-grid p-2">
+                <?php if (empty($gallery) && $isLoggedIn): ?>
+                    <div class="col-12">
+                        <p class="text-muted p-2">
+                            <i class="ti ti-photo-off"></i>
+                            Noch keine Galeriebilder — Bearbeitungsmodus aktivieren um Fotos hochzuladen.
+                        </p>
+                    </div>
+                <?php endif; ?>
+
                 <?php foreach ($gallery as $media): ?>
                     <div class="col-6 col-md-4 col-lg-3 gallery-item" data-media-id="<?= $media->id ?>">
+                        <?php if ($isLoggedIn): ?>
+                            <label class="gallery-item-checkbox">
+                                <input type="checkbox" class="gallery-checkbox" value="<?= $media->id ?>">
+                            </label>
+                        <?php endif; ?>
                         <div class="img-placeholder event-gallery-img">
                             <img src="<?= htmlspecialchars($media->media_url) ?>"
                                 alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
@@ -479,10 +519,34 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                 </div>
                             <?php endif; ?>
                         </div>
+                        <?php if (!empty($media->caption) || !empty($media->credit)): ?>
+                            <small class="gallery-item-meta">
+                                <?php if (!empty($media->caption)): ?>
+                                    <span><?= htmlspecialchars($media->caption) ?></span>
+                                <?php endif; ?>
+                                <?php if (!empty($media->credit)): ?>
+                                    <span class="image-credit"><i class="ti ti-camera"></i> <?= htmlspecialchars($media->credit) ?></span>
+                                <?php endif; ?>
+                            </small>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>
 
+        </div>
+    <?php endif; ?>
+
+    <!-- Media meta modal -->
+    <?php if ($isLoggedIn): ?>
+        <div class="media-meta-modal" id="mediaMetaModal" style="display:none;">
+            <div class="media-meta-modal-inner">
+                <h4 class="media-meta-modal-title">Caption</h4>
+                <textarea class="media-meta-textarea" rows="4" placeholder=""></textarea>
+                <div class="media-meta-modal-actions">
+                    <button class="section-control-btn media-meta-cancel">Abbrechen</button>
+                    <button class="section-control-btn media-meta-confirm">Speichern</button>
+                </div>
+            </div>
         </div>
     <?php endif; ?>
 
