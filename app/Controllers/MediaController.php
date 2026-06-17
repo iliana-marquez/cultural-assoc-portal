@@ -34,6 +34,7 @@ class MediaController extends BaseController
      *   entity_id    int
      *   stage        string  'promo' | 'gallery'
      *   caption      string  optional
+     *   credit       string  optional — photographer credit
      *   subfolder    string  optional — defaults to entity_type
      */
     public function upload(array $params = []): void
@@ -49,6 +50,7 @@ class MediaController extends BaseController
         $entityId   = (int) ($_POST['entity_id'] ?? 0);
         $stage      = trim($_POST['stage'] ?? 'promo');
         $caption    = trim($_POST['caption'] ?? '');
+        $credit     = trim($_POST['credit']  ?? '');
         $subfolder  = trim($_POST['subfolder'] ?? $entityType);
 
         if (!$entityType || !$entityId) {
@@ -71,9 +73,10 @@ class MediaController extends BaseController
 
             // Insert media + link to entity via pivot
             $this->mediaModel->addForEntity($entityType, $entityId, [
-                'media_url'  => $result['secure_url'],
-                'caption'    => $caption ?: null,
-                'stage'      => $stage,
+                'media_url'   => $result['secure_url'],
+                'caption'     => $caption ?: null,
+                'credit'      => $credit  ?: null,
+                'stage'       => $stage,
                 'order_index' => 0,
             ]);
 

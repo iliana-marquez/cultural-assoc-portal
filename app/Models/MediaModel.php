@@ -138,11 +138,12 @@ class MediaModel extends BaseModel
             $mediaId = $existing->id;
         } else {
             $this->execute(
-                "INSERT INTO {$this->table} (media_url, caption, stage, order_index)
-                 VALUES (?, ?, ?, ?)",
+                "INSERT INTO {$this->table} (media_url, caption, credit, stage, order_index)
+                 VALUES (?, ?, ?, ?, ?)",
                 [
                     $data['media_url']   ?? null,
                     $data['caption']     ?? null,
+                    $data['credit']      ?? null,
                     $data['stage']       ?? 'promo',
                     $data['order_index'] ?? 0,
                 ]
@@ -209,6 +210,7 @@ class MediaModel extends BaseModel
             [
                 $data['media_url']   ?? null,
                 $data['caption']     ?? null,
+                $data['credit']      ?? null,
                 $data['stage']       ?? 'promo',
                 $data['order_index'] ?? 0,
                 $mediaId,
