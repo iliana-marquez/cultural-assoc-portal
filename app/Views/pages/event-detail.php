@@ -406,7 +406,6 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
     </div>
 
     <!-- Row 2: Review -->
-    <hr>
     <div class="row g-5 align-items-start event-review-row">
         <div class="col-12 <?= !empty($videos) ? 'col-md-8' : '' ?>">
             <?php if ($isLoggedIn): ?>
@@ -414,12 +413,12 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
             <?php elseif (!empty($event->review)): ?>
 
                 <div class="event-review">
+                    <hr>
                     <h3>Rückblick</h3>
 
                     <p><?= nl2br(htmlspecialchars($event->review)) ?></p>
                 </div>
             <?php endif; ?>
-            <hr>
         </div>
 
         <?php if (!empty($videos)): ?>
@@ -473,7 +472,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                 <div class="media-upload-zone">
                     <div class="media-dropzone">
                         <i class="ti ti-photo-plus"></i>
-                        <span>Fotos hierher ziehen oder klicken</span>
+                        <span class="media-dropzone-label">Fotos hierher ziehen oder klicken</span>
                         <input type="file" accept="image/*" multiple class="media-file-input">
                     </div>
                     <button class="section-control-btn media-upload-confirm mt-2">

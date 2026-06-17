@@ -935,6 +935,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const uploadBtn = row.querySelector('.media-upload-confirm');
         const progress = row.querySelector('.media-upload-progress');
 
+        const dropzoneLabel = row.querySelector('.media-dropzone-label');
+        const dropzoneDefaultText = dropzoneLabel?.textContent ?? '';
+
+        function updateDropzoneLabel() {
+            const count = fileInput?.files?.length ?? 0;
+            if (!dropzoneLabel) return;
+            dropzoneLabel.textContent = count > 0
+                ? count + ' Datei' + (count > 1 ? 'en' : '') + ' ausgewählt'
+                : dropzoneDefaultText;
+        }
+
         dropzone?.addEventListener('dragover', function (e) {
             e.preventDefault();
             dropzone.classList.add('dragover');
@@ -949,11 +960,13 @@ document.addEventListener('DOMContentLoaded', function () {
             dropzone.classList.remove('dragover');
             if (fileInput) fileInput.files = e.dataTransfer.files;
             dropzone.classList.toggle('has-files', !!fileInput?.files?.length);
+            updateDropzoneLabel();
         });
 
         // Native file picker (click on the dropzone opens this input)
         fileInput?.addEventListener('change', function () {
             dropzone.classList.toggle('has-files', !!fileInput.files?.length);
+            updateDropzoneLabel();
         });
 
         uploadBtn?.addEventListener('click', function (e) {
@@ -973,6 +986,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     setTimeout(function () { if (progress) progress.textContent = ''; }, 3000);
                     if (fileInput) fileInput.value = '';
                     dropzone?.classList.remove('has-files');
+                    updateDropzoneLabel();
                     return;
                 }
 
