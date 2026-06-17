@@ -72,7 +72,7 @@ class MediaController extends BaseController
             );
 
             // Insert media + link to entity via pivot
-            $this->mediaModel->addForEntity($entityType, $entityId, [
+            $mediaId = $this->mediaModel->addForEntity($entityType, $entityId, [
                 'media_url'   => $result['secure_url'],
                 'caption'     => $caption ?: null,
                 'credit'      => $credit  ?: null,
@@ -81,6 +81,7 @@ class MediaController extends BaseController
             ]);
 
             $this->jsonSuccess([
+                'id'        => $mediaId,
                 'media_url' => $result['secure_url'],
                 'public_id' => $result['public_id'],
             ]);
@@ -121,6 +122,82 @@ class MediaController extends BaseController
             if (!$remaining) {
                 CloudinaryService::delete($publicId);
             }
+        }
+
+        $this->jsonSuccess();
+    }
+
+    /**
+     * POST /media/{id}/meta
+     * Update caption and/or credit for a single media item.
+     *
+     * POST params:
+     *   caption  string  optional
+     *   credit   string  optional
+     */
+    public function updateMeta(array $params = []): void
+    {
+        $this->requireLogin();
+
+        $mediaId = (int) ($params['id'] ?? 0);
+
+        if (!$mediaId) {
+            $this->jsonError('media_id required');
+            return;
+        }
+
+        $data = [];
+        if (isset($_POST['caption'])) {
+            $data['caption'] = trim($_POST['caption']) ?: null;
+        }
+        if (isset($_POST['credit'])) {
+            $data['credit'] = trim($_POST['credit']) ?: null;
+        }
+
+        if (empty($data)) {
+            $this->jsonError('No data provided');
+            return;
+        }
+
+        $success = $this->mediaModel->update($mediaId, $data);
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to update');
+    }
+
+    /**
+     * POST /media/batch-meta
+     * Update caption and/or credit for multiple media items at once.
+     *
+     * POST params:
+     *   ids[]    array   media ids
+     *   caption  string  optional
+     *   credit   string  optional
+     */
+    public function batchMeta(array $params = []): void
+    {
+        $this->requireLogin();
+
+        $ids = $_POST['ids'] ?? [];
+
+        if (empty($ids)) {
+            $this->jsonError('No ids provided');
+            return;
+        }
+
+        $data = [];
+        if (array_key_exists('caption', $_POST)) {
+            $data['caption'] = trim($_POST['caption']) ?: null;
+        }
+        if (array_key_exists('credit', $_POST)) {
+            $data['credit'] = trim($_POST['credit']) ?: null;
+        }
+
+        if (empty($data)) {
+            $this->jsonError('No data provided');
+            return;
+        }
+
+        foreach ($ids as $id) {
+            $this->mediaModel->update((int) $id, $data);
         }
 
         $this->jsonSuccess();

@@ -1062,6 +1062,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // ── Selection state + header buttons ──────────────────
         const checkAll = row.querySelector('.gallery-checkbox-all');
+        const btnCaption = row.querySelector('.gallery-btn-caption');
+        const btnCredit = row.querySelector('.gallery-btn-credit');
 
         function getSelected() {
             return Array.from(row.querySelectorAll('.gallery-checkbox:checked'));

@@ -445,7 +445,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
             <?php if ($isLoggedIn): ?>
                 <div class="edit-row-header">
                     <label class="edit-row-label">Galerie</label>
-                    <div class="edit-row-actions">
+                    <div class="edit-row-actions align-items-center">
                         <span class="entity-feedback"></span>
                         <button class="section-control-btn gallery-btn-caption">
                             <i class="ti ti-text-caption"></i> Caption
@@ -454,7 +454,8 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                             <i class="ti ti-camera"></i> Credit
                         </button>
                         <label class="entity-edit-btn gallery-select-all" title="Alle auswählen" style="cursor:pointer;">
-                            <input type="checkbox" class="gallery-checkbox-all" style="margin:0;">
+                            <span style="margin-right:0.5rem;">select all</span>
+                            <input type="checkbox" class="gallery-checkbox-all">
                         </label>
                         <label class="entity-edit-btn media-upload-btn" style="cursor:pointer;" title="Bild hinzufügen">
                             <i class="ti ti-photo-plus"></i>
@@ -493,7 +494,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     <div class="col-12">
                         <p class="text-muted p-2">
                             <i class="ti ti-photo-off"></i>
-                            Noch keine Galeriebilder — Bearbeitungsmodus aktivieren um Fotos hochzuladen.
+                            Noch keine Galeriebilder
                         </p>
                     </div>
                 <?php endif; ?>
