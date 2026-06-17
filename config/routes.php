@@ -75,3 +75,5 @@ $router->post('/media/upload',        'MediaController', 'upload');
 $router->post('/media/{id}/delete',   'MediaController', 'delete');
 $router->post('/media/reorder',       'MediaController', 'reorder');
 $router->post('/media/upload-section', 'MediaController', 'uploadSection');
+$router->post('/media/{id}/meta',     'MediaController', 'updateMeta');
+$router->post('/media/batch-meta',    'MediaController', 'batchMeta');
