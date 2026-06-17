@@ -1,6 +1,6 @@
 /**
  * edit-mode.js
- * kulturCMS — Inline edit mode for sections and entity records.
+ * OWS — Inline edit mode for sections and entity records.
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -729,7 +729,18 @@ document.addEventListener('DOMContentLoaded', function () {
         cancelBtn?.addEventListener('click', function (e) {
             e.stopPropagation();
             row.classList.remove('editing');
+            row.classList.remove('has-selection');
             document.body.classList.remove('is-editing');
+
+            // Clear any gallery photo selection on close
+            row.querySelectorAll('.gallery-checkbox:checked').forEach(function (cb) {
+                cb.checked = false;
+                cb.closest('.gallery-item')?.classList.remove('selected');
+            });
+            const checkAll = row.querySelector('.gallery-checkbox-all');
+            if (checkAll) checkAll.checked = false;
+            const feedback = row.querySelector('.edit-row-header .entity-feedback');
+            if (feedback) feedback.textContent = '';
         });
 
         // Upload image
@@ -823,19 +834,328 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                     .then(res => res.json())
                     .then(function (json) {
-                        if (json.success) {
-                            // Remove closest gallery-item or img-placeholder
-                            const item = btn.closest('.gallery-item') ?? btn.closest('.img-placeholder');
-                            item?.remove();
-                            showEntityFeedback(row, 'Gelöscht ✓', 'success');
-                        } else {
+                        if (!json.success) {
                             showEntityFeedback(row, 'Fehler', 'error');
+                            return;
                         }
+
+                        const isGalleryItem = !!btn.closest('.gallery-item');
+
+                        if (isGalleryItem) {
+                            // Gallery: remove the item, empty-state placeholder
+                            // is handled separately when grid becomes empty.
+                            btn.closest('.gallery-item')?.remove();
+                            const grid = row.querySelector('.media-gallery-grid');
+                            if (grid && grid.querySelectorAll('.gallery-item').length === 0) {
+                                grid.innerHTML =
+                                    '<div class="col-12"><p class="text-muted p-2">' +
+                                    '<i class="ti ti-photo-off"></i> ' +
+                                    'Noch keine Galeriebilder — Bearbeitungsmodus aktivieren um Fotos hochzuladen.' +
+                                    '</p></div>';
+                            }
+                            showEntityFeedback(row, 'Gelöscht ✓', 'success');
+                            return;
+                        }
+
+                        // Promo image deletion
+                        const carousel = row.querySelector('.carousel');
+
+                        if (carousel) {
+                            // Multiple promo images — DOM rebuild of the
+                            // carousel is out of scope for now, reload
+                            // is the agreed pragmatic fallback.
+                            window.location.reload();
+                            return;
+                        }
+
+                        // Single promo image — rebuild the "no image" placeholder
+                        const content = row.querySelector('.media-promo-content');
+                        if (content) {
+                            content.innerHTML =
+                                '<div class="img-placeholder event-promo-img media-placeholder">' +
+                                '<i class="ti ti-music"></i>' +
+                                '<label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">' +
+                                '<i class="ti ti-photo-plus"></i> Promobild hochladen' +
+                                '<input type="file" accept="image/*" class="d-none" data-action="upload-entity-image"' +
+                                ' data-entity-type="' + entityType + '"' +
+                                ' data-entity-id="' + entityId + '"' +
+                                ' data-stage="promo">' +
+                                '</label>' +
+                                '</div>';
+                            // Re-wire the new upload input so it actually works
+                            content.querySelectorAll('[data-action="upload-entity-image"]').forEach(function (input) {
+                                input.addEventListener('change', function () {
+                                    if (!this.files[0]) return;
+                                    const fd = new FormData();
+                                    fd.append('image', this.files[0]);
+                                    fd.append('entity_type', entityType);
+                                    fd.append('entity_id', entityId);
+                                    fd.append('stage', 'promo');
+                                    showEntityFeedback(row, 'Wird hochgeladen...', 'success');
+                                    fetch('/media/upload', {
+                                        method: 'POST',
+                                        body: fd,
+                                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                                    })
+                                        .then(res => res.json())
+                                        .then(function (uploadJson) {
+                                            if (uploadJson.success) {
+                                                window.location.reload();
+                                            } else {
+                                                showEntityFeedback(row, 'Upload fehlgeschlagen', 'error');
+                                            }
+                                        })
+                                        .catch(function () {
+                                            showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                                        });
+                                });
+                            });
+                        }
+
+                        showEntityFeedback(row, 'Gelöscht ✓', 'success');
                     })
                     .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
             });
         });
     }
+
+    // ──────────────────────────────────────────────────────────
+    // GALLERY DRAG-AND-DROP BATCH UPLOAD
+    // (separate from the single-file header upload above —
+    //  targets .media-dropzone / .media-upload-confirm only)
+    // ──────────────────────────────────────────────────────────
+
+    document.querySelectorAll('.media-edit-row[data-stage="gallery"]').forEach(function (row) {
+        const entityType = row.dataset.entityType;
+        const entityId = row.dataset.entityId;
+        const entitySlug = row.dataset.entitySlug ?? entityId;
+        const stage = row.dataset.stage;
+        const dropzone = row.querySelector('.media-dropzone');
+        const fileInput = row.querySelector('.media-file-input');
+        const uploadBtn = row.querySelector('.media-upload-confirm');
+        const progress = row.querySelector('.media-upload-progress');
+
+        dropzone?.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+
+        dropzone?.addEventListener('dragleave', function () {
+            dropzone.classList.remove('dragover');
+        });
+
+        dropzone?.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (fileInput) fileInput.files = e.dataTransfer.files;
+        });
+
+        uploadBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const files = fileInput?.files;
+            if (!files || files.length === 0) return;
+            uploadGalleryBatch(row, files, entityType, entityId, entitySlug, stage);
+        });
+
+        function uploadGalleryBatch(row, files, entityType, entityId, entitySlug, stage) {
+            const total = files.length;
+            let index = 0;
+
+            function uploadNext() {
+                if (index >= total) {
+                    if (progress) progress.textContent = total + ' Foto(s) hochgeladen ✓';
+                    setTimeout(function () { if (progress) progress.textContent = ''; }, 3000);
+                    if (fileInput) fileInput.value = '';
+                    return;
+                }
+
+                const file = files[index];
+                const timestamp = Date.now();
+                const publicId = entityType + '-' + entitySlug + '-' + stage + '-' + (index + 1) + '-' + timestamp;
+                const data = new FormData();
+
+                data.append('image', file);
+                data.append('entity_type', entityType);
+                data.append('entity_id', entityId);
+                data.append('stage', stage);
+                data.append('public_id', publicId);
+
+                if (progress) progress.textContent = 'Hochladen ' + (index + 1) + ' / ' + total + '...';
+
+                fetch('/media/upload', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            appendGalleryItem(row, json, entityType, entityId);
+                        }
+                        index++;
+                        uploadNext();
+                    })
+                    .catch(function () {
+                        if (progress) progress.textContent = 'Fehler bei Foto ' + (index + 1);
+                        index++;
+                        uploadNext();
+                    });
+            }
+
+            uploadNext();
+        }
+
+        function appendGalleryItem(row, json, entityType, entityId) {
+            const grid = row.querySelector('.media-gallery-grid');
+            if (!grid) return;
+
+            // Remove empty-state placeholder if present
+            grid.querySelector('.col-12 .text-muted')?.closest('.col-12')?.remove();
+
+            const col = document.createElement('div');
+            col.className = 'col-6 col-md-4 col-lg-3 gallery-item';
+            col.dataset.mediaId = json.id;
+            col.innerHTML =
+                '<label class="gallery-item-checkbox">' +
+                '<input type="checkbox" class="gallery-checkbox" value="' + json.id + '">' +
+                '</label>' +
+                '<div class="img-placeholder event-gallery-img">' +
+                '<img src="' + json.media_url + '" class="zoomable">' +
+                '<div class="image-edit-overlay">' +
+                '<button class="section-control-btn" data-action="delete-entity-image"' +
+                ' data-media-id="' + json.id + '"' +
+                ' data-entity-type="' + entityType + '"' +
+                ' data-entity-id="' + entityId + '">' +
+                '<i class="ti ti-trash"></i></button>' +
+                '</div></div>';
+            grid.appendChild(col);
+            initMediaDeleteBtns(row);
+            initGalleryCheckbox(col);
+        }
+
+        function initGalleryCheckbox(col) {
+            // Selection state changes are handled by the row-level
+            // delegated listener below — nothing needed here beyond
+            // letting the native checkbox behave normally.
+        }
+
+        // ── Selection state + header buttons ──────────────────
+        const checkAll = row.querySelector('.gallery-checkbox-all');
+
+        function getSelected() {
+            return Array.from(row.querySelectorAll('.gallery-checkbox:checked'));
+        }
+
+        function updateHeaderBtns() {
+            const count = getSelected().length;
+            const any = count > 0;
+            row.classList.toggle('has-selection', any);
+            const feedback = row.querySelector('.edit-row-header .entity-feedback');
+            if (feedback) {
+                feedback.textContent = any ? count + ' Foto' + (count > 1 ? 's' : '') + ' ausgewählt' : '';
+            }
+        }
+
+        row.addEventListener('change', function (e) {
+            if (e.target.classList.contains('gallery-checkbox')) {
+                const item = e.target.closest('.gallery-item');
+                if (item) item.classList.toggle('selected', e.target.checked);
+                updateHeaderBtns();
+                const all = row.querySelectorAll('.gallery-checkbox');
+                const checked = row.querySelectorAll('.gallery-checkbox:checked');
+                if (checkAll) checkAll.checked = all.length === checked.length && all.length > 0;
+            }
+        });
+
+        checkAll?.addEventListener('change', function () {
+            row.querySelectorAll('.gallery-checkbox').forEach(function (cb) {
+                cb.checked = checkAll.checked;
+                cb.closest('.gallery-item')?.classList.toggle('selected', checkAll.checked);
+            });
+            updateHeaderBtns();
+        });
+
+        // ── Caption / Credit modal ─────────────────────────────
+        const modal = document.getElementById('mediaMetaModal');
+        const modalTitle = modal?.querySelector('.media-meta-modal-title');
+        const modalArea = modal?.querySelector('.media-meta-textarea');
+        const modalCancel = modal?.querySelector('.media-meta-cancel');
+        const modalConfirm = modal?.querySelector('.media-meta-confirm');
+        let metaField = 'caption';
+
+        btnCaption?.addEventListener('click', function () {
+            metaField = 'caption';
+            const count = getSelected().length;
+            if (modalTitle) modalTitle.textContent = 'Caption für ' + count + ' Foto' + (count > 1 ? 's' : '');
+            if (modalArea) { modalArea.value = ''; modalArea.placeholder = 'Bildbeschreibung...'; }
+            if (modal) modal.style.display = 'flex';
+            modalArea?.focus();
+        });
+
+        btnCredit?.addEventListener('click', function () {
+            metaField = 'credit';
+            const count = getSelected().length;
+            if (modalTitle) modalTitle.textContent = 'Credit für ' + count + ' Foto' + (count > 1 ? 's' : '');
+            if (modalArea) { modalArea.value = ''; modalArea.placeholder = '© Fotografin / Fotograf'; }
+            if (modal) modal.style.display = 'flex';
+            modalArea?.focus();
+        });
+
+        modalCancel?.addEventListener('click', function () {
+            if (modal) modal.style.display = 'none';
+        });
+
+        modalConfirm?.addEventListener('click', function () {
+            const selected = getSelected();
+            const value = modalArea?.value.trim() ?? '';
+            const ids = selected.map(cb => cb.value);
+            if (ids.length === 0) return;
+
+            const data = new FormData();
+            ids.forEach(id => data.append('ids[]', id));
+            data.append(metaField, value);
+
+            fetch('/media/batch-meta', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        selected.forEach(function (cb) {
+                            const item = cb.closest('.gallery-item');
+                            if (!item) return;
+                            let meta = item.querySelector('.gallery-item-meta');
+                            if (!meta) {
+                                meta = document.createElement('small');
+                                meta.className = 'gallery-item-meta';
+                                item.appendChild(meta);
+                            }
+                            let span = meta.querySelector(metaField === 'credit' ? '.image-credit' : 'span:not(.image-credit)');
+                            if (!span) {
+                                span = document.createElement('span');
+                                if (metaField === 'credit') span.className = 'image-credit';
+                                meta.appendChild(span);
+                            }
+                            span.textContent = metaField === 'credit'
+                                ? (value ? '📷 ' + value : '')
+                                : value;
+                            if (!value) span.remove();
+                        });
+                        if (modal) modal.style.display = 'none';
+                        showEntityFeedback(row, 'Gespeichert ✓', 'success');
+                    } else {
+                        showEntityFeedback(row, 'Fehler', 'error');
+                    }
+                })
+                .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+        });
+
+        modal?.addEventListener('click', function (e) {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+    });
 
     // ── Warn on page leave ────────────────────────────────────
     window.addEventListener('beforeunload', function (e) {

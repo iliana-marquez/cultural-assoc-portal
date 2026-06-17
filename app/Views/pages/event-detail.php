@@ -55,122 +55,124 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
         <div class="row g-5 align-items-start">
 
             <!-- Promo image -->
-            <div class="col-12 col-md-6">
-                <div class="media-edit-row"
-                    data-entity-type="event"
-                    data-entity-id="<?= $event->id ?>"
-                    data-stage="promo">
+            <?php if (!empty($promoImages) || $isLoggedIn): ?>
+                <div class="col-12 col-md-6">
+                    <div class="media-edit-row"
+                        data-entity-type="event"
+                        data-entity-id="<?= $event->id ?>"
+                        data-stage="promo">
 
-                    <?php if ($isLoggedIn): ?>
-                        <div class="edit-row-header">
-                            <label class="edit-row-label">Promobild</label>
-                            <div class="edit-row-actions">
-                                <span class="entity-feedback"></span>
-                                <label class="entity-edit-btn media-upload-btn" style="cursor:pointer;" title="Bild hinzufügen">
-                                    <i class="ti ti-photo-plus"></i>
-                                    <input type="file" accept="image/*" class="d-none"
-                                        data-action="upload-entity-image"
-                                        data-entity-type="event"
-                                        data-entity-id="<?= $event->id ?>"
-                                        data-stage="promo">
-                                </label>
-                                <button class="entity-edit-btn media-pencil-btn"><i class="ti ti-pencil"></i></button>
-                                <button class="entity-cancel-btn media-cancel-btn"><i class="ti ti-x"></i></button>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <div class="media-promo-content">
-                        <?php if (!empty($promoImages)): ?>
-                            <?php if (count($promoImages) === 1): ?>
-                                <div class="img-placeholder event-promo-img" data-media-id="<?= $promoImages[0]->id ?>">
-                                    <img src="<?= htmlspecialchars($promoImages[0]->media_url) ?>"
-                                        alt="<?= htmlspecialchars($event->title) ?>"
-                                        class="zoomable">
-                                    <?php if ($isLoggedIn): ?>
-                                        <div class="image-edit-overlay">
-                                            <button class="section-control-btn"
-                                                data-action="delete-entity-image"
-                                                data-media-id="<?= $promoImages[0]->id ?>"
-                                                data-entity-type="event"
-                                                data-entity-id="<?= $event->id ?>">
-                                                <i class="ti ti-trash"></i>
-                                            </button>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                                <?php if (!empty($promoImages[0]->caption)): ?>
-                                    <small class="image-credit">
-                                        <i class="ti ti-camera"></i>
-                                        <?= htmlspecialchars($promoImages[0]->caption) ?>
-                                    </small>
-                                <?php endif; ?>
-                            <?php else: ?>
-                                <!-- Carousel -->
-                                <div id="eventPromo" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000">
-                                    <div class="carousel-inner">
-                                        <?php foreach ($promoImages as $i => $media): ?>
-                                            <div class="carousel-item <?= $i === 0 ? 'active' : '' ?>"
-                                                data-media-id="<?= $media->id ?>">
-                                                <div class="img-placeholder event-promo-img">
-                                                    <img src="<?= htmlspecialchars($media->media_url) ?>"
-                                                        alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
-                                                        class="zoomable">
-                                                    <?php if ($isLoggedIn): ?>
-                                                        <div class="image-edit-overlay">
-                                                            <button class="section-control-btn"
-                                                                data-action="delete-entity-image"
-                                                                data-media-id="<?= $media->id ?>"
-                                                                data-entity-type="event"
-                                                                data-entity-id="<?= $event->id ?>">
-                                                                <i class="ti ti-trash"></i>
-                                                            </button>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <button class="carousel-control-prev" type="button"
-                                        data-bs-target="#eventPromo" data-bs-slide="prev">
-                                        <span class="carousel-control-prev-icon"></span>
-                                    </button>
-                                    <button class="carousel-control-next" type="button"
-                                        data-bs-target="#eventPromo" data-bs-slide="next">
-                                        <span class="carousel-control-next-icon"></span>
-                                    </button>
-                                    <div class="carousel-indicators">
-                                        <?php foreach ($promoImages as $i => $media): ?>
-                                            <button type="button" data-bs-target="#eventPromo"
-                                                data-bs-slide-to="<?= $i ?>"
-                                                <?= $i === 0 ? 'class="active"' : '' ?>></button>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            <!-- No promo image -->
-                            <div class="img-placeholder event-promo-img media-placeholder">
-                                <i class="ti ti-music"></i>
-                                <?php if ($isLoggedIn): ?>
-                                    <label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">
-                                        <i class="ti ti-photo-plus"></i> Promobild hochladen
+                        <?php if ($isLoggedIn): ?>
+                            <div class="edit-row-header">
+                                <label class="edit-row-label">Promobild</label>
+                                <div class="edit-row-actions">
+                                    <span class="entity-feedback"></span>
+                                    <label class="entity-edit-btn media-upload-btn" style="cursor:pointer;" title="Bild hinzufügen">
+                                        <i class="ti ti-photo-plus"></i>
                                         <input type="file" accept="image/*" class="d-none"
                                             data-action="upload-entity-image"
                                             data-entity-type="event"
                                             data-entity-id="<?= $event->id ?>"
                                             data-stage="promo">
                                     </label>
-                                <?php endif; ?>
+                                    <button class="entity-edit-btn media-pencil-btn"><i class="ti ti-pencil"></i></button>
+                                    <button class="entity-cancel-btn media-cancel-btn"><i class="ti ti-x"></i></button>
+                                </div>
                             </div>
                         <?php endif; ?>
-                    </div>
 
+                        <div class="media-promo-content">
+                            <?php if (!empty($promoImages)): ?>
+                                <?php if (count($promoImages) === 1): ?>
+                                    <div class="img-placeholder event-promo-img" data-media-id="<?= $promoImages[0]->id ?>">
+                                        <img src="<?= htmlspecialchars($promoImages[0]->media_url) ?>"
+                                            alt="<?= htmlspecialchars($event->title) ?>"
+                                            class="zoomable">
+                                        <?php if ($isLoggedIn): ?>
+                                            <div class="image-edit-overlay">
+                                                <button class="section-control-btn"
+                                                    data-action="delete-entity-image"
+                                                    data-media-id="<?= $promoImages[0]->id ?>"
+                                                    data-entity-type="event"
+                                                    data-entity-id="<?= $event->id ?>">
+                                                    <i class="ti ti-trash"></i>
+                                                </button>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if (!empty($promoImages[0]->caption)): ?>
+                                        <small class="image-credit">
+                                            <i class="ti ti-camera"></i>
+                                            <?= htmlspecialchars($promoImages[0]->caption) ?>
+                                        </small>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <!-- Carousel -->
+                                    <div id="eventPromo" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000">
+                                        <div class="carousel-inner">
+                                            <?php foreach ($promoImages as $i => $media): ?>
+                                                <div class="carousel-item <?= $i === 0 ? 'active' : '' ?>"
+                                                    data-media-id="<?= $media->id ?>">
+                                                    <div class="img-placeholder event-promo-img">
+                                                        <img src="<?= htmlspecialchars($media->media_url) ?>"
+                                                            alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
+                                                            class="zoomable">
+                                                        <?php if ($isLoggedIn): ?>
+                                                            <div class="image-edit-overlay">
+                                                                <button class="section-control-btn"
+                                                                    data-action="delete-entity-image"
+                                                                    data-media-id="<?= $media->id ?>"
+                                                                    data-entity-type="event"
+                                                                    data-entity-id="<?= $event->id ?>">
+                                                                    <i class="ti ti-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <button class="carousel-control-prev" type="button"
+                                            data-bs-target="#eventPromo" data-bs-slide="prev">
+                                            <span class="carousel-control-prev-icon"></span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button"
+                                            data-bs-target="#eventPromo" data-bs-slide="next">
+                                            <span class="carousel-control-next-icon"></span>
+                                        </button>
+                                        <div class="carousel-indicators">
+                                            <?php foreach ($promoImages as $i => $media): ?>
+                                                <button type="button" data-bs-target="#eventPromo"
+                                                    data-bs-slide-to="<?= $i ?>"
+                                                    <?= $i === 0 ? 'class="active"' : '' ?>></button>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <!-- No promo image -->
+                                <div class="img-placeholder event-promo-img media-placeholder">
+                                    <i class="ti ti-music"></i>
+                                    <?php if ($isLoggedIn): ?>
+                                        <label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">
+                                            <i class="ti ti-photo-plus"></i> Promobild hochladen
+                                            <input type="file" accept="image/*" class="d-none"
+                                                data-action="upload-entity-image"
+                                                data-entity-type="event"
+                                                data-entity-id="<?= $event->id ?>"
+                                                data-stage="promo">
+                                        </label>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                    </div>
                 </div>
-            </div>
+            <?php endif; ?>
 
             <!-- Event details -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 <?= (!empty($promoImages) || $isLoggedIn) ? 'col-md-6' : '' ?>">
                 <div class="section-content">
 
                     <?php if (!empty($event->category_label)): ?>
@@ -404,6 +406,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
     </div>
 
     <!-- Row 2: Review -->
+    <hr>
     <div class="row g-5 align-items-start event-review-row">
         <div class="col-12 <?= !empty($videos) ? 'col-md-8' : '' ?>">
             <?php if ($isLoggedIn): ?>
@@ -411,12 +414,12 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
             <?php elseif (!empty($event->review)): ?>
 
                 <div class="event-review">
-                    <hr>
                     <h3>Rückblick</h3>
 
                     <p><?= nl2br(htmlspecialchars($event->review)) ?></p>
                 </div>
             <?php endif; ?>
+            <hr>
         </div>
 
         <?php if (!empty($videos)): ?>
@@ -445,13 +448,13 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     <label class="edit-row-label">Galerie</label>
                     <div class="edit-row-actions">
                         <span class="entity-feedback"></span>
-                        <button class="section-control-btn gallery-btn-caption" style="display:none;">
+                        <button class="section-control-btn gallery-btn-caption">
                             <i class="ti ti-text-caption"></i> Caption
                         </button>
-                        <button class="section-control-btn gallery-btn-credit" style="display:none;">
+                        <button class="section-control-btn gallery-btn-credit">
                             <i class="ti ti-camera"></i> Credit
                         </button>
-                        <label class="entity-edit-btn gallery-select-all" title="Alle auswählen" style="display:none; cursor:pointer;">
+                        <label class="entity-edit-btn gallery-select-all" title="Alle auswählen" style="cursor:pointer;">
                             <input type="checkbox" class="gallery-checkbox-all" style="margin:0;">
                         </label>
                         <label class="entity-edit-btn media-upload-btn" style="cursor:pointer;" title="Bild hinzufügen">
