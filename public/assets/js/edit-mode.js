@@ -1,6 +1,6 @@
 /**
  * edit-mode.js
- * OWS — Inline edit mode for sections and entity records.
+ * kulturCMS — Inline edit mode for sections and entity records.
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -1064,6 +1064,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const checkAll = row.querySelector('.gallery-checkbox-all');
         const btnCaption = row.querySelector('.gallery-btn-caption');
         const btnCredit = row.querySelector('.gallery-btn-credit');
+        const btnDelete = row.querySelector('.gallery-btn-delete');
 
         function getSelected() {
             return Array.from(row.querySelectorAll('.gallery-checkbox:checked'));
@@ -1122,6 +1123,63 @@ document.addEventListener('DOMContentLoaded', function () {
             if (modalArea) { modalArea.value = ''; modalArea.placeholder = '© Fotografin / Fotograf'; }
             if (modal) modal.style.display = 'flex';
             modalArea?.focus();
+        });
+
+        btnDelete?.addEventListener('click', function () {
+            const selected = getSelected();
+            const count = selected.length;
+            if (count === 0) return;
+
+            const confirmMsg = count === 1
+                ? 'Dieses Foto löschen?'
+                : count + ' Fotos löschen?';
+            if (!confirm(confirmMsg)) return;
+
+            const items = selected.map(cb => cb.closest('.gallery-item')).filter(Boolean);
+            let index = 0;
+
+            function deleteNext() {
+                if (index >= items.length) {
+                    const grid = row.querySelector('.media-gallery-grid');
+                    if (grid && grid.querySelectorAll('.gallery-item').length === 0) {
+                        grid.innerHTML =
+                            '<div class="col-12"><p class="text-muted p-2">' +
+                            '<i class="ti ti-photo-off"></i> ' +
+                            'Noch keine Galeriebilder — Bearbeitungsmodus aktivieren um Fotos hochzuladen.' +
+                            '</p></div>';
+                    }
+                    updateHeaderBtns();
+                    showEntityFeedback(row, 'Gelöscht ✓', 'success');
+                    return;
+                }
+
+                const item = items[index];
+                const mediaId = item.dataset.mediaId;
+                const data = new FormData();
+                data.append('entity_type', entityType);
+                data.append('entity_id', entityId);
+
+                const feedback = row.querySelector('.edit-row-header .entity-feedback');
+                if (feedback) feedback.textContent = 'Löschen ' + (index + 1) + ' / ' + items.length + '...';
+
+                fetch('/media/' + mediaId + '/delete', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) item.remove();
+                        index++;
+                        deleteNext();
+                    })
+                    .catch(function () {
+                        index++;
+                        deleteNext();
+                    });
+            }
+
+            deleteNext();
         });
 
         modalCancel?.addEventListener('click', function () {

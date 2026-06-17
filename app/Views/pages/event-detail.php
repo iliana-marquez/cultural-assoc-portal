@@ -453,6 +453,9 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <button class="section-control-btn gallery-btn-credit">
                             <i class="ti ti-camera"></i> Credit
                         </button>
+                        <button class="section-control-btn gallery-btn-delete">
+                            <i class="ti ti-trash"></i> Löschen
+                        </button>
                         <label class="entity-edit-btn gallery-select-all" title="Alle auswählen" style="cursor:pointer;">
                             <span style="margin-right:0.5rem;">select all</span>
                             <input type="checkbox" class="gallery-checkbox-all">

@@ -343,9 +343,11 @@ body.is-editing .edit-bar__indicator i {
 .media-edit-row.editing .gallery-select-all { display: inline-flex; }
 
 .gallery-btn-caption,
-.gallery-btn-credit { display: none; }
+.gallery-btn-credit,
+.gallery-btn-delete { display: none; }
 .media-edit-row.editing.has-selection .gallery-btn-caption,
-.media-edit-row.editing.has-selection .gallery-btn-credit { display: inline-flex; }
+.media-edit-row.editing.has-selection .gallery-btn-credit,
+.media-edit-row.editing.has-selection .gallery-btn-delete { display: inline-flex; }
 
 .gallery-item.selected .img-placeholder {
     outline: 3px solid var(--edit-active);
