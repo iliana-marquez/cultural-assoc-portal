@@ -948,6 +948,12 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             dropzone.classList.remove('dragover');
             if (fileInput) fileInput.files = e.dataTransfer.files;
+            dropzone.classList.toggle('has-files', !!fileInput?.files?.length);
+        });
+
+        // Native file picker (click on the dropzone opens this input)
+        fileInput?.addEventListener('change', function () {
+            dropzone.classList.toggle('has-files', !!fileInput.files?.length);
         });
 
         uploadBtn?.addEventListener('click', function (e) {
@@ -966,6 +972,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (progress) progress.textContent = total + ' Foto(s) hochgeladen ✓';
                     setTimeout(function () { if (progress) progress.textContent = ''; }, 3000);
                     if (fileInput) fileInput.value = '';
+                    dropzone?.classList.remove('has-files');
                     return;
                 }
 

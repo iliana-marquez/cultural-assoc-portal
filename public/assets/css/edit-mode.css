@@ -474,3 +474,7 @@ body.is-editing .edit-bar__indicator i {
     background: var(--edit-inactive);
     opacity: 0.85;
 }
+
+/* ── Hochladen button only appears once files are staged ────── */
+.media-upload-confirm { display: none; }
+.media-dropzone.has-files ~ .media-upload-confirm { display: inline-flex; }
