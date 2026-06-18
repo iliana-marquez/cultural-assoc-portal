@@ -1,6 +1,6 @@
 /**
  * edit-mode.js
- * kulturCMS — Inline edit mode for sections and entity records.
+ * OWS — Inline edit mode for sections and entity records.
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -846,13 +846,15 @@ document.addEventListener('DOMContentLoaded', function () {
                             // is handled separately when grid becomes empty.
                             btn.closest('.gallery-item')?.remove();
                             const grid = row.querySelector('.media-gallery-grid');
-                            if (grid && grid.querySelectorAll('.gallery-item').length === 0) {
+                            const remaining = grid ? grid.querySelectorAll('.gallery-item').length : 0;
+                            if (grid && remaining === 0) {
                                 grid.innerHTML =
                                     '<div class="col-12"><p class="text-muted p-2">' +
                                     '<i class="ti ti-photo-off"></i> ' +
-                                    'Noch keine Galeriebilder — Bearbeitungsmodus aktivieren um Fotos hochzuladen.' +
+                                    'Noch keine Galeriebilder' +
                                     '</p></div>';
                             }
+                            row.classList.toggle('has-items', remaining > 0);
                             showEntityFeedback(row, 'Gelöscht ✓', 'success');
                             return;
                         }
@@ -1052,6 +1054,7 @@ document.addEventListener('DOMContentLoaded', function () {
             grid.appendChild(col);
             initMediaDeleteBtns(row);
             initGalleryCheckbox(col);
+            updateHasItems();
         }
 
         function initGalleryCheckbox(col) {
@@ -1079,6 +1082,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 feedback.textContent = any ? count + ' Foto' + (count > 1 ? 's' : '') + ' ausgewählt' : '';
             }
         }
+
+        function updateHasItems() {
+            const grid = row.querySelector('.media-gallery-grid');
+            const hasItems = !!grid && grid.querySelectorAll('.gallery-item').length > 0;
+            row.classList.toggle('has-items', hasItems);
+        }
+
+        updateHasItems();
 
         row.addEventListener('change', function (e) {
             if (e.target.classList.contains('gallery-checkbox')) {
@@ -1148,6 +1159,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             'Noch keine Galeriebilder — Bearbeitungsmodus aktivieren um Fotos hochzuladen.' +
                             '</p></div>';
                     }
+                    if (checkAll) checkAll.checked = false;
+                    updateHasItems();
                     updateHeaderBtns();
                     showEntityFeedback(row, 'Gelöscht ✓', 'success');
                     return;

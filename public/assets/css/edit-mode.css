@@ -329,9 +329,9 @@ body.is-editing .edit-bar__indicator i {
 .gallery-item { position: relative; }
 
 .gallery-item-checkbox {
-    position: absolute;
-    top: 0.5rem;
-    left: 0.5rem;
+    /* position: absolute;
+    top: -0.5rem;
+    left: 0.5rem; */
     z-index: 10;
     display: none;
     cursor: pointer;
@@ -340,7 +340,7 @@ body.is-editing .edit-bar__indicator i {
 .media-edit-row.editing .gallery-item-checkbox { display: block; }
 
 .gallery-select-all { display: none; }
-.media-edit-row.editing .gallery-select-all { display: inline-flex; }
+.media-edit-row.editing.has-items .gallery-select-all { display: inline-flex; }
 
 .gallery-btn-caption,
 .gallery-btn-credit,

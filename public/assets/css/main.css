@@ -446,6 +446,7 @@ footer {
     gap: 0.3rem;
     opacity: 0.6;
     font-size: var(--text-small);
+    text-transform: capitalize;
 }
 
 .image-credit i { font-size: 0.85rem; }
