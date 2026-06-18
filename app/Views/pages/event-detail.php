@@ -60,6 +60,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     <div class="media-edit-row"
                         data-entity-type="event"
                         data-entity-id="<?= $event->id ?>"
+                        data-entity-slug="<?= htmlspecialchars($event->slug) ?>"
                         data-stage="promo">
 
                         <?php if ($isLoggedIn): ?>

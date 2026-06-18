@@ -716,6 +716,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const cancelBtn = row.querySelector('.media-cancel-btn');
         const entityType = row.dataset.entityType;
         const entityId = row.dataset.entityId;
+        const entitySlug = row.dataset.entitySlug ?? entityId;
         const stage = row.dataset.stage;
 
         // Pencil — activate
@@ -748,11 +749,14 @@ document.addEventListener('DOMContentLoaded', function () {
             input.addEventListener('change', function () {
                 if (!this.files[0]) return;
                 const file = this.files[0];
+                const timestamp = Date.now();
+                const publicId = entityType + '-' + entitySlug + '-' + stage + '-' + timestamp;
                 const data = new FormData();
                 data.append('image', file);
                 data.append('entity_type', entityType);
                 data.append('entity_id', entityId);
                 data.append('stage', stage);
+                data.append('public_id', publicId);
 
                 showEntityFeedback(row, 'Wird hochgeladen...', 'success');
 
@@ -888,11 +892,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             content.querySelectorAll('[data-action="upload-entity-image"]').forEach(function (input) {
                                 input.addEventListener('change', function () {
                                     if (!this.files[0]) return;
+                                    const slug = row.dataset.entitySlug ?? entityId;
                                     const fd = new FormData();
                                     fd.append('image', this.files[0]);
                                     fd.append('entity_type', entityType);
                                     fd.append('entity_id', entityId);
                                     fd.append('stage', 'promo');
+                                    fd.append('public_id', entityType + '-' + slug + '-promo-' + Date.now());
                                     showEntityFeedback(row, 'Wird hochgeladen...', 'success');
                                     fetch('/media/upload', {
                                         method: 'POST',
