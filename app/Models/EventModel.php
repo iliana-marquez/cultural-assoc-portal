@@ -195,7 +195,7 @@ class EventModel extends BaseModel
         return $this->execute(
             "INSERT INTO {$this->table}
              (project_id, category_id, title, subtitle, description,
-              date, time, venue_id, review, admission, ticket_url)
+              date, time, venue_id, review, admission, admission_url)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $data['project_id']   ?? null,
@@ -207,9 +207,36 @@ class EventModel extends BaseModel
                 $data['time']         ?? null,
                 $data['venue_id']     ?? null,
                 $data['review']       ?? null,
-                $data['admission']    ?? null,
-                $data['admission_url']   ?? null,
+                $data['admission']      ?? null,
+                $data['admission_url'] ?? null,
             ]
+        );
+    }
+
+    /**
+     * Update a single field — used by entity-edit-row AJAX saves.
+     */
+    public function updateField(int $id, string $field, string $value): bool
+    {
+        $allowed = [
+            'title',
+            'subtitle',
+            'description',
+            'date',
+            'time',
+            'venue_id',
+            'category_id',
+            'review',
+            'admission',
+            'admission_amount',
+            'admission_url',
+        ];
+
+        if (!in_array($field, $allowed)) return false;
+
+        return $this->execute(
+            "UPDATE {$this->table} SET {$field} = ? WHERE id = ?",
+            [$value ?: null, $id]
         );
     }
 
@@ -222,7 +249,7 @@ class EventModel extends BaseModel
             "UPDATE {$this->table}
              SET project_id = ?, category_id = ?, title = ?, subtitle = ?,
                  description = ?, date = ?, time = ?, venue_id = ?,
-                 review = ?, admission = ?, ticket_url = ?
+                 review = ?, admission = ?, admission_url = ?
              WHERE id = ?",
             [
                 $data['project_id']   ?? null,
@@ -234,8 +261,8 @@ class EventModel extends BaseModel
                 $data['time']         ?? null,
                 $data['venue_id']     ?? null,
                 $data['review']       ?? null,
-                $data['admission']    ?? null,
-                $data['admission_url']  ?? null,
+                $data['admission']      ?? null,
+                $data['admission_url'] ?? null,
                 $id,
             ]
         );

@@ -1,6 +1,6 @@
 /**
  * edit-mode.js
- * kulturCMS — Inline edit mode for sections and entity records.
+ * OWS — Inline edit mode for sections and entity records.
  */
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -562,6 +562,692 @@ document.addEventListener('DOMContentLoaded', function () {
                     showEntityFeedback(row, 'Verbindungsfehler', 'error');
                     saveBtn.disabled = false;
                 });
+        });
+    });
+
+    // ── Entity select rows (venue, admission) ────────────────
+    document.querySelectorAll('.entity-select-row').forEach(function (row) {
+        const select = row.querySelector('select');
+        const editBtn = row.querySelector('.entity-edit-btn');
+        const saveBtn = row.querySelector('.entity-save-btn');
+        const cancelBtn = row.querySelector('.entity-cancel-btn');
+        const saveUrl = row.dataset.saveUrl;
+        const fieldName = select?.dataset.field;
+        const display = row.querySelector('.entity-select-display');
+        let original = select?.value ?? '';
+
+        if (saveBtn) saveBtn.style.display = 'none';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+
+        editBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            original = select.value;
+            row.classList.add('editing');
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'inline-flex';
+            cancelBtn.style.display = 'inline-flex';
+            document.body.classList.add('is-editing');
+        });
+
+        cancelBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            select.value = original;
+            row.classList.remove('editing');
+            editBtn.style.display = 'inline-flex';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            document.body.classList.remove('is-editing');
+        });
+
+        saveBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const data = new FormData();
+            data.append(fieldName, select.value);
+            saveBtn.disabled = true;
+            fetch(saveUrl, {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        if (display) display.textContent = select.options[select.selectedIndex]?.text ?? '—';
+                        row.classList.remove('editing');
+                        editBtn.style.display = 'inline-flex';
+                        saveBtn.style.display = 'none';
+                        cancelBtn.style.display = 'none';
+                        document.body.classList.remove('is-editing');
+                        showEntityFeedback(row, 'Gespeichert ✓', 'success');
+                    } else {
+                        showEntityFeedback(row, 'Fehler', 'error');
+                    }
+                    saveBtn.disabled = false;
+                })
+                .catch(function () {
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                    saveBtn.disabled = false;
+                });
+        });
+    });
+
+    // ── Participants edit row ─────────────────────────────────
+    document.querySelectorAll('.participants-edit-row').forEach(function (row) {
+        const editBtn = row.querySelector('.entity-edit-btn');
+        const saveBtn = row.querySelector('.entity-save-btn');
+        const cancelBtn = row.querySelector('.entity-cancel-btn');
+        const addBtn = row.querySelector('[data-action="add-participant"]');
+        const addSelect = row.querySelector('.entity-select');
+
+        if (saveBtn) saveBtn.style.display = 'none';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+
+        editBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.add('editing');
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'inline-flex';
+            cancelBtn.style.display = 'inline-flex';
+            document.body.classList.add('is-editing');
+        });
+
+        cancelBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.remove('editing');
+            editBtn.style.display = 'inline-flex';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            document.body.classList.remove('is-editing');
+        });
+
+        saveBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.remove('editing');
+            editBtn.style.display = 'inline-flex';
+            saveBtn.style.display = 'none';
+            cancelBtn.style.display = 'none';
+            document.body.classList.remove('is-editing');
+        });
+
+        addBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const participantId = addSelect?.value;
+            const eventId = addBtn.dataset.eventId;
+            if (!participantId) return;
+            const data = new FormData();
+            data.append('participant_id', participantId);
+            fetch('/events/' + eventId + '/participant/add', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) window.location.reload();
+                    else showEntityFeedback(row, 'Fehler', 'error');
+                })
+                .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+        });
+
+        row.querySelectorAll('[data-action="remove-participant"]').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (!confirm('Mitwirkende:n entfernen?')) return;
+                const data = new FormData();
+                data.append('participant_id', btn.dataset.participantId);
+                fetch('/events/' + btn.dataset.eventId + '/participant/remove', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) btn.closest('.event-participant-item')?.remove();
+                        else showEntityFeedback(row, 'Fehler', 'error');
+                    })
+                    .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+            });
+        });
+    });
+
+    // ── Media edit rows (promo + gallery) ─────────────────────
+    document.querySelectorAll('.media-edit-row').forEach(function (row) {
+        const pencilBtn = row.querySelector('.media-pencil-btn');
+        const cancelBtn = row.querySelector('.media-cancel-btn');
+        const entityType = row.dataset.entityType;
+        const entityId = row.dataset.entityId;
+        const stage = row.dataset.stage;
+
+        // Pencil — activate
+        pencilBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.add('editing');
+            document.body.classList.add('is-editing');
+        });
+
+        // Cancel — deactivate
+        cancelBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.remove('editing');
+            row.classList.remove('has-selection');
+            document.body.classList.remove('is-editing');
+
+            // Clear any gallery photo selection on close
+            row.querySelectorAll('.gallery-checkbox:checked').forEach(function (cb) {
+                cb.checked = false;
+                cb.closest('.gallery-item')?.classList.remove('selected');
+            });
+            const checkAll = row.querySelector('.gallery-checkbox-all');
+            if (checkAll) checkAll.checked = false;
+            const feedback = row.querySelector('.edit-row-header .entity-feedback');
+            if (feedback) feedback.textContent = '';
+        });
+
+        // Upload image
+        row.querySelectorAll('[data-action="upload-entity-image"]').forEach(function (input) {
+            input.addEventListener('change', function () {
+                if (!this.files[0]) return;
+                const file = this.files[0];
+                const data = new FormData();
+                data.append('image', file);
+                data.append('entity_type', entityType);
+                data.append('entity_id', entityId);
+                data.append('stage', stage);
+
+                showEntityFeedback(row, 'Wird hochgeladen...', 'success');
+
+                fetch('/media/upload', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            if (stage === 'promo') {
+                                // Update existing or show new image
+                                const content = row.querySelector('.media-promo-content');
+                                const existingImg = content?.querySelector('img');
+                                const placeholder = content?.querySelector('.media-placeholder');
+                                if (existingImg) {
+                                    existingImg.src = json.media_url;
+                                } else if (placeholder && content) {
+                                    content.innerHTML =
+                                        '<div class="img-placeholder event-promo-img editing" data-media-id="' + json.id + '">' +
+                                        '<img src="' + json.media_url + '" class="zoomable">' +
+                                        '<div class="image-edit-overlay">' +
+                                        '<button class="section-control-btn" data-action="delete-entity-image" data-media-id="' + json.id + '" data-entity-type="' + entityType + '" data-entity-id="' + entityId + '">' +
+                                        '<i class="ti ti-trash"></i></button>' +
+                                        '</div></div>';
+                                    initMediaDeleteBtns(row);
+                                }
+                            } else {
+                                // Gallery — append new item
+                                const grid = row.querySelector('.media-gallery-grid');
+                                if (grid) {
+                                    const col = document.createElement('div');
+                                    col.className = 'col-6 col-md-4 col-lg-3 gallery-item';
+                                    col.dataset.mediaId = json.id;
+                                    col.innerHTML =
+                                        '<div class="img-placeholder event-gallery-img">' +
+                                        '<img src="' + json.media_url + '" class="zoomable">' +
+                                        '<div class="image-edit-overlay">' +
+                                        '<button class="section-control-btn" data-action="delete-entity-image" data-media-id="' + json.id + '" data-entity-type="' + entityType + '" data-entity-id="' + entityId + '">' +
+                                        '<i class="ti ti-trash"></i></button>' +
+                                        '</div></div>';
+                                    grid.appendChild(col);
+                                    initMediaDeleteBtns(row);
+                                }
+                            }
+                            showEntityFeedback(row, 'Hochgeladen ✓', 'success');
+                            this.value = '';
+                        } else {
+                            showEntityFeedback(row, 'Upload fehlgeschlagen', 'error');
+                        }
+                    }.bind(this))
+                    .catch(function () {
+                        showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                    });
+            });
+        });
+
+        initMediaDeleteBtns(row);
+    });
+
+    function initMediaDeleteBtns(row) {
+        row.querySelectorAll('[data-action="delete-entity-image"]').forEach(function (btn) {
+            if (btn._deleteInitialized) return;
+            btn._deleteInitialized = true;
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                if (!confirm('Bild löschen?')) return;
+                const mediaId = btn.dataset.mediaId;
+                const entityType = btn.dataset.entityType;
+                const entityId = btn.dataset.entityId;
+                const data = new FormData();
+                data.append('entity_type', entityType);
+                data.append('entity_id', entityId);
+                fetch('/media/' + mediaId + '/delete', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (!json.success) {
+                            showEntityFeedback(row, 'Fehler', 'error');
+                            return;
+                        }
+
+                        const isGalleryItem = !!btn.closest('.gallery-item');
+
+                        if (isGalleryItem) {
+                            // Gallery: remove the item, empty-state placeholder
+                            // is handled separately when grid becomes empty.
+                            btn.closest('.gallery-item')?.remove();
+                            const grid = row.querySelector('.media-gallery-grid');
+                            const remaining = grid ? grid.querySelectorAll('.gallery-item').length : 0;
+                            if (grid && remaining === 0) {
+                                grid.innerHTML =
+                                    '<div class="col-12"><p class="text-muted p-2">' +
+                                    '<i class="ti ti-photo-off"></i> ' +
+                                    'Noch keine Galeriebilder' +
+                                    '</p></div>';
+                            }
+                            row.classList.toggle('has-items', remaining > 0);
+                            showEntityFeedback(row, 'Gelöscht ✓', 'success');
+                            return;
+                        }
+
+                        // Promo image deletion
+                        const carousel = row.querySelector('.carousel');
+
+                        if (carousel) {
+                            // Multiple promo images — DOM rebuild of the
+                            // carousel is out of scope for now, reload
+                            // is the agreed pragmatic fallback.
+                            window.location.reload();
+                            return;
+                        }
+
+                        // Single promo image — rebuild the "no image" placeholder
+                        const content = row.querySelector('.media-promo-content');
+                        if (content) {
+                            content.innerHTML =
+                                '<div class="img-placeholder event-promo-img media-placeholder">' +
+                                '<i class="ti ti-music"></i>' +
+                                '<label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">' +
+                                '<i class="ti ti-photo-plus"></i> Promobild hochladen' +
+                                '<input type="file" accept="image/*" class="d-none" data-action="upload-entity-image"' +
+                                ' data-entity-type="' + entityType + '"' +
+                                ' data-entity-id="' + entityId + '"' +
+                                ' data-stage="promo">' +
+                                '</label>' +
+                                '</div>';
+                            // Re-wire the new upload input so it actually works
+                            content.querySelectorAll('[data-action="upload-entity-image"]').forEach(function (input) {
+                                input.addEventListener('change', function () {
+                                    if (!this.files[0]) return;
+                                    const fd = new FormData();
+                                    fd.append('image', this.files[0]);
+                                    fd.append('entity_type', entityType);
+                                    fd.append('entity_id', entityId);
+                                    fd.append('stage', 'promo');
+                                    showEntityFeedback(row, 'Wird hochgeladen...', 'success');
+                                    fetch('/media/upload', {
+                                        method: 'POST',
+                                        body: fd,
+                                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                                    })
+                                        .then(res => res.json())
+                                        .then(function (uploadJson) {
+                                            if (uploadJson.success) {
+                                                window.location.reload();
+                                            } else {
+                                                showEntityFeedback(row, 'Upload fehlgeschlagen', 'error');
+                                            }
+                                        })
+                                        .catch(function () {
+                                            showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                                        });
+                                });
+                            });
+                        }
+
+                        showEntityFeedback(row, 'Gelöscht ✓', 'success');
+                    })
+                    .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+            });
+        });
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // GALLERY DRAG-AND-DROP BATCH UPLOAD
+    // (separate from the single-file header upload above —
+    //  targets .media-dropzone / .media-upload-confirm only)
+    // ──────────────────────────────────────────────────────────
+
+    document.querySelectorAll('.media-edit-row[data-stage="gallery"]').forEach(function (row) {
+        const entityType = row.dataset.entityType;
+        const entityId = row.dataset.entityId;
+        const entitySlug = row.dataset.entitySlug ?? entityId;
+        const stage = row.dataset.stage;
+        const dropzone = row.querySelector('.media-dropzone');
+        const fileInput = row.querySelector('.media-file-input');
+        const uploadBtn = row.querySelector('.media-upload-confirm');
+        const progress = row.querySelector('.media-upload-progress');
+
+        const dropzoneLabel = row.querySelector('.media-dropzone-label');
+        const dropzoneDefaultText = dropzoneLabel?.textContent ?? '';
+
+        function updateDropzoneLabel() {
+            const count = fileInput?.files?.length ?? 0;
+            if (!dropzoneLabel) return;
+            dropzoneLabel.textContent = count > 0
+                ? count + ' Datei' + (count > 1 ? 'en' : '') + ' ausgewählt'
+                : dropzoneDefaultText;
+        }
+
+        dropzone?.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+
+        dropzone?.addEventListener('dragleave', function () {
+            dropzone.classList.remove('dragover');
+        });
+
+        dropzone?.addEventListener('drop', function (e) {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (fileInput) fileInput.files = e.dataTransfer.files;
+            dropzone.classList.toggle('has-files', !!fileInput?.files?.length);
+            updateDropzoneLabel();
+        });
+
+        // Native file picker (click on the dropzone opens this input)
+        fileInput?.addEventListener('change', function () {
+            dropzone.classList.toggle('has-files', !!fileInput.files?.length);
+            updateDropzoneLabel();
+        });
+
+        uploadBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const files = fileInput?.files;
+            if (!files || files.length === 0) return;
+            uploadGalleryBatch(row, files, entityType, entityId, entitySlug, stage);
+        });
+
+        function uploadGalleryBatch(row, files, entityType, entityId, entitySlug, stage) {
+            const total = files.length;
+            let index = 0;
+
+            function uploadNext() {
+                if (index >= total) {
+                    if (progress) progress.textContent = total + ' Foto(s) hochgeladen ✓';
+                    setTimeout(function () { if (progress) progress.textContent = ''; }, 3000);
+                    if (fileInput) fileInput.value = '';
+                    dropzone?.classList.remove('has-files');
+                    updateDropzoneLabel();
+                    return;
+                }
+
+                const file = files[index];
+                const timestamp = Date.now();
+                const publicId = entityType + '-' + entitySlug + '-' + stage + '-' + (index + 1) + '-' + timestamp;
+                const data = new FormData();
+
+                data.append('image', file);
+                data.append('entity_type', entityType);
+                data.append('entity_id', entityId);
+                data.append('stage', stage);
+                data.append('public_id', publicId);
+
+                if (progress) progress.textContent = 'Hochladen ' + (index + 1) + ' / ' + total + '...';
+
+                fetch('/media/upload', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            appendGalleryItem(row, json, entityType, entityId);
+                        }
+                        index++;
+                        uploadNext();
+                    })
+                    .catch(function () {
+                        if (progress) progress.textContent = 'Fehler bei Foto ' + (index + 1);
+                        index++;
+                        uploadNext();
+                    });
+            }
+
+            uploadNext();
+        }
+
+        function appendGalleryItem(row, json, entityType, entityId) {
+            const grid = row.querySelector('.media-gallery-grid');
+            if (!grid) return;
+
+            // Remove empty-state placeholder if present
+            grid.querySelector('.col-12 .text-muted')?.closest('.col-12')?.remove();
+
+            const col = document.createElement('div');
+            col.className = 'col-6 col-md-4 col-lg-3 gallery-item';
+            col.dataset.mediaId = json.id;
+            col.innerHTML =
+                '<label class="gallery-item-checkbox">' +
+                '<input type="checkbox" class="gallery-checkbox" value="' + json.id + '">' +
+                '</label>' +
+                '<div class="img-placeholder event-gallery-img">' +
+                '<img src="' + json.media_url + '" class="zoomable">' +
+                '<div class="image-edit-overlay">' +
+                '<button class="section-control-btn" data-action="delete-entity-image"' +
+                ' data-media-id="' + json.id + '"' +
+                ' data-entity-type="' + entityType + '"' +
+                ' data-entity-id="' + entityId + '">' +
+                '<i class="ti ti-trash"></i></button>' +
+                '</div></div>';
+            grid.appendChild(col);
+            initMediaDeleteBtns(row);
+            initGalleryCheckbox(col);
+            updateHasItems();
+        }
+
+        function initGalleryCheckbox(col) {
+            // Selection state changes are handled by the row-level
+            // delegated listener below — nothing needed here beyond
+            // letting the native checkbox behave normally.
+        }
+
+        // ── Selection state + header buttons ──────────────────
+        const checkAll = row.querySelector('.gallery-checkbox-all');
+        const btnCaption = row.querySelector('.gallery-btn-caption');
+        const btnCredit = row.querySelector('.gallery-btn-credit');
+        const btnDelete = row.querySelector('.gallery-btn-delete');
+
+        function getSelected() {
+            return Array.from(row.querySelectorAll('.gallery-checkbox:checked'));
+        }
+
+        function updateHeaderBtns() {
+            const count = getSelected().length;
+            const any = count > 0;
+            row.classList.toggle('has-selection', any);
+            const feedback = row.querySelector('.edit-row-header .entity-feedback');
+            if (feedback) {
+                feedback.textContent = any ? count + ' Foto' + (count > 1 ? 's' : '') + ' ausgewählt' : '';
+            }
+        }
+
+        function updateHasItems() {
+            const grid = row.querySelector('.media-gallery-grid');
+            const hasItems = !!grid && grid.querySelectorAll('.gallery-item').length > 0;
+            row.classList.toggle('has-items', hasItems);
+        }
+
+        updateHasItems();
+
+        row.addEventListener('change', function (e) {
+            if (e.target.classList.contains('gallery-checkbox')) {
+                const item = e.target.closest('.gallery-item');
+                if (item) item.classList.toggle('selected', e.target.checked);
+                updateHeaderBtns();
+                const all = row.querySelectorAll('.gallery-checkbox');
+                const checked = row.querySelectorAll('.gallery-checkbox:checked');
+                if (checkAll) checkAll.checked = all.length === checked.length && all.length > 0;
+            }
+        });
+
+        checkAll?.addEventListener('change', function () {
+            row.querySelectorAll('.gallery-checkbox').forEach(function (cb) {
+                cb.checked = checkAll.checked;
+                cb.closest('.gallery-item')?.classList.toggle('selected', checkAll.checked);
+            });
+            updateHeaderBtns();
+        });
+
+        // ── Caption / Credit modal ─────────────────────────────
+        const modal = document.getElementById('mediaMetaModal');
+        const modalTitle = modal?.querySelector('.media-meta-modal-title');
+        const modalArea = modal?.querySelector('.media-meta-textarea');
+        const modalCancel = modal?.querySelector('.media-meta-cancel');
+        const modalConfirm = modal?.querySelector('.media-meta-confirm');
+        let metaField = 'caption';
+
+        btnCaption?.addEventListener('click', function () {
+            metaField = 'caption';
+            const count = getSelected().length;
+            if (modalTitle) modalTitle.textContent = 'Caption für ' + count + ' Foto' + (count > 1 ? 's' : '');
+            if (modalArea) { modalArea.value = ''; modalArea.placeholder = 'Bildbeschreibung...'; }
+            if (modal) modal.style.display = 'flex';
+            modalArea?.focus();
+        });
+
+        btnCredit?.addEventListener('click', function () {
+            metaField = 'credit';
+            const count = getSelected().length;
+            if (modalTitle) modalTitle.textContent = 'Credit für ' + count + ' Foto' + (count > 1 ? 's' : '');
+            if (modalArea) { modalArea.value = ''; modalArea.placeholder = '© Fotografin / Fotograf'; }
+            if (modal) modal.style.display = 'flex';
+            modalArea?.focus();
+        });
+
+        btnDelete?.addEventListener('click', function () {
+            const selected = getSelected();
+            const count = selected.length;
+            if (count === 0) return;
+
+            const confirmMsg = count === 1
+                ? 'Dieses Foto löschen?'
+                : count + ' Fotos löschen?';
+            if (!confirm(confirmMsg)) return;
+
+            const items = selected.map(cb => cb.closest('.gallery-item')).filter(Boolean);
+            let index = 0;
+
+            function deleteNext() {
+                if (index >= items.length) {
+                    const grid = row.querySelector('.media-gallery-grid');
+                    if (grid && grid.querySelectorAll('.gallery-item').length === 0) {
+                        grid.innerHTML =
+                            '<div class="col-12"><p class="text-muted p-2">' +
+                            '<i class="ti ti-photo-off"></i> ' +
+                            'Noch keine Galeriebilder — Bearbeitungsmodus aktivieren um Fotos hochzuladen.' +
+                            '</p></div>';
+                    }
+                    if (checkAll) checkAll.checked = false;
+                    updateHasItems();
+                    updateHeaderBtns();
+                    showEntityFeedback(row, 'Gelöscht ✓', 'success');
+                    return;
+                }
+
+                const item = items[index];
+                const mediaId = item.dataset.mediaId;
+                const data = new FormData();
+                data.append('entity_type', entityType);
+                data.append('entity_id', entityId);
+
+                const feedback = row.querySelector('.edit-row-header .entity-feedback');
+                if (feedback) feedback.textContent = 'Löschen ' + (index + 1) + ' / ' + items.length + '...';
+
+                fetch('/media/' + mediaId + '/delete', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) item.remove();
+                        index++;
+                        deleteNext();
+                    })
+                    .catch(function () {
+                        index++;
+                        deleteNext();
+                    });
+            }
+
+            deleteNext();
+        });
+
+        modalCancel?.addEventListener('click', function () {
+            if (modal) modal.style.display = 'none';
+        });
+
+        modalConfirm?.addEventListener('click', function () {
+            const selected = getSelected();
+            const value = modalArea?.value.trim() ?? '';
+            const ids = selected.map(cb => cb.value);
+            if (ids.length === 0) return;
+
+            const data = new FormData();
+            ids.forEach(id => data.append('ids[]', id));
+            data.append(metaField, value);
+
+            fetch('/media/batch-meta', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        selected.forEach(function (cb) {
+                            const item = cb.closest('.gallery-item');
+                            if (!item) return;
+                            let meta = item.querySelector('.gallery-item-meta');
+                            if (!meta) {
+                                meta = document.createElement('small');
+                                meta.className = 'gallery-item-meta';
+                                item.appendChild(meta);
+                            }
+                            let span = meta.querySelector(metaField === 'credit' ? '.image-credit' : 'span:not(.image-credit)');
+                            if (!span) {
+                                span = document.createElement('span');
+                                if (metaField === 'credit') span.className = 'image-credit';
+                                meta.appendChild(span);
+                            }
+                            span.textContent = metaField === 'credit'
+                                ? (value ? '📷 ' + value : '')
+                                : value;
+                            if (!value) span.remove();
+                        });
+                        if (modal) modal.style.display = 'none';
+                        showEntityFeedback(row, 'Gespeichert ✓', 'success');
+                    } else {
+                        showEntityFeedback(row, 'Fehler', 'error');
+                    }
+                })
+                .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+        });
+
+        modal?.addEventListener('click', function (e) {
+            if (e.target === modal) modal.style.display = 'none';
         });
     });
 

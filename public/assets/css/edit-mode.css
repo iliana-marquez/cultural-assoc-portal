@@ -160,15 +160,19 @@ body.is-editing .edit-bar__indicator i {
     margin-bottom: 0.75rem;
 }
 
+.entity-edit-row.editing {
+    border: 2px solid var(--edit-active);
+}
+
 .edit-row-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.25rem 0.5rem;
+    padding: 0.15rem 0.5rem;
     background: var(--edit-inactive);
     transition: background var(--transition);
-    color: white;
-    font-weight: 700;
+    font-weight: 500;
+    height: 23px;
 }
 
 .entity-edit-row.editing .edit-row-header {
@@ -177,7 +181,7 @@ body.is-editing .edit-bar__indicator i {
 }
 
 .edit-row-label {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -253,3 +257,226 @@ body.is-editing .edit-bar__indicator i {
 .editable-block.editing .placeholder-upload-btn {
     opacity: 1;
 }
+
+
+/* -- Event-edit -------------------------------------------------*/
+.event-participant-item,
+.add-participant-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.add-participant-wrap {
+    border: 2px solid (var(--edit-inactive))
+}
+
+.entity-select-row,
+.participants-edit-row {
+    border: 2px solid var(--edit-inactive);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+.entity-select-row.editing,
+.participants-edit-row.editing {
+    border: 2px solid var(--edit-active);
+}
+.entity-select-row.editing .edit-row-header,
+.participants-edit-row.editing .edit-row-header {
+    background: var(--edit-active);
+    color: #fff;
+}
+.entity-select-row select { display: none; }
+.entity-select-row.editing select { display: block; }
+.participants-edit-row .entity-remove-btn { display: none; }
+.participants-edit-row.editing .entity-remove-btn { display: inline-flex; }
+.participants-edit-row .add-participant-wrap { display: none; }
+.participants-edit-row.editing .add-participant-wrap { display: flex; }
+
+/* ── Media edit row ──────────────────────────────────────────── */
+.media-edit-row {
+    border: 2px solid var(--edit-inactive);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.media-edit-row.editing {
+    border: 2px solid var(--edit-active);
+}
+
+.media-edit-row.editing .edit-row-header {
+    background: var(--edit-active);
+    color: #fff;
+}
+
+.media-pencil-btn { display: inline-flex; }
+.media-edit-row.editing .media-pencil-btn { display: none; }
+
+.media-cancel-btn { display: none; }
+.media-edit-row.editing .media-cancel-btn { display: inline-flex; }
+
+.media-edit-row .image-edit-overlay { display: none; }
+.media-edit-row.editing .img-placeholder:hover .image-edit-overlay { display: flex; }
+
+.media-edit-row.editing img.zoomable { pointer-events: none; cursor: default; }
+.media-edit-row.editing .image-edit-overlay { z-index: 10; }
+
+.media-edit-row .media-upload-btn { display: none; }
+.media-edit-row.editing .media-upload-btn { display: inline-flex; }
+/* ── Gallery checkboxes ──────────────────────────────────────── */
+.gallery-item { position: relative; }
+
+.gallery-item-checkbox {
+    /* position: absolute;
+    top: -0.5rem;
+    left: 0.5rem; */
+    z-index: 10;
+    display: none;
+    cursor: pointer;
+}
+
+.media-edit-row.editing .gallery-item-checkbox { display: block; }
+
+.gallery-select-all { display: none; }
+.media-edit-row.editing.has-items .gallery-select-all { display: inline-flex; }
+
+.gallery-btn-caption,
+.gallery-btn-credit,
+.gallery-btn-delete { display: none; }
+.media-edit-row.editing.has-selection .gallery-btn-caption,
+.media-edit-row.editing.has-selection .gallery-btn-credit,
+.media-edit-row.editing.has-selection .gallery-btn-delete { display: inline-flex; }
+
+.gallery-item.selected .img-placeholder {
+    outline: 3px solid var(--edit-active);
+    border-radius: 4px;
+}
+
+.gallery-item-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0;
+    color: var(--text-muted, #888);
+}
+
+/* ── Media upload zone (drag and drop) ──────────────────────── */
+.media-upload-zone { padding: 0.5rem; display: none; }
+.media-edit-row.editing .media-upload-zone { display: block; }
+
+.media-dropzone {
+    border: 2px dashed var(--edit-inactive);
+    border-radius: 4px;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: border-color var(--transition), background var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--edit-inactive);
+}
+
+.media-dropzone.dragover {
+    border-color: var(--edit-active);
+    background: rgba(99,102,241,0.05);
+    color: var(--edit-active);
+}
+
+.media-dropzone i { font-size: 2rem; }
+
+.media-file-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.media-upload-progress {
+    font-size: 0.8rem;
+    color: var(--edit-active);
+    min-height: 1.2rem;
+}
+
+/* ── Media meta modal (caption / credit batch editor) ───────── */
+.media-meta-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.media-meta-modal-inner {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.media-meta-modal-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.media-meta-textarea {
+    width: 100%;
+    border: 1px solid var(--edit-inactive);
+    border-radius: 4px;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    resize: vertical;
+    outline: none;
+}
+
+.media-meta-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+/* ── Visible buttons on light backgrounds ───────────────────── */
+/* .section-control-btn defaults to white-on-translucent-white,
+   correct for the dark edit-bar/overlay contexts. These three
+   buttons render on light backgrounds (upload zone, modal) and
+   need their own solid colors — scoped tightly, .section-control-btn
+   itself is untouched. */
+
+.media-upload-confirm,
+.media-meta-cancel,
+.media-meta-confirm {
+    background: var(--edit-active);
+    color: #fff;
+}
+
+.media-upload-confirm:hover,
+.media-meta-confirm:hover {
+    background: var(--edit-active);
+    opacity: 0.85;
+}
+
+.media-meta-cancel {
+    background: var(--edit-inactive);
+    color: #333;
+}
+
+.media-meta-cancel:hover {
+    background: var(--edit-inactive);
+    opacity: 0.85;
+}
+
+/* ── Hochladen button only appears once files are staged ────── */
+.media-upload-confirm { display: none; }
+.media-dropzone.has-files ~ .media-upload-confirm { display: inline-flex; }

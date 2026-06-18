@@ -18,6 +18,7 @@ require_once __DIR__ . '/../Models/EventModel.php';
 require_once __DIR__ . '/../Models/ParticipantModel.php';
 require_once __DIR__ . '/../Models/MediaModel.php';
 require_once __DIR__ . '/../Models/PagesModel.php';
+require_once __DIR__ . '/../Models/VenueModel.php';
 
 class EventController extends BaseController
 {
@@ -25,6 +26,7 @@ class EventController extends BaseController
     private ParticipantModel $participantModel;
     private MediaModel       $mediaModel;
     private PagesModel       $pagesModel;
+    private VenueModel       $venueModel;
 
     public function __construct()
     {
@@ -33,6 +35,7 @@ class EventController extends BaseController
         $this->participantModel = new ParticipantModel();
         $this->mediaModel       = new MediaModel();
         $this->pagesModel       = new PagesModel();
+        $this->venueModel       = new VenueModel();
     }
 
     // ── GET — display ────────────────────────────────────────
@@ -105,9 +108,17 @@ class EventController extends BaseController
             SchemaBuilder::build('occurrence', $event)
         );
 
+        $isLoggedIn      = $this->isLoggedIn();
+        $venues          = $isLoggedIn ? $this->venueModel->getAll() : [];
+        $allParticipants = $isLoggedIn ? $this->participantModel->getAll() : [];
+        $categories      = $isLoggedIn ? $this->eventModel->getCategories() : [];
+
         $this->render('pages/event-detail', [
-            'event' => $event,
-            'seo'   => $seo,
+            'event'           => $event,
+            'venues'          => $venues,
+            'allParticipants' => $allParticipants,
+            'categories'      => $categories,
+            'seo'             => $seo,
         ]);
     }
 
@@ -143,18 +154,68 @@ class EventController extends BaseController
     public function add(array $params = []): void
     {
         $this->requireLogin();
-        $success = $this->eventModel->add($_POST);
-        $success
-            ? $this->jsonSuccess(['id' => $this->eventModel->lastInsertId()])
-            : $this->jsonError('Failed to add event');
+
+        // Create minimal event → redirect to detail for inline editing
+        $title = $_POST['title'] ?? 'Neue Veranstaltung';
+        $date  = $_POST['date']  ?? date('Y-m-d');
+
+        $success = $this->eventModel->add([
+            'title' => $title,
+            'date'  => $date,
+        ]);
+
+        if (!$success) {
+            $this->jsonError('Failed to create event');
+            return;
+        }
+
+        $id   = $this->eventModel->lastInsertId();
+        $event = $this->eventModel->getById($id);
+        $slug = EventModel::generateSlug($event->title);
+
+        $this->jsonSuccess(['slug' => $slug]);
     }
 
+    /**
+     * POST /events/{id}/save
+     * Update a single field via entity-edit-row AJAX.
+     */
     public function save(array $params = []): void
     {
         $this->requireLogin();
-        $id      = (int) ($params['id'] ?? 0);
-        $success = $this->eventModel->update($id, $_POST);
-        $success ? $this->jsonSuccess() : $this->jsonError('Failed to save event');
+        $id = (int) ($params['id'] ?? 0);
+
+        $allowed = [
+            'title',
+            'subtitle',
+            'description',
+            'date',
+            'time',
+            'venue_id',
+            'category_id',
+            'review',
+            'admission',
+            'admission_amount',
+            'admission_url',
+        ];
+
+        $field = null;
+        $value = null;
+        foreach ($allowed as $f) {
+            if (isset($_POST[$f])) {
+                $field = $f;
+                $value = trim($_POST[$f]);
+                break;
+            }
+        }
+
+        if (!$field) {
+            $this->jsonError('No valid field');
+            return;
+        }
+
+        $success = $this->eventModel->updateField($id, $field, $value);
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to save');
     }
 
     public function delete(array $params = []): void

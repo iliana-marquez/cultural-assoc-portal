@@ -123,10 +123,10 @@ class MediaModel extends BaseModel
      *
      * @param string $entityType
      * @param int    $entityId
-     * @param array  $data  media_url, caption, stage, order_index
-     * @return bool
+     * @param array  $data  media_url, caption, credit, stage, order_index
+     * @return int   the media row's id (existing or newly created)
      */
-    public function addForEntity(string $entityType, int $entityId, array $data): bool
+    public function addForEntity(string $entityType, int $entityId, array $data): int
     {
         // Check if media_url already exists
         $existing = $this->fetchOne(
@@ -138,11 +138,12 @@ class MediaModel extends BaseModel
             $mediaId = $existing->id;
         } else {
             $this->execute(
-                "INSERT INTO {$this->table} (media_url, caption, stage, order_index)
-                 VALUES (?, ?, ?, ?)",
+                "INSERT INTO {$this->table} (media_url, caption, credit, stage, order_index)
+                 VALUES (?, ?, ?, ?, ?)",
                 [
                     $data['media_url']   ?? null,
                     $data['caption']     ?? null,
+                    $data['credit']      ?? null,
                     $data['stage']       ?? 'promo',
                     $data['order_index'] ?? 0,
                 ]
@@ -151,11 +152,13 @@ class MediaModel extends BaseModel
         }
 
         // Link to entity via pivot
-        return $this->execute(
+        $this->execute(
             "INSERT IGNORE INTO {$this->pivotTable} (media_id, entity_type, entity_id)
              VALUES (?, ?, ?)",
             [$mediaId, $entityType, $entityId]
         );
+
+        return $mediaId;
     }
 
     /**
@@ -193,26 +196,37 @@ class MediaModel extends BaseModel
     }
 
     /**
-     * Update media item.
-     * Updates once — reflects on all linked entities. 
+     * Update media item — partial update.
+     * Only columns present in $data are touched; everything else
+     * on the row is left exactly as it was.
+     * Updates once — reflects on all linked entities.
      *
      * @param int   $mediaId
-     * @param array $data
+     * @param array $data  any of: media_url, caption, credit, stage, order_index
      * @return bool
      */
     public function update(int $mediaId, array $data): bool
     {
+        $allowed = ['media_url', 'caption', 'credit', 'stage', 'order_index'];
+        $fields  = [];
+        $params  = [];
+
+        foreach ($allowed as $column) {
+            if (array_key_exists($column, $data)) {
+                $fields[] = "{$column} = ?";
+                $params[] = $data[$column];
+            }
+        }
+
+        if (empty($fields)) {
+            return false;
+        }
+
+        $params[] = $mediaId;
+
         return $this->execute(
-            "UPDATE {$this->table}
-             SET media_url = ?, caption = ?, stage = ?, order_index = ?
-             WHERE id = ?",
-            [
-                $data['media_url']   ?? null,
-                $data['caption']     ?? null,
-                $data['stage']       ?? 'promo',
-                $data['order_index'] ?? 0,
-                $mediaId,
-            ]
+            "UPDATE {$this->table} SET " . implode(', ', $fields) . " WHERE id = ?",
+            $params
         );
     }
 
