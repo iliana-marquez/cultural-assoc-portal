@@ -441,6 +441,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
         <div class="media-edit-row mt-2"
             data-entity-type="event"
             data-entity-id="<?= $event->id ?>"
+            data-entity-slug="<?= htmlspecialchars($event->slug) ?>"
             data-stage="gallery">
 
             <?php if ($isLoggedIn): ?>
