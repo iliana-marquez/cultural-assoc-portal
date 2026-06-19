@@ -374,7 +374,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                     <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
                                 </div>
                             </div>
-                        <?php else: ?>
+                        <?php elseif (!empty($event->participants)): ?>
                             <h3>Mitwirkende</h3>
                         <?php endif; ?>
 
@@ -398,6 +398,13 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                         </a>
                                     </div>
                                 <?php endforeach; ?>
+                            </div>
+                        <?php elseif ($isLoggedIn): ?>
+                            <div class="event-participant-list p-2">
+                                <p class="text-muted p-2 mb-0">
+                                    <i class="ti ti-users-group"></i>
+                                    Noch keine Mitwirkenden
+                                </p>
                             </div>
                         <?php endif; ?>
 

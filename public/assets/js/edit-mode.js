@@ -705,6 +705,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             '<i class="ti ti-trash"></i></button>' +
                             '<a href="#">' + selectedText + '</a>';
                         list.appendChild(item);
+                        list.querySelector('.text-muted')?.remove();
                         bindRemoveParticipant(item.querySelector('[data-action="remove-participant"]'), row);
                         addSelect.value = '';
                         showEntityFeedback(row, 'Hinzugefügt ✓', 'success');
@@ -732,7 +733,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     .then(res => res.json())
                     .then(function (json) {
                         if (json.success) {
+                            const list = btn.closest('.event-participant-list');
                             btn.closest('.event-participant-item')?.remove();
+                            if (list && list.querySelectorAll('.event-participant-item').length === 0) {
+                                list.innerHTML =
+                                    '<p class="text-muted p-2 mb-0">' +
+                                    '<i class="ti ti-users-group"></i> ' +
+                                    'Noch keine Mitwirkenden' +
+                                    '</p>';
+                            }
                             showEntityFeedback(row, 'Entfernt ✓', 'success');
                         } else {
                             showEntityFeedback(row, 'Fehler', 'error');
