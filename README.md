@@ -1652,10 +1652,61 @@ app/Views/components/edit-bar.php ← sticky edit bar
 UPDATE organisation_info SET id = 1 WHERE id = 2;
 ```
 
-**1. Organisation_info edit**
+# feat/programme-edit
 
-- Deployed version doesnt updte org info from wkk/org/edit
-- Local version does
+## Overview
+
+- Inline editing of event content directly on the public event detail page (`/veranstaltungen/{slug}`), visible only to logged-in editors
+- Covers all event text fields, venue/admission/category selection, participant management, and a full promo + gallery media system
+- No separate admin panel — editing happens in place on the live page, gated entirely by `$isLoggedIn`
+
+## Architecture
+
+- Three shared row patterns, all sharing one visual language (neutral border inactive, indigo border + header when `.editing`):
+  - `entity-edit-row` — plain text/textarea fields (title, subtitle, description, date, time, review, admission amount/url)
+  - `entity-select-row` — dropdown fields (venue, admission type, category); current value shown as display text when inactive, `<select>` gated until editing
+  - `media-edit-row` — wraps the promo image block and the gallery block
+- `participants-edit-row` — list-based variant: add via dropdown, remove via per-item trash button, empty-state placeholder mirrors the gallery's
+- Media model: all media stored once in a shared `media` table, linked to entities via an `entity_media` pivot; `stage` (`promo`/`gallery`) distinguishes role; `caption` (alt text) and `credit` (photographer attribution) are separate columns
+- No page reloads for any edit action, with one deliberate exception: deleting an image from a multi-image carousel falls back to a full reload (see Known Issues)
+
+## Development
+
+- Built field by field: text fields → venue/admission selectors → participants → promo image → gallery → category selector → new-event creation flow → bug fixes
+- Gallery batch upload, photo selection, and caption/credit modal built as one connected system, reusing the single-image delete endpoint for bulk delete rather than building a second endpoint
+- New-event creation flow surfaced two real bugs (see Bugs / Fixes) that required fixing before the feature could be considered stable
+
+## Files
+
+- **`event-detail.php`** — full inline-edit view; local `$editRow()` closure for text fields; explicit markup for venue/admission/category select-rows; participants block with add/remove + empty-state; promo block (single image / Bootstrap carousel); gallery block (dropzone, checkboxes, select-all, batch caption/credit/delete); shared meta modal; delete-event button
+- **`edit-mode.js`** — all client-side behavior, additive only; generic `entity-edit-row` handler (now syncs URL on title save); `entity-select-row` handler; `participants-edit-row` handler (DOM-only, shared `bindRemoveParticipant()`, empty-state restore); `media-edit-row` handler for both promo and gallery (sequential batch upload, slug-based filenames, `has-selection`/`has-items` state classes, bulk delete); new-event button handler
+- **`edit-mode.css`** — additive only, no existing rules modified; new rules for the three row types, gallery checkboxes, dropzone, modal, and visibility fixes for buttons that were invisible on light backgrounds
+- **`EventController.php`** — `add()` creates a minimal event, returns its slug; `save()` returns the new slug specifically when `title` changes
+- **`EventModel.php`** — `add()` returns the new row's `int` id; `updateField()` whitelist includes `category_id`
+- **`MediaController.php`** — `upload()` accepts optional `public_id` and `credit`, returns the new media id; added `updateMeta()` and `batchMeta()`
+- **`MediaModel.php`** — `addForEntity()` returns `int` id; `update()` rewritten as a genuine partial update
+- **Database** — `media.credit` column added; production `media.id` primary key/auto-increment restored
+
+## Bugs / Fixes
+
+- **Production `media` table missing `PRIMARY KEY`/`AUTO_INCREMENT`** — traced to an earlier DB wipe/reimport session being interrupted before reaching the schema-altering statements near the end of the dump. Caused every promo upload to fail with a `SQLSTATE[HY000]` error. Fixed via direct `ALTER TABLE`.
+- **Duplicate events created via reload-based participant actions** — `EventModel::getBySlug()` computes the slug from the current title on every call rather than storing it; a stale browser URL (from an earlier title edit) combined with `window.location.reload()` on participant-add caused mismatched/duplicate event creation. Fixed by removing the reload entirely (DOM update instead) and syncing the URL via `history.replaceState()` whenever the title changes.
+- **Fatal error on new-event creation** — `EventModel::add()` returned `bool`, while the controller tried to call the model's `protected` `lastInsertId()` directly. Fixed by having `add()` return the new row's `int` id.
+- **`MediaModel::update()` positional SQL/parameter mismatch** — the `SET` clause listed 4 columns while 5 parameters were passed, silently writing `credit`'s value into the `stage` column. Fixed by rewriting `update()` as a genuine partial update keyed by column name, not position.
+- **Cloudinary filenames used numeric entity id instead of slug** — gallery batch uploads correctly sent a slug-based `public_id`, but `MediaController::upload()` never read it from the request, always falling back to the generic `entityType-entityId-timestamp` pattern. Fixed by honoring a posted `public_id` when present.
+
+## Testing
+
+- All text field saves persist after reload
+- Venue/admission/category selectors display correctly when inactive, save correctly when changed
+- Participants can be added/removed without a page reload; empty-state placeholder appears/disappears correctly
+- Promo image upload/delete works for empty-placeholder and existing-image cases; placeholder rebuilds in DOM after delete (single-image case; multi-image carousel intentionally reloads)
+- Gallery drag-and-drop batch upload works for multiple simultaneous files with sequential progress feedback
+- Gallery checkbox selection, select-all, and caption/credit modal apply correctly to one or many photos
+- Gallery bulk-delete removes selected photos and restores empty-state when gallery becomes empty
+- New-event creation redirects into a real, unique database row
+- Title edits update the browser URL without a reload
+- No automated tests written for this feature
 <!--
 
 ## ROADMAP/KNOWN ISSUES
