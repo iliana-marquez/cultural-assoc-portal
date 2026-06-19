@@ -24,6 +24,12 @@
 
 
     <div class="d-flex justify-content-end gap-3">
+        <a href="#" class="edit-bar__exit" data-action="new-event">
+            <i class="ti ti-plus"></i>
+            Neue Veranstaltung
+        </a>
+        <span class="edit-bar__exit">|</span>
+
         <a href="/<?= htmlspecialchars($config['admin_path']) ?>/org"
             class="edit-bar__exit" title="Exit edit mode">
             <i class="ti ti-edit"></i>
@@ -32,8 +38,8 @@
         <span class="edit-bar__exit">|</span>
 
         <a href="/logout" class="edit-bar__exit nav-icon-ux">
+            Exit Edit Mode
             <i class="ti ti-logout"></i>
-            Abmelden
         </a>
     </div>
 
