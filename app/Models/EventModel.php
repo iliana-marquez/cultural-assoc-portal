@@ -190,29 +190,30 @@ class EventModel extends BaseModel
     /**
      * Add an event.
      */
-    public function add(array $data): bool
+    public function add(array $data): int
     {
-        return $this->execute(
+        $this->execute(
             "INSERT INTO {$this->table}
-             (project_id, category_id, title, subtitle, description,
-              date, time, venue_id, review, admission, admission_url)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+         (project_id, category_id, title, subtitle, description,
+          date, time, venue_id, review, admission, admission_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
-                $data['project_id']   ?? null,
-                $data['category_id']  ?? null,
-                $data['title']        ?? null,
-                $data['subtitle']     ?? null,
-                $data['description']  ?? null,
-                $data['date']         ?? null,
-                $data['time']         ?? null,
-                $data['venue_id']     ?? null,
-                $data['review']       ?? null,
-                $data['admission']      ?? null,
+                $data['project_id']    ?? null,
+                $data['category_id']   ?? null,
+                $data['title']         ?? null,
+                $data['subtitle']      ?? null,
+                $data['description']   ?? null,
+                $data['date']          ?? null,
+                $data['time']          ?? null,
+                $data['venue_id']      ?? null,
+                $data['review']        ?? null,
+                $data['admission']     ?? null,
                 $data['admission_url'] ?? null,
             ]
         );
-    }
 
+        return $this->lastInsertId();
+    }
     /**
      * Update a single field — used by entity-edit-row AJAX saves.
      */

@@ -159,23 +159,21 @@ class EventController extends BaseController
         $title = $_POST['title'] ?? 'Neue Veranstaltung';
         $date  = $_POST['date']  ?? date('Y-m-d');
 
-        $success = $this->eventModel->add([
+        $id = $this->eventModel->add([
             'title' => $title,
             'date'  => $date,
         ]);
 
-        if (!$success) {
+        if (!$id) {
             $this->jsonError('Failed to create event');
             return;
         }
 
-        $id   = $this->eventModel->lastInsertId();
         $event = $this->eventModel->getById($id);
-        $slug = EventModel::generateSlug($event->title);
+        $slug  = EventModel::generateSlug($event->title);
 
         $this->jsonSuccess(['slug' => $slug]);
     }
-
     /**
      * POST /events/{id}/save
      * Update a single field via entity-edit-row AJAX.
@@ -215,7 +213,21 @@ class EventController extends BaseController
         }
 
         $success = $this->eventModel->updateField($id, $field, $value);
-        $success ? $this->jsonSuccess() : $this->jsonError('Failed to save');
+
+        if (!$success) {
+            $this->jsonError('Failed to save');
+            return;
+        }
+
+        // If the title changed, the slug changes too — return it so
+        // the browser URL can be updated without a page reload.
+        if ($field === 'title') {
+            $slug = EventModel::generateSlug($value);
+            $this->jsonSuccess(['slug' => $slug]);
+            return;
+        }
+
+        $this->jsonSuccess();
     }
 
     public function delete(array $params = []): void

@@ -553,6 +553,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         cancelBtn.style.display = 'none';
                         document.body.classList.remove('is-editing');
                         showEntityFeedback(row, 'Gespeichert ✓', 'success');
+                        if (json.slug) {
+                            history.replaceState(null, '', '/veranstaltungen/' + json.slug);
+                        }
                     } else {
                         showEntityFeedback(row, 'Fehler', 'error');
                     }
@@ -674,6 +677,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const participantId = addSelect?.value;
             const eventId = addBtn.dataset.eventId;
             if (!participantId) return;
+            const selectedText = addSelect.options[addSelect.selectedIndex]?.text.trim() ?? '';
+
+            addBtn.disabled = true;
             const data = new FormData();
             data.append('participant_id', participantId);
             fetch('/events/' + eventId + '/participant/add', {
@@ -683,14 +689,38 @@ document.addEventListener('DOMContentLoaded', function () {
             })
                 .then(res => res.json())
                 .then(function (json) {
-                    if (json.success) window.location.reload();
-                    else showEntityFeedback(row, 'Fehler', 'error');
+                    addBtn.disabled = false;
+                    if (json.success) {
+                        let list = row.querySelector('.event-participant-list');
+                        if (!list) {
+                            list = document.createElement('div');
+                            list.className = 'event-participant-list p-2';
+                            row.querySelector('.add-participant-wrap')?.insertAdjacentElement('beforebegin', list);
+                        }
+                        const item = document.createElement('div');
+                        item.className = 'event-participant-item';
+                        item.innerHTML =
+                            '<button class="entity-remove-btn border-0" data-action="remove-participant"' +
+                            ' data-event-id="' + eventId + '" data-participant-id="' + participantId + '">' +
+                            '<i class="ti ti-trash"></i></button>' +
+                            '<a href="#">' + selectedText + '</a>';
+                        list.appendChild(item);
+                        list.querySelector('.text-muted')?.remove();
+                        bindRemoveParticipant(item.querySelector('[data-action="remove-participant"]'), row);
+                        addSelect.value = '';
+                        showEntityFeedback(row, 'Hinzugefügt ✓', 'success');
+                    } else {
+                        showEntityFeedback(row, 'Fehler', 'error');
+                    }
                 })
-                .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+                .catch(function () {
+                    addBtn.disabled = false;
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                });
         });
 
-        row.querySelectorAll('[data-action="remove-participant"]').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
+        function bindRemoveParticipant(btn, row) {
+            btn?.addEventListener('click', function (e) {
                 e.stopPropagation();
                 if (!confirm('Mitwirkende:n entfernen?')) return;
                 const data = new FormData();
@@ -702,11 +732,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                     .then(res => res.json())
                     .then(function (json) {
-                        if (json.success) btn.closest('.event-participant-item')?.remove();
-                        else showEntityFeedback(row, 'Fehler', 'error');
+                        if (json.success) {
+                            const list = btn.closest('.event-participant-list');
+                            btn.closest('.event-participant-item')?.remove();
+                            if (list && list.querySelectorAll('.event-participant-item').length === 0) {
+                                list.innerHTML =
+                                    '<p class="text-muted p-2 mb-0">' +
+                                    '<i class="ti ti-users-group"></i> ' +
+                                    'Noch keine Mitwirkenden' +
+                                    '</p>';
+                            }
+                            showEntityFeedback(row, 'Entfernt ✓', 'success');
+                        } else {
+                            showEntityFeedback(row, 'Fehler', 'error');
+                        }
                     })
                     .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
             });
+        }
+
+        row.querySelectorAll('[data-action="remove-participant"]').forEach(function (btn) {
+            bindRemoveParticipant(btn, row);
         });
     });
 
@@ -716,6 +762,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const cancelBtn = row.querySelector('.media-cancel-btn');
         const entityType = row.dataset.entityType;
         const entityId = row.dataset.entityId;
+        const entitySlug = row.dataset.entitySlug ?? entityId;
         const stage = row.dataset.stage;
 
         // Pencil — activate
@@ -748,11 +795,14 @@ document.addEventListener('DOMContentLoaded', function () {
             input.addEventListener('change', function () {
                 if (!this.files[0]) return;
                 const file = this.files[0];
+                const timestamp = Date.now();
+                const publicId = entityType + '-' + entitySlug + '-' + stage + '-' + timestamp;
                 const data = new FormData();
                 data.append('image', file);
                 data.append('entity_type', entityType);
                 data.append('entity_id', entityId);
                 data.append('stage', stage);
+                data.append('public_id', publicId);
 
                 showEntityFeedback(row, 'Wird hochgeladen...', 'success');
 
@@ -888,11 +938,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             content.querySelectorAll('[data-action="upload-entity-image"]').forEach(function (input) {
                                 input.addEventListener('change', function () {
                                     if (!this.files[0]) return;
+                                    const slug = row.dataset.entitySlug ?? entityId;
                                     const fd = new FormData();
                                     fd.append('image', this.files[0]);
                                     fd.append('entity_type', entityType);
                                     fd.append('entity_id', entityId);
                                     fd.append('stage', 'promo');
+                                    fd.append('public_id', entityType + '-' + slug + '-promo-' + Date.now());
                                     showEntityFeedback(row, 'Wird hochgeladen...', 'success');
                                     fetch('/media/upload', {
                                         method: 'POST',
@@ -1249,6 +1301,26 @@ document.addEventListener('DOMContentLoaded', function () {
         modal?.addEventListener('click', function (e) {
             if (e.target === modal) modal.style.display = 'none';
         });
+    });
+
+    // ── New event ─────────────────────────────────────────────
+    document.querySelector('[data-action="new-event"]')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        fetch('/events/add', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(res => res.json())
+            .then(function (json) {
+                if (json.success && json.slug) {
+                    window.location.href = '/veranstaltungen/' + json.slug;
+                } else {
+                    alert('Fehler beim Erstellen der Veranstaltung.');
+                }
+            })
+            .catch(function () {
+                alert('Verbindungsfehler.');
+            });
     });
 
     // ── Warn on page leave ────────────────────────────────────

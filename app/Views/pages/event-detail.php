@@ -60,6 +60,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     <div class="media-edit-row"
                         data-entity-type="event"
                         data-entity-id="<?= $event->id ?>"
+                        data-entity-slug="<?= htmlspecialchars($event->slug) ?>"
                         data-stage="promo">
 
                         <?php if ($isLoggedIn): ?>
@@ -175,13 +176,32 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
             <div class="col-12 <?= (!empty($promoImages) || $isLoggedIn) ? 'col-md-6' : '' ?>">
                 <div class="section-content">
 
-                    <?php if (!empty($event->category_label)): ?>
-                        <small class="event-card__category">
-                            <?= htmlspecialchars($event->category_label) ?>
-                        </small>
-                    <?php endif; ?>
-
                     <?php if ($isLoggedIn): ?>
+                        <!-- Category selector -->
+                        <div class="entity-select-row" data-save-url="<?= $saveUrl ?>">
+                            <div class="edit-row-header">
+                                <label class="edit-row-label">Kategorie</label>
+                                <div class="edit-row-actions">
+                                    <span class="entity-feedback"></span>
+                                    <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
+                                    <button class="entity-save-btn"><i class="ti ti-check"></i></button>
+                                    <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
+                                </div>
+                            </div>
+                            <p class="entity-select-display m-2">
+                                <?= !empty($event->category_label) ? htmlspecialchars($event->category_label) : '—' ?>
+                            </p>
+                            <select class="entity-field entity-select" data-field="category_id">
+                                <option value="">— keine Kategorie —</option>
+                                <?php foreach ($categories as $cat): ?>
+                                    <option value="<?= $cat->id ?>"
+                                        <?= $event->category_id == $cat->id ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($cat->label) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
                         <?= $editRow('Titel', 'title', $event->title ?? '', $saveUrl) ?>
                         <?= $editRow('Untertitel', 'subtitle', $event->subtitle ?? '', $saveUrl) ?>
                         <?= $editRow('Datum (YYYY-MM-DD)', 'date', $event->date ?? '', $saveUrl) ?>
@@ -255,6 +275,11 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
 
                     <?php else: ?>
                         <!-- Public display -->
+                        <?php if (!empty($event->category_label)): ?>
+                            <small class="event-card__category">
+                                <?= htmlspecialchars($event->category_label) ?>
+                            </small>
+                        <?php endif; ?>
                         <h1><?= htmlspecialchars($event->title) ?></h1>
                         <?php if (!empty($event->subtitle)): ?>
                             <h2><?= htmlspecialchars($event->subtitle) ?></h2>
@@ -349,7 +374,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                     <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
                                 </div>
                             </div>
-                        <?php else: ?>
+                        <?php elseif (!empty($event->participants)): ?>
                             <h3>Mitwirkende</h3>
                         <?php endif; ?>
 
@@ -373,6 +398,13 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                         </a>
                                     </div>
                                 <?php endforeach; ?>
+                            </div>
+                        <?php elseif ($isLoggedIn): ?>
+                            <div class="event-participant-list p-2">
+                                <p class="text-muted p-2 mb-0">
+                                    <i class="ti ti-users-group"></i>
+                                    Noch keine Mitwirkenden
+                                </p>
                             </div>
                         <?php endif; ?>
 
@@ -440,6 +472,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
         <div class="media-edit-row mt-2"
             data-entity-type="event"
             data-entity-id="<?= $event->id ?>"
+            data-entity-slug="<?= htmlspecialchars($event->slug) ?>"
             data-stage="gallery">
 
             <?php if ($isLoggedIn): ?>

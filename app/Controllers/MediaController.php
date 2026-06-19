@@ -52,6 +52,7 @@ class MediaController extends BaseController
         $caption    = trim($_POST['caption'] ?? '');
         $credit     = trim($_POST['credit']  ?? '');
         $subfolder  = trim($_POST['subfolder'] ?? $entityType);
+        $requestedPublicId = trim($_POST['public_id'] ?? '');
 
         if (!$entityType || !$entityId) {
             $this->jsonError('entity_type and entity_id are required');
@@ -59,9 +60,12 @@ class MediaController extends BaseController
         }
 
         try {
-            // Auto-generate public_id from entity context
+            // Use the caller-provided public_id (slug-based naming) when given,
+            // otherwise fall back to the generic entity-id-based pattern.
             $publicId = CloudinaryService::generatePublicId(
-                $entityType . '-' . $entityId . '-' . time()
+                $requestedPublicId !== ''
+                    ? $requestedPublicId
+                    : $entityType . '-' . $entityId . '-' . time()
             );
 
             // Upload to Cloudinary
