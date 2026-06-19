@@ -553,6 +553,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         cancelBtn.style.display = 'none';
                         document.body.classList.remove('is-editing');
                         showEntityFeedback(row, 'Gespeichert ✓', 'success');
+                        if (json.slug) {
+                            history.replaceState(null, '', '/veranstaltungen/' + json.slug);
+                        }
                     } else {
                         showEntityFeedback(row, 'Fehler', 'error');
                     }
@@ -674,6 +677,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const participantId = addSelect?.value;
             const eventId = addBtn.dataset.eventId;
             if (!participantId) return;
+            const selectedText = addSelect.options[addSelect.selectedIndex]?.text.trim() ?? '';
+
+            addBtn.disabled = true;
             const data = new FormData();
             data.append('participant_id', participantId);
             fetch('/events/' + eventId + '/participant/add', {
@@ -683,14 +689,37 @@ document.addEventListener('DOMContentLoaded', function () {
             })
                 .then(res => res.json())
                 .then(function (json) {
-                    if (json.success) window.location.reload();
-                    else showEntityFeedback(row, 'Fehler', 'error');
+                    addBtn.disabled = false;
+                    if (json.success) {
+                        let list = row.querySelector('.event-participant-list');
+                        if (!list) {
+                            list = document.createElement('div');
+                            list.className = 'event-participant-list p-2';
+                            row.querySelector('.add-participant-wrap')?.insertAdjacentElement('beforebegin', list);
+                        }
+                        const item = document.createElement('div');
+                        item.className = 'event-participant-item';
+                        item.innerHTML =
+                            '<button class="entity-remove-btn border-0" data-action="remove-participant"' +
+                            ' data-event-id="' + eventId + '" data-participant-id="' + participantId + '">' +
+                            '<i class="ti ti-trash"></i></button>' +
+                            '<a href="#">' + selectedText + '</a>';
+                        list.appendChild(item);
+                        bindRemoveParticipant(item.querySelector('[data-action="remove-participant"]'), row);
+                        addSelect.value = '';
+                        showEntityFeedback(row, 'Hinzugefügt ✓', 'success');
+                    } else {
+                        showEntityFeedback(row, 'Fehler', 'error');
+                    }
                 })
-                .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+                .catch(function () {
+                    addBtn.disabled = false;
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                });
         });
 
-        row.querySelectorAll('[data-action="remove-participant"]').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
+        function bindRemoveParticipant(btn, row) {
+            btn?.addEventListener('click', function (e) {
                 e.stopPropagation();
                 if (!confirm('Mitwirkende:n entfernen?')) return;
                 const data = new FormData();
@@ -702,11 +731,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                     .then(res => res.json())
                     .then(function (json) {
-                        if (json.success) btn.closest('.event-participant-item')?.remove();
-                        else showEntityFeedback(row, 'Fehler', 'error');
+                        if (json.success) {
+                            btn.closest('.event-participant-item')?.remove();
+                            showEntityFeedback(row, 'Entfernt ✓', 'success');
+                        } else {
+                            showEntityFeedback(row, 'Fehler', 'error');
+                        }
                     })
                     .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
             });
+        }
+
+        row.querySelectorAll('[data-action="remove-participant"]').forEach(function (btn) {
+            bindRemoveParticipant(btn, row);
         });
     });
 
@@ -1255,6 +1292,26 @@ document.addEventListener('DOMContentLoaded', function () {
         modal?.addEventListener('click', function (e) {
             if (e.target === modal) modal.style.display = 'none';
         });
+    });
+
+    // ── New event ─────────────────────────────────────────────
+    document.querySelector('[data-action="new-event"]')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        fetch('/events/add', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(res => res.json())
+            .then(function (json) {
+                if (json.success && json.slug) {
+                    window.location.href = '/veranstaltungen/' + json.slug;
+                } else {
+                    alert('Fehler beim Erstellen der Veranstaltung.');
+                }
+            })
+            .catch(function () {
+                alert('Verbindungsfehler.');
+            });
     });
 
     // ── Warn on page leave ────────────────────────────────────
