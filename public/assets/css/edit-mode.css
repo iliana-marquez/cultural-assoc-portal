@@ -404,7 +404,7 @@ body.is-editing .edit-bar__indicator i {
 }
 
 /* ── Media meta modal (caption / credit batch editor) ───────── */
-.media-meta-modal {
+.input-modal {
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.5);
@@ -414,7 +414,7 @@ body.is-editing .edit-bar__indicator i {
     justify-content: center;
 }
 
-.media-meta-modal-inner {
+.input-modal-inner {
     background: #fff;
     border-radius: 8px;
     padding: 1.5rem;
@@ -425,13 +425,13 @@ body.is-editing .edit-bar__indicator i {
     gap: 1rem;
 }
 
-.media-meta-modal-title {
+.input-modal-title {
     font-size: 1rem;
     font-weight: 600;
     margin: 0;
 }
 
-.media-meta-textarea {
+.input-modal-textarea {
     width: 100%;
     border: 1px solid var(--edit-inactive);
     border-radius: 4px;
@@ -441,7 +441,7 @@ body.is-editing .edit-bar__indicator i {
     outline: none;
 }
 
-.media-meta-modal-actions {
+.input-modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
@@ -455,24 +455,24 @@ body.is-editing .edit-bar__indicator i {
    itself is untouched. */
 
 .media-upload-confirm,
-.media-meta-cancel,
-.media-meta-confirm {
+.input-modal-cancel,
+.input-modal-confirm {
     background: var(--edit-active);
     color: #fff;
 }
 
 .media-upload-confirm:hover,
-.media-meta-confirm:hover {
+.input-modal-confirm:hover {
     background: var(--edit-active);
     opacity: 0.85;
 }
 
-.media-meta-cancel {
+.input-modal-cancel {
     background: var(--edit-inactive);
     color: #333;
 }
 
-.media-meta-cancel:hover {
+.input-modal-cancel:hover {
     background: var(--edit-inactive);
     opacity: 0.85;
 }
@@ -480,3 +480,13 @@ body.is-editing .edit-bar__indicator i {
 /* ── Hochladen button only appears once files are staged ────── */
 .media-upload-confirm { display: none; }
 .media-dropzone.has-files ~ .media-upload-confirm { display: inline-flex; }
+
+/* ── Promo image caption/credit display ─────────────────────── */
+.image-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0;
+    color: var(--text-muted, #888);
+}
