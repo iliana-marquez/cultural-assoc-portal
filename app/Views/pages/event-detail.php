@@ -460,7 +460,10 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     <div class="col-6 col-md-4 col-lg-3 gallery-item" data-media-id="<?= $media->id ?>">
                         <?php if ($isLoggedIn): ?>
                             <label class="gallery-item-checkbox">
-                                <input type="checkbox" class="gallery-checkbox" value="<?= $media->id ?>">
+                                <input type="checkbox" class="gallery-checkbox"
+                                    value="<?= $media->id ?>"
+                                    data-caption="<?= htmlspecialchars($media->caption ?? '') ?>"
+                                    data-credit="<?= htmlspecialchars($media->credit ?? '') ?>">
                             </label>
                         <?php endif; ?>
                         <div class="img-placeholder event-gallery-img">
@@ -493,20 +496,6 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                 <?php endforeach; ?>
             </div>
 
-        </div>
-    <?php endif; ?>
-
-    <!-- Media meta modal -->
-    <?php if ($isLoggedIn): ?>
-        <div class="media-meta-modal" id="mediaMetaModal" style="display:none;">
-            <div class="media-meta-modal-inner">
-                <h4 class="media-meta-modal-title">Caption</h4>
-                <textarea class="media-meta-textarea" rows="4" placeholder=""></textarea>
-                <div class="media-meta-modal-actions">
-                    <button class="section-control-btn media-meta-cancel">Abbrechen</button>
-                    <button class="section-control-btn media-meta-confirm">Speichern</button>
-                </div>
-            </div>
         </div>
     <?php endif; ?>
 
