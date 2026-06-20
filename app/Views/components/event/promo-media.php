@@ -46,7 +46,9 @@
         <?php endif; ?>
     <?php else: ?>
         <!-- Carousel -->
-        <div id="eventPromo" class="carousel slide" data-bs-ride="carousel" data-bs-interval="10000">
+        <div id="eventPromo" class="carousel slide"
+            data-bs-ride="<?= $isLoggedIn ? 'false' : 'carousel' ?>"
+            data-bs-interval="10000">
             <div class="carousel-inner">
                 <?php foreach ($promoImages as $i => $media): ?>
                     <div class="carousel-item <?= $i === 0 ? 'active' : '' ?>"

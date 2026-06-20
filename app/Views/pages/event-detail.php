@@ -65,7 +65,10 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
 
                         <?php if ($isLoggedIn): ?>
                             <div class="edit-row-header">
-                                <label class="edit-row-label">Promobild</label>
+                                <label class="edit-row-label">
+                                    Promobild
+                                    <span class="media-count">(<?= count($promoImages) ?>)</span>
+                                </label>
                                 <div class="edit-row-actions">
                                     <span class="entity-feedback"></span>
                                     <label class="entity-edit-btn media-upload-btn" style="cursor:pointer;" title="Bild hinzufügen">

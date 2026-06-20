@@ -22,16 +22,31 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(function () { fb.textContent = ''; }, 3000);
     }
 
-    function showEntityFeedback(row, message, type) {
+    function showEntityFeedback(row, message, type, options) {
+        options = options || {};
         let fb = row.querySelector('.entity-feedback');
         if (!fb) {
             fb = document.createElement('span');
             fb.className = 'entity-feedback';
             row.appendChild(fb);
         }
+        // Cancel any previously scheduled auto-clear so it can't fire
+        // late and blank out a newer message.
+        if (fb._clearTimeout) {
+            clearTimeout(fb._clearTimeout);
+            fb._clearTimeout = null;
+        }
         fb.textContent = message;
         fb.className = 'entity-feedback entity-feedback--' + type;
-        setTimeout(function () { fb.textContent = ''; }, 3000);
+        // Transient "in progress" messages (e.g. "Wird hochgeladen...")
+        // should stay visible until replaced by a real result, not
+        // disappear on their own after a fixed delay.
+        if (!options.persistent) {
+            fb._clearTimeout = setTimeout(function () {
+                fb.textContent = '';
+                fb._clearTimeout = null;
+            }, 3000);
+        }
     }
 
     // ──────────────────────────────────────────────────────────
@@ -792,7 +807,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
         initUploadInputs(row);
         initMediaDeleteBtns(row);
+
+        const promoContent = row.querySelector('.media-promo-content');
+        if (promoContent) {
+            updatePromoCount(row, promoContent);
+        }
     });
+
+    function updatePromoCount(row, content) {
+        const label = row.querySelector('.edit-row-label .media-count');
+        if (!label) return;
+        const count = content.querySelectorAll('img').length;
+        const carousel = content.querySelector('.carousel');
+
+        if (carousel) {
+            const items = carousel.querySelectorAll('.carousel-item');
+            const activeIndex = Array.from(items).findIndex(function (item) {
+                return item.classList.contains('active');
+            });
+            label.textContent = '(' + (activeIndex + 1) + '/' + count + ')';
+
+            carousel.addEventListener('slid.bs.carousel', function (e) {
+                label.textContent = '(' + (e.to + 1) + '/' + count + ')';
+            });
+        } else {
+            label.textContent = '(' + count + ')';
+        }
+    }
 
     function initUploadInputs(row) {
         row.querySelectorAll('[data-action="upload-entity-image"]').forEach(function (input) {
@@ -814,7 +855,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 data.append('stage', stage);
                 data.append('public_id', publicId);
 
-                showEntityFeedback(row, 'Wird hochgeladen...', 'success');
+                showEntityFeedback(row, 'Wird hochgeladen...', 'success', { persistent: true });
 
                 fetch('/media/upload', {
                     method: 'POST',
@@ -839,6 +880,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                             content.innerHTML = html;
                                             initUploadInputs(row);
                                             initMediaDeleteBtns(row);
+                                            updatePromoCount(row, content);
                                             showEntityFeedback(row, 'Hochgeladen ✓', 'success');
                                         })
                                         .catch(function () {
@@ -939,6 +981,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     // the gallery dropped back to zero images).
                                     initMediaDeleteBtns(row);
                                     initUploadInputs(row);
+                                    updatePromoCount(row, content);
                                     showEntityFeedback(row, 'Gelöscht ✓', 'success');
                                 })
                                 .catch(function () {
