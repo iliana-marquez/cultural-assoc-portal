@@ -49,6 +49,79 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // ── input_modal ──────────────────────────────────────────
+    // Single, generic owner of #inputModal. Anyone needing to
+    // collect a piece of text (caption, credit, future free-text
+    // fields) calls openInputModal({...}) — only one click listener
+    // is ever attached to the Speichern/Abbrechen buttons, no matter
+    // how many different callers use this modal over the page's
+    // lifetime. Each call simply replaces "what happens on confirm."
+    const inputModal = {
+        el: document.getElementById('inputModal'),
+        title: null,
+        area: null,
+        cancelBtn: null,
+        confirmBtn: null,
+        onConfirm: null,
+        bound: false
+    };
+
+    function bindInputModalOnce() {
+        if (inputModal.bound || !inputModal.el) return;
+        inputModal.bound = true;
+        inputModal.title = inputModal.el.querySelector('.input-modal-title');
+        inputModal.area = inputModal.el.querySelector('.input-modal-textarea');
+        inputModal.cancelBtn = inputModal.el.querySelector('.input-modal-cancel');
+        inputModal.confirmBtn = inputModal.el.querySelector('.input-modal-confirm');
+
+        inputModal.cancelBtn?.addEventListener('click', function () {
+            closeInputModal();
+        });
+
+        inputModal.confirmBtn?.addEventListener('click', function () {
+            const value = inputModal.area?.value.trim() ?? '';
+            if (typeof inputModal.onConfirm === 'function') {
+                inputModal.onConfirm(value);
+            }
+        });
+
+        inputModal.el.addEventListener('click', function (e) {
+            if (e.target === inputModal.el) closeInputModal();
+        });
+    }
+
+    /**
+     * Open the shared input modal.
+     *
+     * @param {object} config
+     *   title        string   modal heading
+     *   placeholder  string   textarea placeholder
+     *   initialValue string   pre-filled textarea value (default '')
+     *   onConfirm    function(value) — called with the trimmed
+     *                textarea value when Speichern is clicked.
+     *                The caller is responsible for closing the modal
+     *                (call closeInputModal()) once its own save
+     *                succeeds — this keeps the modal open on error
+     *                so the user doesn't lose their typed text.
+     */
+    function openInputModal(config) {
+        bindInputModalOnce();
+        if (!inputModal.el) return;
+        inputModal.onConfirm = config.onConfirm || null;
+        if (inputModal.title) inputModal.title.textContent = config.title || '';
+        if (inputModal.area) {
+            inputModal.area.value = config.initialValue || '';
+            inputModal.area.placeholder = config.placeholder || '';
+        }
+        inputModal.el.style.display = 'flex';
+        inputModal.area?.focus();
+    }
+
+    function closeInputModal() {
+        if (inputModal.el) inputModal.el.style.display = 'none';
+        inputModal.onConfirm = null;
+    }
+
     // ──────────────────────────────────────────────────────────
     // FREE SECTIONS — editable-block
     // ──────────────────────────────────────────────────────────
@@ -807,12 +880,84 @@ document.addEventListener('DOMContentLoaded', function () {
 
         initUploadInputs(row);
         initMediaDeleteBtns(row);
+        initPromoMetaButtons(row);
 
         const promoContent = row.querySelector('.media-promo-content');
         if (promoContent) {
             updatePromoCount(row, promoContent);
         }
     });
+
+    function initPromoMetaButtons(row) {
+        if (row._promoMetaInitialized) return;
+        row._promoMetaInitialized = true;
+
+        // Delegated on the row itself, since promo content gets replaced
+        // via innerHTML after every upload/delete — a listener on the row
+        // survives that, individual button listeners would not.
+        row.addEventListener('click', function (e) {
+            const btn = e.target.closest('[data-action="edit-image-caption"], [data-action="edit-image-credit"]');
+            if (!btn) return;
+            e.stopPropagation();
+
+            const mediaId = btn.dataset.mediaId;
+            const field = btn.dataset.action === 'edit-image-credit' ? 'credit' : 'caption';
+            const existingValue = field === 'credit' ? (btn.dataset.credit || '') : (btn.dataset.caption || '');
+
+            openInputModal({
+                title: field === 'credit' ? 'Credit für dieses Bild' : 'Caption für dieses Bild',
+                placeholder: field === 'credit' ? '© Fotografin / Fotograf' : 'Bildbeschreibung...',
+                initialValue: existingValue || '',
+                onConfirm: function (value) {
+                    const data = new FormData();
+                    data.append(field, value);
+
+                    fetch('/media/' + mediaId + '/meta', {
+                        method: 'POST',
+                        body: data,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(res => res.json())
+                        .then(function (json) {
+                            if (!json.success) {
+                                showEntityFeedback(row, 'Fehler', 'error');
+                                return;
+                            }
+                            // Keep the button's own data attribute in sync
+                            // so re-opening the modal reflects what was
+                            // just saved, not the value from page load.
+                            btn.dataset[field] = value;
+
+                            const targetBtn = row.querySelector('[data-media-id="' + mediaId + '"][data-action="edit-image-' + field + '"]');
+                            const targetWrap = targetBtn?.closest('.img-placeholder') ?? targetBtn?.closest('.carousel-item');
+                            const container = targetWrap?.parentElement;
+                            if (container) {
+                                let meta = container.querySelector('.image-meta');
+                                if (!meta) {
+                                    meta = document.createElement('small');
+                                    meta.className = 'image-meta';
+                                    container.appendChild(meta);
+                                }
+                                let span = meta.querySelector(field === 'credit' ? '.image-credit' : 'span:not(.image-credit)');
+                                if (!span) {
+                                    span = document.createElement('span');
+                                    if (field === 'credit') span.className = 'image-credit';
+                                    meta.appendChild(span);
+                                }
+                                span.textContent = field === 'credit' ? (value ? '📷 ' + value : '') : value;
+                                if (!value) span.remove();
+                                if (!meta.querySelector('span')) meta.remove();
+                            }
+                            closeInputModal();
+                            showEntityFeedback(row, 'Gespeichert ✓', 'success');
+                        })
+                        .catch(function () {
+                            showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                        });
+                }
+            });
+        });
+    }
 
     function updatePromoCount(row, content) {
         const label = row.querySelector('.edit-row-label .media-count');
@@ -1113,7 +1258,7 @@ document.addEventListener('DOMContentLoaded', function () {
             col.dataset.mediaId = json.id;
             col.innerHTML =
                 '<label class="gallery-item-checkbox">' +
-                '<input type="checkbox" class="gallery-checkbox" value="' + json.id + '">' +
+                '<input type="checkbox" class="gallery-checkbox" value="' + json.id + '" data-caption="" data-credit="">' +
                 '</label>' +
                 '<div class="img-placeholder event-gallery-img">' +
                 '<img src="' + json.media_url + '" class="zoomable">' +
@@ -1184,29 +1329,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         // ── Caption / Credit modal ─────────────────────────────
-        const modal = document.getElementById('mediaMetaModal');
-        const modalTitle = modal?.querySelector('.media-meta-modal-title');
-        const modalArea = modal?.querySelector('.media-meta-textarea');
-        const modalCancel = modal?.querySelector('.media-meta-cancel');
-        const modalConfirm = modal?.querySelector('.media-meta-confirm');
-        let metaField = 'caption';
-
         btnCaption?.addEventListener('click', function () {
-            metaField = 'caption';
-            const count = getSelected().length;
-            if (modalTitle) modalTitle.textContent = 'Caption für ' + count + ' Foto' + (count > 1 ? 's' : '');
-            if (modalArea) { modalArea.value = ''; modalArea.placeholder = 'Bildbeschreibung...'; }
-            if (modal) modal.style.display = 'flex';
-            modalArea?.focus();
+            openBatchMetaModal('caption');
         });
 
         btnCredit?.addEventListener('click', function () {
-            metaField = 'credit';
-            const count = getSelected().length;
-            if (modalTitle) modalTitle.textContent = 'Credit für ' + count + ' Foto' + (count > 1 ? 's' : '');
-            if (modalArea) { modalArea.value = ''; modalArea.placeholder = '© Fotografin / Fotograf'; }
-            if (modal) modal.style.display = 'flex';
-            modalArea?.focus();
+            openBatchMetaModal('credit');
         });
 
         btnDelete?.addEventListener('click', function () {
@@ -1268,60 +1396,84 @@ document.addEventListener('DOMContentLoaded', function () {
             deleteNext();
         });
 
-        modalCancel?.addEventListener('click', function () {
-            if (modal) modal.style.display = 'none';
-        });
+        function getExistingMetaValue(checkbox, field) {
+            return field === 'credit'
+                ? (checkbox.dataset.credit || '')
+                : (checkbox.dataset.caption || '');
+        }
 
-        modalConfirm?.addEventListener('click', function () {
+        function openBatchMetaModal(field) {
             const selected = getSelected();
-            const value = modalArea?.value.trim() ?? '';
-            const ids = selected.map(cb => cb.value);
-            if (ids.length === 0) return;
+            const count = selected.length;
 
-            const data = new FormData();
-            ids.forEach(id => data.append('ids[]', id));
-            data.append(metaField, value);
+            // Pre-fill only when every selected photo agrees on the
+            // same value (including all being blank). If they differ,
+            // there's no single correct value to show — leave it blank
+            // but tell the editor why, so they don't mistake "blank"
+            // for "none of these have a value yet".
+            const values = selected.map(function (cb) {
+                return getExistingMetaValue(cb, field);
+            });
+            const allAgree = values.every(function (v) {
+                return v === values[0];
+            });
 
-            fetch('/media/batch-meta', {
-                method: 'POST',
-                body: data,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-                .then(res => res.json())
-                .then(function (json) {
-                    if (json.success) {
-                        selected.forEach(function (cb) {
-                            const item = cb.closest('.gallery-item');
-                            if (!item) return;
-                            let meta = item.querySelector('.gallery-item-meta');
-                            if (!meta) {
-                                meta = document.createElement('small');
-                                meta.className = 'gallery-item-meta';
-                                item.appendChild(meta);
+            const defaultPlaceholder = field === 'credit' ? '© Fotografin / Fotograf' : 'Bildbeschreibung...';
+            const mixedPlaceholder = 'Unterschiedliche Einträge — neuer Wert wird auf alle angewendet';
+
+            openInputModal({
+                title: (field === 'credit' ? 'Credit für ' : 'Caption für ') + count + ' Foto' + (count > 1 ? 's' : ''),
+                placeholder: allAgree ? defaultPlaceholder : mixedPlaceholder,
+                initialValue: allAgree ? values[0] : '',
+                onConfirm: function (value) {
+                    const selected = getSelected();
+                    const ids = selected.map(cb => cb.value);
+                    if (ids.length === 0) return;
+
+                    const data = new FormData();
+                    ids.forEach(id => data.append('ids[]', id));
+                    data.append(field, value);
+
+                    fetch('/media/batch-meta', {
+                        method: 'POST',
+                        body: data,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(res => res.json())
+                        .then(function (json) {
+                            if (json.success) {
+                                selected.forEach(function (cb) {
+                                    cb.dataset[field] = value;
+
+                                    const item = cb.closest('.gallery-item');
+                                    if (!item) return;
+                                    let meta = item.querySelector('.gallery-item-meta');
+                                    if (!meta) {
+                                        meta = document.createElement('small');
+                                        meta.className = 'gallery-item-meta';
+                                        item.appendChild(meta);
+                                    }
+                                    let span = meta.querySelector(field === 'credit' ? '.image-credit' : 'span:not(.image-credit)');
+                                    if (!span) {
+                                        span = document.createElement('span');
+                                        if (field === 'credit') span.className = 'image-credit';
+                                        meta.appendChild(span);
+                                    }
+                                    span.textContent = field === 'credit'
+                                        ? (value ? '📷 ' + value : '')
+                                        : value;
+                                    if (!value) span.remove();
+                                });
+                                closeInputModal();
+                                showEntityFeedback(row, 'Gespeichert ✓', 'success');
+                            } else {
+                                showEntityFeedback(row, 'Fehler', 'error');
                             }
-                            let span = meta.querySelector(metaField === 'credit' ? '.image-credit' : 'span:not(.image-credit)');
-                            if (!span) {
-                                span = document.createElement('span');
-                                if (metaField === 'credit') span.className = 'image-credit';
-                                meta.appendChild(span);
-                            }
-                            span.textContent = metaField === 'credit'
-                                ? (value ? '📷 ' + value : '')
-                                : value;
-                            if (!value) span.remove();
-                        });
-                        if (modal) modal.style.display = 'none';
-                        showEntityFeedback(row, 'Gespeichert ✓', 'success');
-                    } else {
-                        showEntityFeedback(row, 'Fehler', 'error');
-                    }
-                })
-                .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
-        });
-
-        modal?.addEventListener('click', function (e) {
-            if (e.target === modal) modal.style.display = 'none';
-        });
+                        })
+                        .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+                }
+            });
+        }
     });
 
     // ── New event ─────────────────────────────────────────────
