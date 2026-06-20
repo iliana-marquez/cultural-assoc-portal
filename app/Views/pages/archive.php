@@ -25,7 +25,7 @@
         <?php else: ?>
             <div class="row g-4">
                 <?php foreach ($events as $event): ?>
-                    <?php require __DIR__ . '/../components/event-card.php'; ?>
+                    <?php require __DIR__ . '/../components/event/event-card.php'; ?>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
