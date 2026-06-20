@@ -790,10 +790,20 @@ document.addEventListener('DOMContentLoaded', function () {
             if (feedback) feedback.textContent = '';
         });
 
-        // Upload image
+        initUploadInputs(row);
+        initMediaDeleteBtns(row);
+    });
+
+    function initUploadInputs(row) {
         row.querySelectorAll('[data-action="upload-entity-image"]').forEach(function (input) {
+            if (input._uploadInitialized) return;
+            input._uploadInitialized = true;
             input.addEventListener('change', function () {
                 if (!this.files[0]) return;
+                const entityType = row.dataset.entityType;
+                const entityId = row.dataset.entityId;
+                const entitySlug = row.dataset.entitySlug ?? entityId;
+                const stage = row.dataset.stage;
                 const file = this.files[0];
                 const timestamp = Date.now();
                 const publicId = entityType + '-' + entitySlug + '-' + stage + '-' + timestamp;
@@ -815,21 +825,25 @@ document.addEventListener('DOMContentLoaded', function () {
                     .then(function (json) {
                         if (json.success) {
                             if (stage === 'promo') {
-                                // Update existing or show new image
+                                // Always re-fetch the freshly rendered fragment
+                                // rather than hand-building HTML — this correctly
+                                // handles going from 0→1 images, 1→2 (upgrading
+                                // to a carousel), and any image count beyond that.
                                 const content = row.querySelector('.media-promo-content');
-                                const existingImg = content?.querySelector('img');
-                                const placeholder = content?.querySelector('.media-placeholder');
-                                if (existingImg) {
-                                    existingImg.src = json.media_url;
-                                } else if (placeholder && content) {
-                                    content.innerHTML =
-                                        '<div class="img-placeholder event-promo-img editing" data-media-id="' + json.id + '">' +
-                                        '<img src="' + json.media_url + '" class="zoomable">' +
-                                        '<div class="image-edit-overlay">' +
-                                        '<button class="section-control-btn" data-action="delete-entity-image" data-media-id="' + json.id + '" data-entity-type="' + entityType + '" data-entity-id="' + entityId + '">' +
-                                        '<i class="ti ti-trash"></i></button>' +
-                                        '</div></div>';
-                                    initMediaDeleteBtns(row);
+                                if (content) {
+                                    fetch('/events/' + entityId + '/promo-fragment', {
+                                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                                    })
+                                        .then(res => res.text())
+                                        .then(function (html) {
+                                            content.innerHTML = html;
+                                            initUploadInputs(row);
+                                            initMediaDeleteBtns(row);
+                                            showEntityFeedback(row, 'Hochgeladen ✓', 'success');
+                                        })
+                                        .catch(function () {
+                                            showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                                        });
                                 }
                             } else {
                                 // Gallery — append new item
@@ -860,9 +874,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
             });
         });
-
-        initMediaDeleteBtns(row);
-    });
+    }
 
     function initMediaDeleteBtns(row) {
         row.querySelectorAll('[data-action="delete-entity-image"]').forEach(function (btn) {
@@ -909,64 +921,30 @@ document.addEventListener('DOMContentLoaded', function () {
                             return;
                         }
 
-                        // Promo image deletion
-                        const carousel = row.querySelector('.carousel');
-
-                        if (carousel) {
-                            // Multiple promo images — DOM rebuild of the
-                            // carousel is out of scope for now, reload
-                            // is the agreed pragmatic fallback.
-                            window.location.reload();
-                            return;
-                        }
-
-                        // Single promo image — rebuild the "no image" placeholder
+                        // Promo image deletion — fetch the freshly rebuilt
+                        // fragment (single image / carousel / placeholder)
+                        // from the server and swap it in, no reload needed
+                        // for any promo state.
                         const content = row.querySelector('.media-promo-content');
                         if (content) {
-                            content.innerHTML =
-                                '<div class="img-placeholder event-promo-img media-placeholder">' +
-                                '<i class="ti ti-music"></i>' +
-                                '<label class="section-control-btn placeholder-upload-btn" style="cursor:pointer;">' +
-                                '<i class="ti ti-photo-plus"></i> Promobild hochladen' +
-                                '<input type="file" accept="image/*" class="d-none" data-action="upload-entity-image"' +
-                                ' data-entity-type="' + entityType + '"' +
-                                ' data-entity-id="' + entityId + '"' +
-                                ' data-stage="promo">' +
-                                '</label>' +
-                                '</div>';
-                            // Re-wire the new upload input so it actually works
-                            content.querySelectorAll('[data-action="upload-entity-image"]').forEach(function (input) {
-                                input.addEventListener('change', function () {
-                                    if (!this.files[0]) return;
-                                    const slug = row.dataset.entitySlug ?? entityId;
-                                    const fd = new FormData();
-                                    fd.append('image', this.files[0]);
-                                    fd.append('entity_type', entityType);
-                                    fd.append('entity_id', entityId);
-                                    fd.append('stage', 'promo');
-                                    fd.append('public_id', entityType + '-' + slug + '-promo-' + Date.now());
-                                    showEntityFeedback(row, 'Wird hochgeladen...', 'success');
-                                    fetch('/media/upload', {
-                                        method: 'POST',
-                                        body: fd,
-                                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                                    })
-                                        .then(res => res.json())
-                                        .then(function (uploadJson) {
-                                            if (uploadJson.success) {
-                                                window.location.reload();
-                                            } else {
-                                                showEntityFeedback(row, 'Upload fehlgeschlagen', 'error');
-                                            }
-                                        })
-                                        .catch(function () {
-                                            showEntityFeedback(row, 'Verbindungsfehler', 'error');
-                                        });
+                            fetch('/events/' + entityId + '/promo-fragment', {
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            })
+                                .then(res => res.text())
+                                .then(function (html) {
+                                    content.innerHTML = html;
+                                    // Re-wire delete buttons and any upload
+                                    // input present in the fresh markup
+                                    // (the placeholder's upload button, if
+                                    // the gallery dropped back to zero images).
+                                    initMediaDeleteBtns(row);
+                                    initUploadInputs(row);
+                                    showEntityFeedback(row, 'Gelöscht ✓', 'success');
+                                })
+                                .catch(function () {
+                                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
                                 });
-                            });
                         }
-
-                        showEntityFeedback(row, 'Gelöscht ✓', 'success');
                     })
                     .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
             });
