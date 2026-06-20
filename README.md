@@ -1652,7 +1652,7 @@ app/Views/components/edit-bar.php ← sticky edit bar
 UPDATE organisation_info SET id = 1 WHERE id = 2;
 ```
 
-# feat/programme-edit
+# feat/programme-edit #20
 
 ## Overview
 
@@ -1668,20 +1668,27 @@ UPDATE organisation_info SET id = 1 WHERE id = 2;
   - `media-edit-row` — wraps the promo image block and the gallery block
 - `participants-edit-row` — list-based variant: add via dropdown, remove via per-item trash button, empty-state placeholder mirrors the gallery's
 - Media model: all media stored once in a shared `media` table, linked to entities via an `entity_media` pivot; `stage` (`promo`/`gallery`) distinguishes role; `caption` (alt text) and `credit` (photographer attribution) are separate columns
-- No page reloads for any edit action, with one deliberate exception: deleting an image from a multi-image carousel falls back to a full reload (see Known Issues)
+- Promo media rendering (single image / carousel / empty placeholder) lives once in a reusable partial (`components/event/promo-media.php`), included by both the full page and a small fragment endpoint — no rendering logic duplicated between initial load and post-edit DOM updates
+- Caption/credit editing uses a single, generic, site-wide `input-modal` component (`components/input-modal.php`), rendered once in the main layout and controlled entirely from `edit-mode.js` via `openInputModal({...})` — both promo (single-image, per-button) and gallery (batch, per-selection) call the same modal with their own config, rather than each maintaining a separate modal
+- No page reloads for any edit action, including carousel image delete/upload, which now goes through the fragment endpoint rather than a full reload
 
 ## Development
 
-- Built field by field: text fields → venue/admission selectors → participants → promo image → gallery → category selector → new-event creation flow → bug fixes
+- Built field by field: text fields → venue/admission selectors → participants → promo image → gallery → category selector → new-event creation flow → bug fixes → carousel fragment fix → promo caption/credit → modal consolidation
 - Gallery batch upload, photo selection, and caption/credit modal built as one connected system, reusing the single-image delete endpoint for bulk delete rather than building a second endpoint
-- New-event creation flow surfaced two real bugs (see Bugs / Fixes) that required fixing before the feature could be considered stable
+- Carousel delete/upload originally fell back to a full page reload; later replaced by extracting promo rendering into a reusable partial shared with a new fragment endpoint, fixing both the delete-side and a previously-undiscovered upload-side bug (uploading a second image never upgraded the single-image view into a carousel)
+- Promo images gained the same caption/credit editing gallery already had, surfacing a fragile text-parsing bug (regex-based extraction of existing values from rendered HTML) that was fixed by storing raw values in `data-caption`/`data-credit` attributes instead
+- Gallery's and promo's previously-independent modal-handling code were consolidated into one shared, headless `input-modal` component and controller, removing the risk of two competing click listeners on the same shared DOM element
 
 ## Files
 
-- **`event-detail.php`** — full inline-edit view; local `$editRow()` closure for text fields; explicit markup for venue/admission/category select-rows; participants block with add/remove + empty-state; promo block (single image / Bootstrap carousel); gallery block (dropzone, checkboxes, select-all, batch caption/credit/delete); shared meta modal; delete-event button
-- **`edit-mode.js`** — all client-side behavior, additive only; generic `entity-edit-row` handler (now syncs URL on title save); `entity-select-row` handler; `participants-edit-row` handler (DOM-only, shared `bindRemoveParticipant()`, empty-state restore); `media-edit-row` handler for both promo and gallery (sequential batch upload, slug-based filenames, `has-selection`/`has-items` state classes, bulk delete); new-event button handler
-- **`edit-mode.css`** — additive only, no existing rules modified; new rules for the three row types, gallery checkboxes, dropzone, modal, and visibility fixes for buttons that were invisible on light backgrounds
-- **`EventController.php`** — `add()` creates a minimal event, returns its slug; `save()` returns the new slug specifically when `title` changes
+- **`event-detail.php`** — full inline-edit view; local `$editRow()` closure for text fields; explicit markup for venue/admission/category select-rows; participants block with add/remove + empty-state; promo block now delegates to `promo-media.php` via include; gallery block (dropzone, checkboxes, select-all, batch caption/credit/delete, `data-caption`/`data-credit` on each checkbox); delete-event button. No longer contains modal markup.
+- **`components/event/promo-media.php`** _(new)_ — reusable partial rendering promo media in all three states (single image, carousel, empty placeholder); includes caption/credit/delete overlay buttons with `data-caption`/`data-credit` attributes; carousel auto-advance disabled for logged-in editors (`data-bs-ride="false"`), preserved for public visitors
+- **`components/input-modal.php`** _(new)_ — generic, headless text-input modal; no hardcoded purpose-specific content; rendered once site-wide via `main.php`
+- **`main.php`** — now includes `input-modal.php` alongside `edit-bar.php`, gated by the same `$isLoggedIn` check
+- **`edit-mode.js`** — all client-side behavior, additive only; generic `entity-edit-row` handler (syncs URL on title save); `entity-select-row` handler; `participants-edit-row` handler (DOM-only, shared `bindRemoveParticipant()`); `media-edit-row` handler for both promo and gallery; new-event button handler; shared `inputModal` controller (`openInputModal`/`closeInputModal`/`bindInputModalOnce`) used by both promo's `initPromoMetaButtons()` and gallery's `openBatchMetaModal()`; promo fragment fetch-and-swap (`/events/{id}/promo-fragment`) replacing the old reload fallback for both upload and delete; live carousel position counter (`updatePromoCount()`) tracking Bootstrap's `slid.bs.carousel` event
+- **`edit-mode.css`** — additive only, no existing rules modified; new rules for the three row types, gallery checkboxes, dropzone, light-background button fixes, and the renamed `input-modal-*` selectors
+- **`EventController.php`** — `add()` creates a minimal event, returns its slug; `save()` returns the new slug specifically when `title` changes; new `promoFragment()` method renders the promo partial as a standalone HTML fragment for AJAX consumption
 - **`EventModel.php`** — `add()` returns the new row's `int` id; `updateField()` whitelist includes `category_id`
 - **`MediaController.php`** — `upload()` accepts optional `public_id` and `credit`, returns the new media id; added `updateMeta()` and `batchMeta()`
 - **`MediaModel.php`** — `addForEntity()` returns `int` id; `update()` rewritten as a genuine partial update
@@ -1690,23 +1697,31 @@ UPDATE organisation_info SET id = 1 WHERE id = 2;
 ## Bugs / Fixes
 
 - **Production `media` table missing `PRIMARY KEY`/`AUTO_INCREMENT`** — traced to an earlier DB wipe/reimport session being interrupted before reaching the schema-altering statements near the end of the dump. Caused every promo upload to fail with a `SQLSTATE[HY000]` error. Fixed via direct `ALTER TABLE`.
-- **Duplicate events created via reload-based participant actions** — `EventModel::getBySlug()` computes the slug from the current title on every call rather than storing it; a stale browser URL (from an earlier title edit) combined with `window.location.reload()` on participant-add caused mismatched/duplicate event creation. Fixed by removing the reload entirely (DOM update instead) and syncing the URL via `history.replaceState()` whenever the title changes.
+- **Duplicate events created via reload-based participant actions** — `EventModel::getBySlug()` computes the slug from the current title on every call rather than storing it; a stale browser URL combined with `window.location.reload()` on participant-add caused mismatched/duplicate event creation. Fixed by removing the reload entirely and syncing the URL via `history.replaceState()` on title save.
 - **Fatal error on new-event creation** — `EventModel::add()` returned `bool`, while the controller tried to call the model's `protected` `lastInsertId()` directly. Fixed by having `add()` return the new row's `int` id.
-- **`MediaModel::update()` positional SQL/parameter mismatch** — the `SET` clause listed 4 columns while 5 parameters were passed, silently writing `credit`'s value into the `stage` column. Fixed by rewriting `update()` as a genuine partial update keyed by column name, not position.
-- **Cloudinary filenames used numeric entity id instead of slug** — gallery batch uploads correctly sent a slug-based `public_id`, but `MediaController::upload()` never read it from the request, always falling back to the generic `entityType-entityId-timestamp` pattern. Fixed by honoring a posted `public_id` when present.
+- **`MediaModel::update()` positional SQL/parameter mismatch** — the `SET` clause listed 4 columns while 5 parameters were passed, silently writing `credit`'s value into the `stage` column. Fixed by rewriting `update()` as a genuine partial update keyed by column name.
+- **Cloudinary filenames used numeric entity id instead of slug** — `MediaController::upload()` never read a posted `public_id`, always falling back to the generic pattern. Fixed by honoring a posted `public_id` when present; applied to both promo and gallery uploads.
+- **Carousel arrows/auto-advance silently broken in edit mode** — root cause was not CSS or Bootstrap initialization, but the upload success handler hand-building single-image HTML regardless of how many promo images actually existed, so a second upload never produced a real carousel. Fixed by routing both upload and delete through the same server-rendered fragment.
+- **In-progress feedback messages auto-clearing before the real result arrived** — `showEntityFeedback()` always scheduled a 3-second auto-clear regardless of message type. Fixed with an optional `persistent` flag and cancellation of any previously scheduled clear timer.
+- **Caption/credit pre-fill silently wrong or missing** — existing values were recovered by regex-parsing rendered display text (`📷 Alex Ronacher` → only "Ronacher" survived a greedy single-word strip), and credit specifically could be entirely unrecoverable when an image had a caption but no credit yet, since the display span for credit was conditionally absent from the DOM. Fixed by storing raw values in `data-caption`/`data-credit` attributes, read directly with no parsing.
+- **Two independent modal handlers attached to one shared DOM element** — gallery's and promo's caption/credit modals each attached their own listeners to the same `#mediaMetaModal`, relying on each handler's own empty-selection guard to avoid firing incorrectly. Consolidated into one shared `input-modal` component with a single owner.
 
 ## Testing
 
 - All text field saves persist after reload
 - Venue/admission/category selectors display correctly when inactive, save correctly when changed
 - Participants can be added/removed without a page reload; empty-state placeholder appears/disappears correctly
-- Promo image upload/delete works for empty-placeholder and existing-image cases; placeholder rebuilds in DOM after delete (single-image case; multi-image carousel intentionally reloads)
-- Gallery drag-and-drop batch upload works for multiple simultaneous files with sequential progress feedback
+- Promo image upload/delete works for empty-placeholder, single-image, and carousel cases, with no reload in any case
+- Carousel correctly upgrades from single-image on second upload; correctly collapses back to single-image when deleted down to one remaining image
+- Carousel auto-advance disabled in edit mode; manual arrow/indicator navigation still functional; live position counter updates on slide change
+- Promo and gallery caption/credit modals correctly pre-fill existing values (single value for promo; shared value across a multi-select gallery batch when all selected items agree, blank with an explanatory placeholder when they don't)
+- Gallery drag-and-drop batch upload works for multiple simultaneous files with sequential progress feedback that remains visible for the full duration of a slow upload
 - Gallery checkbox selection, select-all, and caption/credit modal apply correctly to one or many photos
 - Gallery bulk-delete removes selected photos and restores empty-state when gallery becomes empty
 - New-event creation redirects into a real, unique database row
 - Title edits update the browser URL without a reload
 - No automated tests written for this feature
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
