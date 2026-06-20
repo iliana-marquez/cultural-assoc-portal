@@ -6,6 +6,7 @@
  * GET /veranstaltungen          → event listing (upcoming + past)
  * GET /veranstaltungen/{slug}   → event detail
  * GET /archiv                   → archive listing (pre-2025)
+ * GET /events/{id}/promo-fragment
  * POST /events/add              → add event
  * POST /events/{id}/save        → update event
  * POST /events/{id}/delete      → delete event
@@ -147,6 +148,37 @@ class EventController extends BaseController
             'events'   => $events,
             'seo'      => $seo,
         ]);
+    }
+
+    /**
+     * GET /events/{id}/promo-fragment
+     * Returns just the rebuilt promo-media HTML (single image / carousel /
+     * empty placeholder) for a given event — used by the JS delete handler
+     * to update the DOM in place after removing a promo image, instead of
+     * reloading the whole page. Reuses the exact same partial as the full
+     * event detail page, so there is only one place that knows how to
+     * render this markup.
+     */
+    public function promoFragment(array $params = []): void
+    {
+        $id = (int) ($params['id'] ?? 0);
+        $event = $this->eventModel->getById($id);
+
+        if (!$event) {
+            http_response_code(404);
+            echo '';
+            return;
+        }
+
+        $promoImages = $this->mediaModel->getForEntity('event', $id, 'promo');
+        $isLoggedIn  = $this->isLoggedIn();
+
+        ob_start();
+        include __DIR__ . '/../Views/components/event/promo-media.php';
+        $html = ob_get_clean();
+
+        header('Content-Type: text/html; charset=utf-8');
+        echo $html;
     }
 
     // ── POST — CRUD ──────────────────────────────────────────
