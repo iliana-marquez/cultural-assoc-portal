@@ -26,7 +26,7 @@
             <h2 class="events-heading">Kommende Veranstaltungen</h2>
             <div class="row g-4">
                 <?php foreach ($upcoming as $event): ?>
-                    <?php require __DIR__ . '/../components/event-card.php'; ?>
+                    <?php require __DIR__ . '/../components/event/event-card.php'; ?>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
@@ -36,7 +36,7 @@
             <h2 class="events-heading">Vergangene Veranstaltungen</h2>
             <div class="row g-4">
                 <?php foreach ($past as $event): ?>
-                    <?php require __DIR__ . '/../components/event-card.php'; ?>
+                    <?php require __DIR__ . '/../components/event/event-card.php'; ?>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
