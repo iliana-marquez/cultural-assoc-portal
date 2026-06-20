@@ -50,6 +50,7 @@ $router->post('/team/{id}/delete', 'TeamController', 'delete');
 $router->get('/veranstaltungen',              'EventController', 'index');
 $router->get('/veranstaltungen/{slug}',       'EventController', 'show');
 $router->get('/archiv',                       'EventController', 'archive');
+$router->get('/events/{id}/promo-fragment',   'EventController', 'promoFragment');
 $router->post('/events/add',                  'EventController', 'add');
 $router->post('/events/{id}/save',            'EventController', 'save');
 $router->post('/events/{id}/delete',          'EventController', 'delete');

@@ -51,6 +51,7 @@
     <!-- Edit-Bar for Editing Mode only -->
     <?php if ($isLoggedIn): ?>
         <?php require __DIR__ . '/../components/edit-bar.php'; ?>
+        <?php require __DIR__ . '/../components/input-modal.php'; ?>
     <?php endif; ?>
 
     <!-- Main content (Mask) -->
