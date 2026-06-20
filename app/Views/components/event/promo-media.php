@@ -13,7 +13,7 @@
  *
  * Required variables (passed in via include or render() data):
  *   $event        object   must have ->id, ->title
- *   $promoImages  array    of media objects (media_url, id, caption)
+ *   $promoImages  array    of media objects (media_url, id, caption, credit)
  *   $isLoggedIn   bool
  *
  * Caller is responsible for wrapping this in whatever container/edit-row
@@ -29,6 +29,18 @@
             <?php if ($isLoggedIn): ?>
                 <div class="image-edit-overlay">
                     <button class="section-control-btn"
+                        data-action="edit-image-caption"
+                        data-media-id="<?= $promoImages[0]->id ?>"
+                        data-caption="<?= htmlspecialchars($promoImages[0]->caption ?? '') ?>">
+                        <i class="ti ti-text-caption"></i>
+                    </button>
+                    <button class="section-control-btn"
+                        data-action="edit-image-credit"
+                        data-media-id="<?= $promoImages[0]->id ?>"
+                        data-credit="<?= htmlspecialchars($promoImages[0]->credit ?? '') ?>">
+                        <i class="ti ti-camera"></i>
+                    </button>
+                    <button class="section-control-btn"
                         data-action="delete-entity-image"
                         data-media-id="<?= $promoImages[0]->id ?>"
                         data-entity-type="event"
@@ -38,10 +50,14 @@
                 </div>
             <?php endif; ?>
         </div>
-        <?php if (!empty($promoImages[0]->caption)): ?>
-            <small class="image-credit">
-                <i class="ti ti-camera"></i>
-                <?= htmlspecialchars($promoImages[0]->caption) ?>
+        <?php if (!empty($promoImages[0]->caption) || !empty($promoImages[0]->credit)): ?>
+            <small class="image-meta">
+                <?php if (!empty($promoImages[0]->caption)): ?>
+                    <span><?= htmlspecialchars($promoImages[0]->caption) ?></span>
+                <?php endif; ?>
+                <?php if (!empty($promoImages[0]->credit)): ?>
+                    <span class="image-credit"><i class="ti ti-camera"></i> <?= htmlspecialchars($promoImages[0]->credit) ?></span>
+                <?php endif; ?>
             </small>
         <?php endif; ?>
     <?php else: ?>
@@ -60,6 +76,18 @@
                             <?php if ($isLoggedIn): ?>
                                 <div class="image-edit-overlay">
                                     <button class="section-control-btn"
+                                        data-action="edit-image-caption"
+                                        data-media-id="<?= $media->id ?>"
+                                        data-caption="<?= htmlspecialchars($media->caption ?? '') ?>">
+                                        <i class="ti ti-text-caption"></i>
+                                    </button>
+                                    <button class="section-control-btn"
+                                        data-action="edit-image-credit"
+                                        data-media-id="<?= $media->id ?>"
+                                        data-credit="<?= htmlspecialchars($media->credit ?? '') ?>">
+                                        <i class="ti ti-camera"></i>
+                                    </button>
+                                    <button class="section-control-btn"
                                         data-action="delete-entity-image"
                                         data-media-id="<?= $media->id ?>"
                                         data-entity-type="event"
@@ -69,6 +97,16 @@
                                 </div>
                             <?php endif; ?>
                         </div>
+                        <?php if (!empty($media->caption) || !empty($media->credit)): ?>
+                            <small class="image-meta">
+                                <?php if (!empty($media->caption)): ?>
+                                    <span><?= htmlspecialchars($media->caption) ?></span>
+                                <?php endif; ?>
+                                <?php if (!empty($media->credit)): ?>
+                                    <span class="image-credit"><i class="ti ti-camera"></i> <?= htmlspecialchars($media->credit) ?></span>
+                                <?php endif; ?>
+                            </small>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>
