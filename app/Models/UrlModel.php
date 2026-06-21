@@ -132,6 +132,14 @@ class UrlModel extends BaseModel
         }
         $host = strtolower($host);
 
+        // parse_url() is permissive — it can extract SOME host value
+        // even from malformed input. This stricter check requires a
+        // real domain.tld shape, closing the gap where arbitrary
+        // pasted text could otherwise slip through as a "valid" URL.
+        if (!preg_match('/^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/', $host)) {
+            return 'Bitte eine gültige URL eingeben (z. B. example.com).';
+        }
+
         if ($label === 'maps') {
             if (!self::isValidMapsHost($host, $path)) {
                 return 'Diese URL scheint kein Karten-Link zu sein (z. B. Google Maps, Apple Maps, OpenStreetMap).';
