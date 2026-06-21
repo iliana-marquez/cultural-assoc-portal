@@ -22,6 +22,14 @@ class BaseController
         // Organisation data — available in all controllers and views
         require_once __DIR__ . '/../Models/OrganisationModel.php';
         $this->org = (new OrganisationModel())->get() ?? (object)[];
+
+        // Organisation's external links — available everywhere $org is
+        // (nav, footer), since they're rendered on every page, not just
+        // the editor's own org-edit page.
+        require_once __DIR__ . '/../Models/UrlModel.php';
+        $this->org->urls = isset($this->org->id)
+            ? (new UrlModel())->getForEntity('organisation', $this->org->id)
+            : [];
     }
 
     /**
