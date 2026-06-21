@@ -73,8 +73,13 @@ document.addEventListener('DOMContentLoaded', function () {
         inputModal.area = inputModal.el.querySelector('.input-modal-textarea');
         inputModal.cancelBtn = inputModal.el.querySelector('.input-modal-cancel');
         inputModal.confirmBtn = inputModal.el.querySelector('.input-modal-confirm');
+        const closeBtn = inputModal.el.querySelector('.input-modal-close');
 
         inputModal.cancelBtn?.addEventListener('click', function () {
+            closeInputModal();
+        });
+
+        closeBtn?.addEventListener('click', function () {
             closeInputModal();
         });
 
@@ -841,6 +846,169 @@ document.addEventListener('DOMContentLoaded', function () {
 
         row.querySelectorAll('[data-action="remove-participant"]').forEach(function (btn) {
             bindRemoveParticipant(btn, row);
+        });
+    });
+
+    // ── Links (entity_urls) ────────────────────────────────────
+    document.querySelectorAll('.links-edit-row').forEach(function (row) {
+        const entityType = row.dataset.entityType;
+        const entityId = row.dataset.entityId;
+
+        const addBtn = row.querySelector('[data-action="add-entity-url"]');
+        addBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            fetch('/urls/types', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(res => res.json())
+                .then(function (json) {
+                    const typeOptions = (json.success ? json.types : []).map(function (t) {
+                        return { value: t.id, label: t.label };
+                    });
+
+                    openAttachEntityModal({
+                        title: 'Link hinzufügen',
+                        searchEndpoint: '/urls/search',
+                        addEndpoint: '/urls/add',
+                        searchPlaceholder: 'Vorhandene Links durchsuchen...',
+                        addFields: [
+                            { name: 'url_type_id', label: 'Typ', type: 'select', required: true, options: typeOptions },
+                            { name: 'url', label: 'URL', type: 'text', required: true, placeholder: 'https://...' },
+                            { name: 'label', label: 'Bezeichnung', type: 'text' }
+                        ],
+                        extraAddParams: { entity_type: entityType, entity_id: entityId },
+                        renderResultItem: function (result) {
+                            return '<i class="ti ' + (result.icon || 'ti-link') + '"></i> ' +
+                                (result.label || result.url);
+                        },
+                        onSelected: function (result) {
+                            // The add-new path (UrlController::add) already
+                            // attaches to this entity server-side, in the same
+                            // request — its response includes "success". The
+                            // pick-existing path (raw search result row) does
+                            // NOT include that key, and still needs an explicit
+                            // attach call to link it to this entity.
+                            if (result.success) {
+                                appendUrlToList(row, result);
+                                showEntityFeedback(row, 'Hinzugefügt ✓', 'success');
+                            } else {
+                                attachAndRenderUrl(row, result, entityType, entityId);
+                            }
+                        }
+                    });
+                })
+                .catch(function () {
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                });
+        });
+
+        function attachAndRenderUrl(row, result, entityType, entityId) {
+            // If this came from search (not add-new), it still needs
+            // an explicit attach call. Add-new already attached server-side,
+            // but calling attach again is harmless (INSERT IGNORE).
+            const data = new FormData();
+            data.append('entity_type', entityType);
+            data.append('entity_id', entityId);
+
+            fetch('/urls/' + result.id + '/attach', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (!json.success) {
+                        showEntityFeedback(row, 'Fehler', 'error');
+                        return;
+                    }
+                    appendUrlToList(row, result);
+                    showEntityFeedback(row, 'Hinzugefügt ✓', 'success');
+                })
+                .catch(function () {
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                });
+        }
+
+        function appendUrlToList(row, result) {
+            let list = row.querySelector('.event-url-list');
+            if (!list) {
+                list = document.createElement('div');
+                list.className = 'event-url-list p-2';
+                addBtn?.closest('.edit-row-header')?.insertAdjacentElement('afterend', list);
+            }
+            // Remove the empty-state message (the <p class="text-muted">
+            // itself) without removing its parent — the parent IS the
+            // list container we're about to append the new item into.
+            list.querySelector('p.text-muted')?.remove();
+
+            const item = document.createElement('div');
+            item.className = 'event-url-item';
+            item.dataset.urlId = result.id;
+            item.innerHTML =
+                '<a href="' + (result.url || '#') + '" target="_blank" rel="noopener">' +
+                '<i class="ti ' + (result.icon ? result.icon : (result.type_label === 'Email' ? 'ti-mail' : 'ti-link')) + '"></i> ' +
+                (result.label || result.type_label || result.url) +
+                '</a>' +
+                '<button class="entity-remove-btn border-0" data-action="remove-entity-url" data-url-id="' + result.id + '">' +
+                '<i class="ti ti-trash"></i></button>';
+            list.appendChild(item);
+            bindRemoveUrl(item.querySelector('[data-action="remove-entity-url"]'), row);
+        }
+
+        function bindRemoveUrl(btn, row) {
+            if (!btn || btn._removeUrlInitialized) return;
+            btn._removeUrlInitialized = true;
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const urlId = btn.dataset.urlId;
+                performUnlink(urlId, false);
+            });
+
+            function performUnlink(urlId, confirmed) {
+                const data = new FormData();
+                data.append('entity_type', entityType);
+                data.append('entity_id', entityId);
+                if (confirmed) data.append('confirmed', '1');
+
+                fetch('/urls/' + urlId + '/unlink', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (!json.success) {
+                            showEntityFeedback(row, 'Fehler', 'error');
+                            return;
+                        }
+                        if (json.needsConfirmation) {
+                            openConfirmModal({
+                                title: 'Link entfernen',
+                                message: 'Dieser Link ist nirgendwo sonst verknüpft. Beim Entfernen wird er endgültig gelöscht.',
+                                confirmLabel: 'Endgültig entfernen',
+                                onConfirm: function () {
+                                    performUnlink(urlId, true);
+                                }
+                            });
+                            return;
+                        }
+                        btn.closest('.event-url-item')?.remove();
+                        const list = row.querySelector('.event-url-list');
+                        if (list && list.querySelectorAll('.event-url-item').length === 0) {
+                            list.innerHTML =
+                                '<p class="text-muted p-2 mb-0">' +
+                                '<i class="ti ti-link-off"></i> Noch keine Links' +
+                                '</p>';
+                        }
+                        showEntityFeedback(row, 'Entfernt ✓', 'success');
+                    })
+                    .catch(function () {
+                        showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                    });
+            }
+        }
+
+        row.querySelectorAll('[data-action="remove-entity-url"]').forEach(function (btn) {
+            bindRemoveUrl(btn, row);
         });
     });
 
