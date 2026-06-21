@@ -352,63 +352,12 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     </div>
 
                     <!-- URLs -->
-                    <div class="event-urls links-edit-row" data-entity-type="event" data-entity-id="<?= $event->id ?>">
-                        <?php if ($isLoggedIn): ?>
-                            <div class="edit-row-header">
-                                <label class="edit-row-label">Links</label>
-                                <div class="edit-row-actions">
-                                    <span class="entity-feedback"></span>
-                                    <button class="entity-edit-btn links-pencil-btn"><i class="ti ti-pencil"></i></button>
-                                    <button class="entity-cancel-btn links-cancel-btn"><i class="ti ti-x"></i></button>
-                                </div>
-                            </div>
-                        <?php elseif (!empty($event->urls)): ?>
-                            <h3>Links</h3>
-                        <?php endif; ?>
-
-                        <?php if (!empty($event->urls)): ?>
-                            <div class="event-url-list p-2">
-                                <?php foreach ($event->urls as $url): ?>
-                                    <div class="event-url-item" data-url-id="<?= $url->id ?>">
-                                        <?php if ($isLoggedIn): ?>
-                                            <button class="entity-edit-btn border-0"
-                                                data-action="edit-entity-url"
-                                                data-url-id="<?= $url->id ?>"
-                                                data-url-type-id="<?= $url->url_type_id ?>"
-                                                data-url-value="<?= htmlspecialchars($url->url) ?>"
-                                                data-url-label="<?= htmlspecialchars($url->label ?? '') ?>">
-                                                <i class="ti ti-pencil"></i>
-                                            </button>
-                                            <button class="entity-remove-btn border-0"
-                                                data-action="remove-entity-url"
-                                                data-url-id="<?= $url->id ?>">
-                                                <i class="ti ti-trash"></i>
-                                            </button>
-                                        <?php endif; ?>
-                                        <a href="<?= htmlspecialchars($url->url) ?>" target="_blank" rel="noopener">
-                                            <i class="ti <?= htmlspecialchars($url->icon ?? 'ti-link') ?>"></i>
-                                            <?= htmlspecialchars($url->label ?: $url->type_label) ?>
-                                        </a>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php elseif ($isLoggedIn): ?>
-                            <div class="event-url-list p-2">
-                                <p class="text-muted p-2 mb-0">
-                                    <i class="ti ti-link-off"></i>
-                                    Noch keine Links
-                                </p>
-                            </div>
-                        <?php endif; ?>
-
-                        <?php if ($isLoggedIn): ?>
-                            <div class="add-link-wrap p-2">
-                                <button class="entity-edit-btn" data-action="add-entity-url">
-                                    <i class="ti ti-plus"></i> Link hinzufügen
-                                </button>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                    <?php
+                    $entityType = 'event';
+                    $entityId   = $event->id;
+                    $urls       = $event->urls;
+                    include __DIR__ . '/../components/entity-urls.php';
+                    ?>
 
                 </div>
             </div>
