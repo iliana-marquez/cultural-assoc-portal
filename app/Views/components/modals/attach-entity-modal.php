@@ -49,7 +49,7 @@
             <div class="attach-entity-modal-preview" style="display:none;">
                 <span class="attach-entity-modal-preview-text"></span>
                 <a class="attach-entity-modal-test-link" href="#" target="_blank" rel="noopener" style="display:none;">
-                    Testen <i class="ti ti-external-link"></i>
+                    Link Testen <i class="ti ti-external-link"></i>
                 </a>
             </div>
             <button class="section-control-btn ows-modal-btn-primary">Hinzufügen</button>
