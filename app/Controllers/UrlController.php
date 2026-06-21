@@ -127,10 +127,11 @@ class UrlController extends BaseController
         }
 
         $this->jsonSuccess([
-            'id'         => $urlId,
-            'url'        => $saved->url ?? null,
-            'label'      => $saved->label ?? null,
-            'type_label' => $type->label ?? null,
+            'id'          => $urlId,
+            'url'         => $saved->url ?? null,
+            'label'       => $saved->label ?? null,
+            'url_type_id' => $urlTypeId,
+            'type_label'  => $type->label ?? null,
             'icon'       => $type->icon ?? null,
         ]);
     }
@@ -267,6 +268,29 @@ class UrlController extends BaseController
         }
 
         $success = $this->urlModel->update($urlId, $url, $urlTypeId, $label ?: null);
-        $success ? $this->jsonSuccess() : $this->jsonError('Failed to update URL');
+
+        if (!$success) {
+            $this->jsonError('Failed to update URL');
+            return;
+        }
+
+        $saved = $this->urlModel->getById($urlId);
+        $types = $this->urlModel->getTypes();
+        $type  = null;
+        foreach ($types as $t) {
+            if ((int) $t->id === $urlTypeId) {
+                $type = $t;
+                break;
+            }
+        }
+
+        $this->jsonSuccess([
+            'id'          => $urlId,
+            'url'         => $saved->url ?? null,
+            'label'       => $saved->label ?? null,
+            'url_type_id' => $urlTypeId,
+            'type_label'  => $type->label ?? null,
+            'icon'        => $type->icon ?? null,
+        ]);
     }
 }
