@@ -73,8 +73,13 @@ document.addEventListener('DOMContentLoaded', function () {
         inputModal.area = inputModal.el.querySelector('.input-modal-textarea');
         inputModal.cancelBtn = inputModal.el.querySelector('.input-modal-cancel');
         inputModal.confirmBtn = inputModal.el.querySelector('.input-modal-confirm');
+        const closeBtn = inputModal.el.querySelector('.input-modal-close');
 
         inputModal.cancelBtn?.addEventListener('click', function () {
+            closeInputModal();
+        });
+
+        closeBtn?.addEventListener('click', function () {
             closeInputModal();
         });
 
@@ -841,6 +846,345 @@ document.addEventListener('DOMContentLoaded', function () {
 
         row.querySelectorAll('[data-action="remove-participant"]').forEach(function (btn) {
             bindRemoveParticipant(btn, row);
+        });
+    });
+
+    // ── Links (entity_urls) ────────────────────────────────────
+    document.querySelectorAll('.links-edit-row').forEach(function (row) {
+        const entityType = row.dataset.entityType;
+        const entityId = row.dataset.entityId;
+
+        const linksPencilBtn = row.querySelector('.links-pencil-btn');
+        const linksCancelBtn = row.querySelector('.links-cancel-btn');
+
+        linksPencilBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.add('editing');
+            document.body.classList.add('is-editing');
+        });
+
+        linksCancelBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.remove('editing');
+            document.body.classList.remove('is-editing');
+        });
+
+        // Shared validation helpers — used by both the "add new"
+        // and "edit existing" flows, so this only needs to exist once.
+        const platformDomains = {
+            facebook: ['facebook.com'],
+            instagram: ['instagram.com'],
+            linkedin: ['linkedin.com'],
+            youtube: ['youtube.com', 'youtu.be'],
+            spotify: ['spotify.com'],
+            soundcloud: ['soundcloud.com'],
+            vimeo: ['vimeo.com'],
+            bandcamp: ['bandcamp.com']
+        };
+
+        function hostMatchesDomain(host, domain) {
+            return host === domain || host.endsWith('.' + domain);
+        }
+
+        function isValidMapsUrl(host, pathname) {
+            if (hostMatchesDomain(host, 'maps.google.com')) return true;
+            if (hostMatchesDomain(host, 'maps.apple.com')) return true;
+            if (hostMatchesDomain(host, 'openstreetmap.org')) return true;
+            if (hostMatchesDomain(host, 'goo.gl')) return true;
+            // Bare google.com is too broad to accept on domain alone
+            // (it's also search, gmail, etc.) — require /maps in the path.
+            if (hostMatchesDomain(host, 'google.com') && pathname.startsWith('/maps')) return true;
+            return false;
+        }
+
+        function detectPlatformMatch(host) {
+            for (const key in platformDomains) {
+                if (platformDomains[key].some(function (d) { return hostMatchesDomain(host, d); })) {
+                    return key;
+                }
+            }
+            return null;
+        }
+
+        function validateAndPreview(values, typeOptions) {
+            const typeId = values.url_type_id;
+            const rawUrl = (values.url || '').trim();
+            if (!rawUrl) return null;
+
+            const typeOpt = typeOptions.find(function (t) { return String(t.value) === String(typeId); });
+            const typeLabel = (typeOpt?.label || '').toLowerCase();
+
+            if (typeLabel === 'email') {
+                const candidate = rawUrl.replace(/^mailto:/i, '');
+                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailPattern.test(candidate)) {
+                    return { error: 'Bitte eine gültige E-Mail-Adresse eingeben.' };
+                }
+                return { preview: 'mailto:' + candidate.toLowerCase() };
+            }
+
+            let normalized = rawUrl.replace(/^http:\/\//i, 'https://');
+            if (!/^https?:\/\//i.test(normalized)) normalized = 'https://' + normalized;
+            normalized = normalized.replace(/\/$/, '');
+
+            let host, pathname;
+            try {
+                const parsed = new URL(normalized);
+                host = parsed.hostname.toLowerCase();
+                pathname = parsed.pathname;
+            } catch (err) {
+                return { error: 'Bitte eine gültige URL eingeben.' };
+            }
+
+            // new URL() is permissive — it parses almost anything into
+            // SOME hostname, even pasted garbage text. This stricter
+            // check requires a real domain.tld shape (labels separated
+            // by dots, ending in an alphabetic top-level domain), which
+            // is the actual gap that let nonsense slip through before.
+            const domainShapePattern = /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
+            if (!domainShapePattern.test(host)) {
+                return { error: 'Bitte eine gültige URL eingeben (z. B. example.com).' };
+            }
+
+            if (typeLabel === 'maps') {
+                if (!isValidMapsUrl(host, pathname)) {
+                    return { error: 'Diese URL scheint kein Karten-Link zu sein (z. B. Google Maps, Apple Maps, OpenStreetMap).' };
+                }
+                return { preview: normalized };
+            }
+
+            const requiredDomains = platformDomains[typeLabel];
+            if (requiredDomains) {
+                const matches = requiredDomains.some(function (domain) {
+                    return hostMatchesDomain(host, domain);
+                });
+                if (!matches) {
+                    return { error: 'Diese URL scheint nicht zu ' + (typeOpt?.label || 'diesem Typ') + ' zu gehören (erwartet: ' + requiredDomains.join(' oder ') + ').' };
+                }
+                return { preview: normalized };
+            }
+
+            // Soft check — only for genuinely unclaimed types (Website,
+            // Other, Press, Radio, TV), since they make no domain claim
+            // of their own. Warn, don't block, if the domain matches a
+            // known specific platform. Maps is deliberately excluded —
+            // it already has its own strict rule above, so there's no
+            // "soft" case for it.
+            const unclaimedTypes = ['website', 'other', 'press', 'radio', 'tv'];
+            if (unclaimedTypes.includes(typeLabel)) {
+                const matchedPlatform = detectPlatformMatch(host);
+                if (matchedPlatform) {
+                    const matchedOpt = typeOptions.find(function (t) {
+                        return (t.label || '').toLowerCase() === matchedPlatform;
+                    });
+                    const platformName = matchedOpt?.label || matchedPlatform;
+                    return {
+                        warning: 'Dieser Link sieht nach ' + platformName + ' aus. Ändere den Typ zu ' + platformName + ', oder überprüfe die URL, falls das nicht stimmt.',
+                        suggestedTypeId: matchedOpt?.value,
+                        preview: normalized
+                    };
+                }
+            }
+
+            return { preview: normalized };
+        }
+
+        const addBtn = row.querySelector('[data-action="add-entity-url"]');
+        addBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            fetch('/urls/types', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(res => res.json())
+                .then(function (json) {
+                    const typeOptions = (json.success ? json.types : []).map(function (t) {
+                        return { value: t.id, label: t.label };
+                    });
+
+                    openAttachEntityModal({
+                        title: 'Link hinzufügen',
+                        searchEndpoint: '/urls/search',
+                        addEndpoint: '/urls/add',
+                        searchPlaceholder: 'Vorhandene Links durchsuchen...',
+                        addFields: [
+                            { name: 'url_type_id', label: 'Typ', type: 'select', required: true, options: typeOptions },
+                            { name: 'url', label: 'URL', type: 'text', required: true, placeholder: 'https://...' },
+                            { name: 'label', label: 'Bezeichnung', type: 'text' }
+                        ],
+                        previewFn: function (values) { return validateAndPreview(values, typeOptions); },
+                        extraAddParams: { entity_type: entityType, entity_id: entityId },
+                        renderResultItem: function (result) {
+                            return '<i class="ti ' + (result.icon || 'ti-link') + '"></i> ' +
+                                (result.label || result.url);
+                        },
+                        onSelected: function (result) {
+                            // The add-new path (UrlController::add) already
+                            // attaches to this entity server-side, in the same
+                            // request — its response includes "success". The
+                            // pick-existing path (raw search result row) does
+                            // NOT include that key, and still needs an explicit
+                            // attach call to link it to this entity.
+                            if (result.success) {
+                                refreshLinksList(row);
+                                showEntityFeedback(row, 'Hinzugefügt ✓', 'success');
+                            } else {
+                                attachAndRenderUrl(row, result, entityType, entityId);
+                            }
+                        }
+                    });
+                })
+                .catch(function () {
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                });
+        });
+
+        function attachAndRenderUrl(row, result, entityType, entityId) {
+            // If this came from search (not add-new), it still needs
+            // an explicit attach call. Add-new already attached server-side,
+            // but calling attach again is harmless (INSERT IGNORE).
+            const data = new FormData();
+            data.append('entity_type', entityType);
+            data.append('entity_id', entityId);
+
+            fetch('/urls/' + result.id + '/attach', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (!json.success) {
+                        showEntityFeedback(row, 'Fehler', 'error');
+                        return;
+                    }
+                    refreshLinksList(row);
+                    showEntityFeedback(row, 'Hinzugefügt ✓', 'success');
+                })
+                .catch(function () {
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                });
+        }
+
+        function refreshLinksList(row) {
+            const container = row.querySelector('.links-list-container');
+            if (!container) return;
+
+            fetch('/urls/fragment?entity_type=' + encodeURIComponent(entityType) + '&entity_id=' + encodeURIComponent(entityId), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.text())
+                .then(function (html) {
+                    container.innerHTML = html;
+                    container.querySelectorAll('[data-action="edit-entity-url"]').forEach(function (btn) {
+                        bindEditUrl(btn, row);
+                    });
+                    container.querySelectorAll('[data-action="remove-entity-url"]').forEach(function (btn) {
+                        bindRemoveUrl(btn, row);
+                    });
+                })
+                .catch(function () {
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                });
+        }
+
+        function bindEditUrl(btn, row) {
+            if (!btn || btn._editUrlInitialized) return;
+            btn._editUrlInitialized = true;
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const urlId = btn.dataset.urlId;
+                const currentTypeId = btn.dataset.urlTypeId;
+                const currentUrl = btn.dataset.urlValue;
+                const currentLabel = btn.dataset.urlLabel;
+
+                fetch('/urls/types', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        const typeOptions = (json.success ? json.types : []).map(function (t) {
+                            return { value: t.id, label: t.label };
+                        });
+
+                        openAttachEntityModal({
+                            mode: 'edit',
+                            title: 'Link bearbeiten',
+                            confirmLabel: 'Speichern',
+                            addEndpoint: '/urls/' + urlId + '/save',
+                            addFields: [
+                                { name: 'url_type_id', label: 'Typ', type: 'select', required: true, options: typeOptions, value: currentTypeId },
+                                { name: 'url', label: 'URL', type: 'text', required: true, placeholder: 'https://...', value: currentUrl },
+                                { name: 'label', label: 'Bezeichnung', type: 'text', value: currentLabel }
+                            ],
+                            previewFn: function (values) { return validateAndPreview(values, typeOptions); },
+                            onSelected: function (result) {
+                                if (!result.success) {
+                                    showEntityFeedback(row, 'Fehler', 'error');
+                                    return;
+                                }
+                                const item = row.querySelector('.event-url-item[data-url-id="' + urlId + '"]');
+                                item?.remove();
+                                refreshLinksList(row);
+                                showEntityFeedback(row, 'Gespeichert ✓', 'success');
+                            }
+                        });
+                    })
+                    .catch(function () {
+                        showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                    });
+            });
+        }
+
+        function bindRemoveUrl(btn, row) {
+            if (!btn || btn._removeUrlInitialized) return;
+            btn._removeUrlInitialized = true;
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const urlId = btn.dataset.urlId;
+                performUnlink(urlId, false);
+            });
+
+            function performUnlink(urlId, confirmed) {
+                const data = new FormData();
+                data.append('entity_type', entityType);
+                data.append('entity_id', entityId);
+                if (confirmed) data.append('confirmed', '1');
+
+                fetch('/urls/' + urlId + '/unlink', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (!json.success) {
+                            showEntityFeedback(row, 'Fehler', 'error');
+                            return;
+                        }
+                        if (json.needsConfirmation) {
+                            openConfirmModal({
+                                title: 'Link entfernen',
+                                message: 'Dieser Link ist nirgendwo sonst verknüpft. Beim Entfernen wird er endgültig gelöscht.',
+                                confirmLabel: 'Endgültig entfernen',
+                                onConfirm: function () {
+                                    performUnlink(urlId, true);
+                                }
+                            });
+                            return;
+                        }
+                        refreshLinksList(row);
+                        showEntityFeedback(row, 'Entfernt ✓', 'success');
+                    })
+                    .catch(function () {
+                        showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                    });
+            }
+        }
+
+        row.querySelectorAll('[data-action="remove-entity-url"]').forEach(function (btn) {
+            bindRemoveUrl(btn, row);
+        });
+
+        row.querySelectorAll('[data-action="edit-entity-url"]').forEach(function (btn) {
+            bindEditUrl(btn, row);
         });
     });
 

@@ -78,3 +78,13 @@ $router->post('/media/reorder',       'MediaController', 'reorder');
 $router->post('/media/upload-section', 'MediaController', 'uploadSection');
 $router->post('/media/{id}/meta',     'MediaController', 'updateMeta');
 $router->post('/media/batch-meta',    'MediaController', 'batchMeta');
+
+// ── URLs CRUD → UrlController ────────────────────────────────
+$router->get('/urls/fragment',        'UrlController', 'fragment');
+$router->get('/urls/types',           'UrlController', 'types');
+$router->get('/urls/search',          'UrlController', 'search');
+$router->post('/urls/add',            'UrlController', 'add');
+$router->post('/urls/{id}/attach',    'UrlController', 'attach');
+$router->post('/urls/{id}/unlink',    'UrlController', 'unlink');
+$router->post('/urls/{id}/delete',    'UrlController', 'delete');
+$router->post('/urls/{id}/save',      'UrlController', 'save');

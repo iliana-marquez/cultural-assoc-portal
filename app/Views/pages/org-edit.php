@@ -40,6 +40,12 @@ function editRow(string $label, string $field, string $value, string $saveUrl): 
                 <?= editRow('Organisationstyp',  'organisation_type',   $org->organisation_type ?? '', $saveUrl) ?>
                 <?= editRow('ZVR / Registernummer', 'registration_number', $org->registration_number ?? '', $saveUrl) ?>
                 <?= editRow('Statuten URL',      'statutes_url',        $org->statutes_url      ?? '', $saveUrl) ?>
+                <!-- URLs -->
+                <?php
+                $entityType = 'organisation';
+                $entityId   = $org->id;
+                include __DIR__ . '/../components/entity-urls.php';
+                ?>
             </div>
 
             <!-- Contact -->
@@ -60,22 +66,7 @@ function editRow(string $label, string $field, string $value, string $saveUrl): 
                 <?= editRow('Langbeschreibung (Homepage)',                'description',     $org->description    ?? '', $saveUrl) ?>
             </div>
 
-            <!-- URLs -->
-            <?php if (!empty($urls)): ?>
-                <div class="col-12">
-                    <h3>Links &amp; Social Media</h3>
-                    <nav class="nav-socials">
-                        <?php foreach ($urls as $url): ?>
-                            <a href="<?= htmlspecialchars($url->url) ?>"
-                                target="_blank" rel="noopener noreferrer"
-                                title="<?= htmlspecialchars($url->type_label) ?>">
-                                <i class="ti <?= htmlspecialchars($url->icon) ?>"></i>
-                            </a>
-                        <?php endforeach; ?>
-                    </nav>
-                    <small class="opacity-50">URLs werden in einer zukünftigen Version editierbar sein.</small>
-                </div>
-            <?php endif; ?>
+
 
         </div>
     </div>

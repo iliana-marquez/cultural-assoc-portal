@@ -42,6 +42,8 @@
     /* edit controls*/
     --edit-inactive: rgba(120, 120, 120, 0.5);  /* neutral grey */
     --edit-active:   indigo;                     /* indigo when editing */
+    --feedback-success: #4ade80;
+    --feedback-error:   #f87171;
 
 }
 

@@ -350,6 +350,15 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <?php endif; ?>
 
                     </div>
+
+                    <!-- URLs -->
+                    <?php
+                    $entityType = 'event';
+                    $entityId   = $event->id;
+                    $urls       = $event->urls;
+                    include __DIR__ . '/../components/entity-urls.php';
+                    ?>
+
                 </div>
             </div>
 

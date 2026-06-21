@@ -20,6 +20,7 @@ require_once __DIR__ . '/../Models/ParticipantModel.php';
 require_once __DIR__ . '/../Models/MediaModel.php';
 require_once __DIR__ . '/../Models/PagesModel.php';
 require_once __DIR__ . '/../Models/VenueModel.php';
+require_once __DIR__ . '/../Models/UrlModel.php';
 
 class EventController extends BaseController
 {
@@ -28,6 +29,7 @@ class EventController extends BaseController
     private MediaModel       $mediaModel;
     private PagesModel       $pagesModel;
     private VenueModel       $venueModel;
+    private UrlModel         $urlModel;
 
     public function __construct()
     {
@@ -37,6 +39,7 @@ class EventController extends BaseController
         $this->mediaModel       = new MediaModel();
         $this->pagesModel       = new PagesModel();
         $this->venueModel       = new VenueModel();
+        $this->urlModel         = new UrlModel();
     }
 
     // ── GET — display ────────────────────────────────────────
@@ -91,6 +94,7 @@ class EventController extends BaseController
         $event->status       = EventModel::getStatus($event);
         $event->participants = $this->participantModel->getForEvent($event->id);
         $event->media        = $this->mediaModel->getForEntity('event', $event->id);
+        $event->urls         = $this->urlModel->getForEntity('event', $event->id);
 
         // Add slug + displayName to each participant for linking
         foreach ($event->participants as $participant) {
