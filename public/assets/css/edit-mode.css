@@ -130,6 +130,7 @@ body.is-editing .edit-bar__indicator i {
     align-items: center;
     gap: 0.3rem;
     transition: var(--transition);
+    margin-top: 1rem;
 }
 
 .section-control-btn:hover { background: rgba(255,255,255,0.35); }
@@ -610,10 +611,13 @@ body.is-editing .edit-bar__indicator i {
 .attach-entity-modal-preview {
     font-size: 0.8rem;
     color: var(--edit-active);
-    display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    margin: 1rem 0;
+    background-color: rgba(128, 128, 128, 0.245);
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 4px;
 }
 
 .attach-entity-modal-preview--error {
@@ -633,10 +637,11 @@ body.is-editing .edit-bar__indicator i {
 
 .attach-entity-modal-test-link {
     color: var(--edit-active);
-    text-decoration: underline;
-    display: inline-flex;
     align-items: center;
     gap: 0.2rem;
+    border: var(--edit-active) 1px solid;
+    border-radius: 4px;
+    padding: 0 1rem;
 }
 
 /* ── Links (entity_urls) row ─────────────────────────────────── */
