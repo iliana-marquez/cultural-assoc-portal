@@ -34,6 +34,48 @@ class UrlController extends BaseController
     }
 
     /**
+     * GET /urls/fragment
+     * Returns the rendered url-list HTML for a given entity — used
+     * by the JS add/edit/remove success handlers to replace the
+     * entire list's contents with a fresh, server-rendered render,
+     * instead of patching the DOM incrementally. This guarantees
+     * the list can never drift from the database, and correctly
+     * handles the empty-state transition in both directions (list
+     * becoming empty, or becoming non-empty for the first time)
+     * without any special-case JS logic for either transition.
+     *
+     * Mirrors EventController::promoFragment()'s exact approach.
+     *
+     * GET params:
+     *   entity_type  string
+     *   entity_id    int
+     */
+    public function fragment(array $params = []): void
+    {
+        $this->requireLogin();
+
+        $entityType = trim($_GET['entity_type'] ?? '');
+        $entityId   = (int) ($_GET['entity_id'] ?? 0);
+
+        if (!$entityType || !$entityId) {
+            http_response_code(400);
+            echo '';
+            return;
+        }
+
+        $urls         = $this->urlModel->getForEntity($entityType, $entityId);
+        $isLoggedIn   = $this->isLoggedIn();
+        $fragmentOnly = true;
+
+        ob_start();
+        include __DIR__ . '/../Views/components/entity-urls.php';
+        $html = ob_get_clean();
+
+        header('Content-Type: text/html; charset=utf-8');
+        echo $html;
+    }
+
+    /**
      * GET /urls/types
      * List all available URL types (Website, Email, Instagram, etc.),
      * so the frontend can show real labels and never needs to guess
