@@ -1722,6 +1722,62 @@ UPDATE organisation_info SET id = 1 WHERE id = 2;
 - Title edits update the browser URL without a reload
 - No automated tests written for this feature
 
+# feat/related-entity-lifecycle-urls
+
+## Overview
+
+- Lets an editor search for an existing external link or add a new one, with the right type validated automatically, directly from whatever entity hosts it — events, organisation info, and (later) participants
+- Replaces what would otherwise be a separate "manage all links" admin screen — every link an editor would ever touch is already visible wherever it's actually used
+- Built once as a single reusable partial and JS/backend system; proven on two entities (event, organisation) with zero duplicated markup or logic between them
+
+## Architecture
+
+- URLs are stored once in `urls`, linked to any entity via the generic `entity_urls` pivot (`entity_type` + `entity_id`) — the same shared-resource pattern already used by `media`/`entity_media`
+- One URL can be linked to many entities at once; editing it once updates everywhere it's referenced; unlinking only deletes the underlying row when no other entity references it anymore (checked automatically before every removal)
+- Validation has two authorities, deliberately kept in sync: the server (`UrlModel::validateForType()`) is the real, unbypassable check; the client mirrors the same rules for instant feedback, but the server re-validates every request regardless of what the client already approved
+- Three generic, reusable modal components were built or significantly reworked for this feature: `input-modal` (single text value, e.g. caption/credit), `confirm-modal` (named-consequence confirmation, replacing native `confirm()`), `attach-entity-modal` (search-existing-or-add-new shell, with a third "edit existing" mode added later) — none of them know anything about URLs specifically, so any future entity type can reuse them unchanged
+- The entire feature's markup — header, pencil/cancel toggle, the list, the add trigger — lives in one file, `entity-urls.php`, deliberately not split across separate header/list/item files; the AJAX refresh after any action re-renders this same file with a `$fragmentOnly` flag, swapping only the inner list container's contents, never the header — so editing and viewing the rendered markup are never two diverging code paths
+- Every add/edit/remove action re-fetches and swaps in real, server-rendered HTML rather than constructing it in JavaScript — eliminates an entire class of drift bugs between what JS guesses the markup should look like and what the PHP partial actually renders
+
+## Development
+
+- Built in stages: model and controller first (verified via a disposable browser-based test page before any UI existed), then the generic modal shell, then the URL-specific configuration and validation on top of it, then the visual integration (pencil/cancel toggle, button placement) to match the rest of the editor's established conventions
+- Validation rules were extended iteratively based on actual manual testing, not speculative edge cases — each addition (domain-shape rejection, Maps' multi-domain handling, extending the platform-mismatch warning beyond just "Website") came from a specific, reproduced problem, not a guess at what might go wrong
+- A genuine three-file partial split (header/wrapper, list, per-item) was built, then deliberately collapsed back into one file after determining the split was never actually load-bearing — the real protection for the header's JS event listeners comes from precise DOM targeting in the refresh function, not from any PHP file boundary
+- Repeated, deliberate file-state verification throughout — multiple rounds of fixes were built against a stale copy of `edit-mode.js`/`attach-entity-modal.js` before being caught and corrected, reinforcing the practice of checking real file content before editing rather than trusting prior context
+
+## Files
+
+- **`UrlModel.php`** — `getForEntity()`, `addForEntity()` (create-or-reuse via the unique URL string, returns the resolved id), `attachToEntity()`, `unlinkFromEntity()` (orphan-check-then-delete), `delete()` (explicit force-delete), `update()`, `getTypes()`, `getById()`, `countLinks()`, `normalize()` (https upgrade, trailing-slash strip, domain lowercasing, automatic `mailto:` for the Email type), `validateForType()` (email shape, generic domain.tld shape, per-platform domain suffix matching, Maps' multi-domain rule)
+- **`UrlController.php`** — `search`, `types`, `add`, `attach`, `unlink` (two-step: returns `needsConfirmation` before actually deleting an orphaned link), `delete`, `save`, `fragment` (re-renders `entity-urls.php` with `$fragmentOnly = true`, returning just the inner list HTML)
+- **`components/entity-urls.php`** — the single, consolidated partial: header (pencil/cancel, label, add-trigger) plus the list/empty-state/per-item markup, toggled entirely by `$isLoggedIn` and `$fragmentOnly`. Required variables: `$entityType`, `$entityId`, `$urls`, `$isLoggedIn`
+- **`components/modals/input-modal.php`**, **`confirm-modal.php`**, **`attach-entity-modal.php`** — the three generic modal components, plus their matching JS controllers (`confirm-modal.js`, `attach-entity-modal.js`, and `input-modal`'s controller inline in `edit-mode.js`)
+- **`edit-mode.js`** — the `.links-edit-row` handler: pencil/cancel toggle, the add-new flow (fetches `/urls/types` first, builds the type-aware `validateAndPreview()` function shared by both add and edit), the edit flow (`bindEditUrl`, opens the same modal in `mode: 'edit'`), the remove flow (`bindRemoveUrl`, handles the two-step confirm), and `refreshLinksList()` (the single function every action calls to re-sync the visible list with the database)
+- **`edit-mode.css`** — the consolidated, shared modal CSS (`.ows-modal-*` classes, deliberately prefixed to avoid colliding with Bootstrap's own `.modal-*` classes), the two shared feedback-color variables (`--feedback-success`/`--feedback-error`), and the Links row's inactive/editing states
+- **`event-detail.php`**, **`org-edit.php`** — both reduced to a three-line variable setup (`$entityType`, `$entityId`, relying on `$urls` already being in scope) plus one `include`
+
+## Bugs / Fixes
+
+- **Production `urls` table missing primary key/auto-increment** — identical root cause to an earlier `media` table incident from a prior feature; fixed via direct `ALTER TABLE`, and confirmed via a full-database audit that no other table was silently affected
+- **Bootstrap `.modal-backdrop` name collision** — the shared modal CSS originally used `.modal-backdrop`/`.modal-card`/etc., which collided with Bootstrap's own class of the same name (already loaded for carousels elsewhere on the page), silently breaking the modal's full-screen positioning. Fixed by renaming every shared modal class to an `.ows-` prefixed namespace
+- **Modal size constraint applied to the wrong element** — `max-width`/`max-height` were originally set on the full-screen backdrop element itself rather than the inner card, shrinking the entire overlay instead of just the visible card
+- **Pasted non-URL text silently accepted as a valid hostname** — `new URL()`/`parse_url()` are both permissive enough to extract _some_ hostname from almost any string, including pasted garbage text, producing a syntactically-parseable but meaningless punycode-encoded result. Fixed with a strict domain.tld shape regex, applied identically client- and server-side
+- **Add-new validation always failed with "all fields required"** — the type dropdown was never actually included as a field in the add-new form at all, meaning `url_type_id` was structurally impossible to provide; fixed by adding select-field support to the generic modal shell and fetching real types before opening it
+- **List didn't update after the first add when starting from empty** — the empty-state-removal logic accidentally deleted the list's own parent container right before trying to append the new item into it; fixed, then later made moot entirely by moving to a full server-rendered refresh instead of incremental DOM patching
+- **Icon/label `undefined` after editing a link** — `UrlController::save()` only ever returned `{"success": true}`, with no data for the JS to render the updated item from; fixed to return the same complete shape `add()` already did
+- **Validation warning didn't disable the save button** — the warning state was originally non-blocking by design, then deliberately changed to block until explicitly acknowledged (via a new "Trotzdem speichern" override) once testing showed a silent warning was too easy to miss
+- **Disabled button state was functionally correct but visually identical to enabled** — added explicit `:disabled` styling (reduced opacity, not-allowed cursor) since the existing button color rules had no exception for the disabled state
+- **JS-rendered links visually inconsistent with PHP-rendered ones** (icon fallback logic, button/link ordering) — both were symptoms of the same root cause, a second, independent HTML-building implementation in JavaScript that had drifted from the PHP partial; resolved permanently by eliminating JS-side HTML construction entirely
+
+## Testing
+
+- Add, search-and-attach, edit, and remove all tested directly in the event detail page's edit mode
+- Domain/type validation tested per category: Email (valid/invalid shape), generic types (any syntactically valid URL, pasted-garbage rejection), strict platform types (correct domain, wrong domain, Bandcamp subdomain acceptance, adversarial fake-domain rejection), Maps (Google/Apple/OpenStreetMap/goo.gl acceptance, bare `google.com` without `/maps` rejection)
+- Warning-and-override flow tested end to end: warning appears and blocks save, "Typ wechseln" correctly switches the type and re-validates, "Trotzdem speichern" correctly unblocks and the save proceeds with the originally-typed value
+- Orphan-check-before-delete tested in both directions: a link still attached elsewhere unlinks silently with no prompt; a link with no other attachments triggers the confirm modal, and is genuinely deleted from the database (not just hidden) once confirmed
+- Full inactive/editing toggle tested for visual and behavioral parity with the existing participants/media rows, including the navbar's global edit indicator turning on and off correctly on pencil/cancel
+- `entity-urls.php` integration re-tested after the org-edit.php wiring to confirm zero behavior change on the already-working event page — same partial, two different controllers' data shapes, no regressions
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
