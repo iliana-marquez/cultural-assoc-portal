@@ -97,6 +97,12 @@ class UrlController extends BaseController
             return;
         }
 
+        $validationError = $this->urlModel->validateForType($url, $urlTypeId);
+        if ($validationError !== null) {
+            $this->jsonError($validationError);
+            return;
+        }
+
         $urlId = $this->urlModel->addForEntity(
             $entityType,
             $entityId,
@@ -251,6 +257,12 @@ class UrlController extends BaseController
 
         if (!$urlId || !$urlTypeId || !$url) {
             $this->jsonError('url_id, url_type_id and url are required');
+            return;
+        }
+
+        $validationError = $this->urlModel->validateForType($url, $urlTypeId);
+        if ($validationError !== null) {
+            $this->jsonError($validationError);
             return;
         }
 

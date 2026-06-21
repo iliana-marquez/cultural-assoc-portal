@@ -161,15 +161,67 @@ function bindAttachEntityModalOnce() {
         const config = attachEntityModal.config;
         if (!config?.previewFn) return;
         const values = collectFieldValues();
-        const preview = config.previewFn(values);
-        if (!preview) {
+        const result = config.previewFn(values);
+
+        // previewFn returns one of:
+        //   { error: 'message' }
+        //     — invalid, BLOCKS saving, no Testen link
+        //   { warning: 'message', suggestedTypeId: 'x', preview: 'normalized' }
+        //     — valid enough to save, but flags a likely mismatch;
+        //       Testen link still shown; if suggestedTypeId is given,
+        //       a clickable "Typ wechseln" affordance lets the editor
+        //       switch the type field directly from the warning
+        //   { preview: 'normalized' }
+        //     — no concern at all, show preview + Testen link
+        //   null/undefined
+        //     — nothing typed yet, show nothing
+        if (!result) {
             previewBox.style.display = 'none';
             return;
         }
+
         previewBox.style.display = 'block';
-        previewText.textContent = 'Wird gespeichert als: ' + preview;
-        testLink.href = preview;
-        testLink.style.display = 'inline-flex';
+        previewBox.classList.toggle('attach-entity-modal-preview--error', !!result.error);
+        previewBox.classList.toggle('attach-entity-modal-preview--warning', !!result.warning);
+
+        if (result.error) {
+            previewText.innerHTML = '';
+            previewText.textContent = result.error;
+            testLink.style.display = 'none';
+            return;
+        }
+
+        if (result.warning) {
+            previewText.innerHTML = '';
+            const warningSpan = document.createElement('span');
+            warningSpan.textContent = result.warning + ' ';
+            previewText.appendChild(warningSpan);
+
+            if (result.suggestedTypeId) {
+                const switchLink = document.createElement('a');
+                switchLink.href = '#';
+                switchLink.className = 'attach-entity-modal-type-switch';
+                switchLink.textContent = 'Typ wechseln';
+                switchLink.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const typeSelect = fieldsBox.querySelector('[data-field-name="url_type_id"]');
+                    if (typeSelect) {
+                        typeSelect.value = result.suggestedTypeId;
+                        updatePreview();
+                    }
+                });
+                previewText.appendChild(switchLink);
+            }
+        } else {
+            previewText.textContent = 'Wird gespeichert als: ' + result.preview;
+        }
+
+        if (result.preview) {
+            testLink.href = result.preview;
+            testLink.style.display = 'inline-flex';
+        } else {
+            testLink.style.display = 'none';
+        }
     }
 
     confirmNewBtn?.addEventListener('click', function () {
@@ -181,6 +233,11 @@ function bindAttachEntityModalOnce() {
             return f.required && !values[f.name];
         });
         if (missingRequired) return;
+
+        if (config.previewFn) {
+            const validation = config.previewFn(values);
+            if (validation?.error) return;
+        }
 
         const data = new FormData();
         Object.entries(values).forEach(function ([key, value]) {

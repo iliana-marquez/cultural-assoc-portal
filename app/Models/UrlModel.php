@@ -32,6 +32,134 @@ class UrlModel extends BaseModel
     }
 
     /**
+     * Required domain (suffix-matched, not substring-matched) for each
+     * type that has a known canonical platform domain. A Bandcamp link
+     * like "https://myband.bandcamp.com" correctly matches "bandcamp.com"
+     * as a SUFFIX of the host — "bandcamp.com.evil-site.net" does not,
+     * since that's a substring match but not a suffix match.
+     *
+     * Types not listed here (Website, Press, Radio, TV, Maps, Other)
+     * have no specific domain requirement — any syntactically valid
+     * URL is accepted.
+     *
+     * @return array<string, string[]>
+     */
+    private static function platformDomains(): array
+    {
+        return [
+            'facebook'   => ['facebook.com'],
+            'instagram'  => ['instagram.com'],
+            'linkedin'   => ['linkedin.com'],
+            'youtube'    => ['youtube.com', 'youtu.be'],
+            'spotify'    => ['spotify.com'],
+            'soundcloud' => ['soundcloud.com'],
+            'vimeo'      => ['vimeo.com'],
+            'bandcamp'   => ['bandcamp.com'],
+        ];
+    }
+
+    /**
+     * Whether a host (+ path, for the ambiguous google.com case)
+     * looks like a real maps link. Mirrors the JS validation exactly.
+     *
+     * @param string $host  already lowercased
+     * @param string $path
+     * @return bool
+     */
+    private static function isValidMapsHost(string $host, string $path): bool
+    {
+        $suffixMatch = function (string $domain) use ($host) {
+            return $host === $domain || str_ends_with($host, '.' . $domain);
+        };
+
+        if ($suffixMatch('maps.google.com')) return true;
+        if ($suffixMatch('maps.apple.com')) return true;
+        if ($suffixMatch('openstreetmap.org')) return true;
+        if ($suffixMatch('goo.gl')) return true;
+        // Bare google.com is too broad to accept on domain alone
+        // (it's also search, gmail, etc.) — require /maps in the path.
+        if ($suffixMatch('google.com') && str_starts_with($path, '/maps')) return true;
+
+        return false;
+    }
+
+    /**
+     * Validate a URL against the rules for its selected type.
+     * Returns null when valid, or a human-readable German error
+     * message when invalid — server-side authority, called from
+     * UrlController before any save, regardless of what client-side
+     * validation already ran (which can be bypassed).
+     *
+     * @param string $url       the RAW, not-yet-normalized url as typed
+     * @param int    $urlTypeId
+     * @return string|null
+     */
+    public function validateForType(string $url, int $urlTypeId): ?string
+    {
+        $type = $this->fetchOne(
+            "SELECT label FROM url_types WHERE id = ?",
+            [$urlTypeId]
+        );
+
+        if (!$type) {
+            return 'Unbekannter Link-Typ.';
+        }
+
+        $label = strtolower($type->label);
+        $url   = trim($url);
+
+        if ($label === 'email') {
+            // Strip an already-typed mailto: before checking the shape,
+            // since the editor may or may not have typed it themselves.
+            $candidate = preg_replace('/^mailto:/i', '', $url);
+            if (!filter_var($candidate, FILTER_VALIDATE_EMAIL)) {
+                return 'Bitte eine gültige E-Mail-Adresse eingeben.';
+            }
+            return null;
+        }
+
+        // Everything else must at least be a syntactically valid URL
+        // once normalized the same way normalize() would.
+        $candidate = preg_replace('/^http:\/\//i', 'https://', $url);
+        if (!preg_match('#^https?://#i', $candidate)) {
+            $candidate = 'https://' . $candidate;
+        }
+
+        $host = parse_url($candidate, PHP_URL_HOST);
+        $path = parse_url($candidate, PHP_URL_PATH) ?: '';
+        if (!$host) {
+            return 'Bitte eine gültige URL eingeben.';
+        }
+        $host = strtolower($host);
+
+        if ($label === 'maps') {
+            if (!self::isValidMapsHost($host, $path)) {
+                return 'Diese URL scheint kein Karten-Link zu sein (z. B. Google Maps, Apple Maps, OpenStreetMap).';
+            }
+            return null;
+        }
+
+        $domains = self::platformDomains();
+        if (isset($domains[$label])) {
+            $matches = false;
+            foreach ($domains[$label] as $requiredDomain) {
+                // Suffix match: host is the domain itself, or ends with
+                // ".{domain}" (covers subdomains like myband.bandcamp.com).
+                if ($host === $requiredDomain || str_ends_with($host, '.' . $requiredDomain)) {
+                    $matches = true;
+                    break;
+                }
+            }
+            if (!$matches) {
+                $expected = implode(' oder ', $domains[$label]);
+                return 'Diese URL scheint nicht zu ' . $type->label . ' zu gehören (erwartet: ' . $expected . ').';
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Normalize a URL string into one canonical, storable format,
      * aware of the selected url_type so the editor never has to know
      * about schemes like mailto: themselves — picking "Email" as the
