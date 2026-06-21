@@ -51,7 +51,9 @@
     <!-- Edit-Bar for Editing Mode only -->
     <?php if ($isLoggedIn): ?>
         <?php require __DIR__ . '/../components/edit-bar.php'; ?>
-        <?php require __DIR__ . '/../components/input-modal.php'; ?>
+        <?php require __DIR__ . '/../components/modals/input-modal.php'; ?>
+        <?php require __DIR__ . '/../components/modals/attach-entity-modal.php'; ?>
+        <?php require __DIR__ . '/../components/modals/confirm-modal.php'; ?>
     <?php endif; ?>
 
     <!-- Main content (Mask) -->
@@ -69,6 +71,8 @@
     <script src="/assets/js/app.js"></script>
     <?php if ($isLoggedIn): ?>
         <script src="/assets/js/edit-mode.js"></script>
+        <script src="/assets/js/attach-entity-modal.js"></script>
+        <script src="/assets/js/confirm-modal.js"></script>
     <?php endif; ?>
 </body>
 
