@@ -31,7 +31,7 @@
 }
 
 body.is-editing .edit-bar__indicator i {
-    color: #4ade51;
+    color: var(--feedback-success);
     animation: pulse 1.5s infinite;
 }
 
@@ -225,10 +225,10 @@ body.is-editing .edit-bar__indicator i {
 }
 
 .block-feedback--success,
-.entity-feedback--success { color: #4ade80; }
+.entity-feedback--success { color: var(--feedback-success); }
 
 .block-feedback--error,
-.entity-feedback--error   { color: #f87171; }
+.entity-feedback--error   { color: var(--feedback-error); }
 
 
 /* ── Image edit overlay ─────────────────────────────────────── */
@@ -614,6 +614,21 @@ body.is-editing .edit-bar__indicator i {
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
+}
+
+.attach-entity-modal-preview--error {
+    color: var(--feedback-error);
+}
+
+.attach-entity-modal-preview--warning {
+    color: var(--edit-active);
+}
+
+.attach-entity-modal-type-switch {
+    color: var(--edit-active);
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
 }
 
 .attach-entity-modal-test-link {
