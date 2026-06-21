@@ -350,6 +350,51 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <?php endif; ?>
 
                     </div>
+
+                    <!-- URLs -->
+                    <div class="event-urls links-edit-row" data-entity-type="event" data-entity-id="<?= $event->id ?>">
+                        <?php if ($isLoggedIn): ?>
+                            <div class="edit-row-header">
+                                <label class="edit-row-label">Links</label>
+                                <div class="edit-row-actions">
+                                    <span class="entity-feedback"></span>
+                                    <button class="entity-edit-btn" data-action="add-entity-url">
+                                        <i class="ti ti-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        <?php elseif (!empty($event->urls)): ?>
+                            <h3>Links</h3>
+                        <?php endif; ?>
+
+                        <?php if (!empty($event->urls)): ?>
+                            <div class="event-url-list p-2">
+                                <?php foreach ($event->urls as $url): ?>
+                                    <div class="event-url-item" data-url-id="<?= $url->id ?>">
+                                        <a href="<?= htmlspecialchars($url->url) ?>" target="_blank" rel="noopener">
+                                            <i class="ti <?= htmlspecialchars($url->icon ?? 'ti-link') ?>"></i>
+                                            <?= htmlspecialchars($url->label ?: $url->type_label) ?>
+                                        </a>
+                                        <?php if ($isLoggedIn): ?>
+                                            <button class="entity-remove-btn border-0"
+                                                data-action="remove-entity-url"
+                                                data-url-id="<?= $url->id ?>">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php elseif ($isLoggedIn): ?>
+                            <div class="event-url-list p-2">
+                                <p class="text-muted p-2 mb-0">
+                                    <i class="ti ti-link-off"></i>
+                                    Noch keine Links
+                                </p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
                 </div>
             </div>
 
