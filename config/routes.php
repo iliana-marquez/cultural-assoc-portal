@@ -80,6 +80,7 @@ $router->post('/media/{id}/meta',     'MediaController', 'updateMeta');
 $router->post('/media/batch-meta',    'MediaController', 'batchMeta');
 
 // ── URLs CRUD → UrlController ────────────────────────────────
+$router->get('/urls/fragment',        'UrlController', 'fragment');
 $router->get('/urls/types',           'UrlController', 'types');
 $router->get('/urls/search',          'UrlController', 'search');
 $router->post('/urls/add',            'UrlController', 'add');
