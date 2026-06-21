@@ -18,9 +18,15 @@
     <p class="">&copy; 2026 <?= htmlspecialchars($org->name ?? 'Organisation') ?></p>
 
     <nav class="nav-socials justify-content-center margin-top" aria-label="Socials Navigation">
-        <a href=""><i class="ti ti-brand-instagram"></i></a>
-        <a href=""><i class="ti ti-brand-facebook"></i></a>
-        <a href=""><i class="ti ti-brand-youtube"></i></a>
+        <?php foreach ($org->urls as $url): ?>
+            <?php if ($url->type_label === 'Website') continue; ?>
+            <a href="<?= htmlspecialchars($url->url) ?>"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="<?= htmlspecialchars($url->type_label) ?>">
+                <i class="ti <?= htmlspecialchars($url->icon) ?>"></i>
+            </a>
+        <?php endforeach; ?>
     </nav>
 
     <nav class="footer-links small" aria-label="Footer Navigation">

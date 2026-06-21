@@ -74,9 +74,15 @@
         <li><a href="/archiv">Archiv</a></li>
 
         <li class="nav-socials">
-            <a href=""><i class="ti ti-brand-instagram"></i></a>
-            <a href=""><i class="ti ti-brand-facebook"></i></a>
-            <a href=""><i class="ti ti-brand-youtube"></i></a>
+            <?php foreach ($org->urls as $url): ?>
+                <?php if ($url->type_label === 'Website') continue; ?>
+                <a href="<?= htmlspecialchars($url->url) ?>"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="<?= htmlspecialchars($url->type_label) ?>">
+                    <i class="ti <?= htmlspecialchars($url->icon) ?>"></i>
+                </a>
+            <?php endforeach; ?>
         </li>
 
     </ul>
