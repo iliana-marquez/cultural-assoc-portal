@@ -358,9 +358,11 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                 <label class="edit-row-label">Links</label>
                                 <div class="edit-row-actions">
                                     <span class="entity-feedback"></span>
+                                    <button class="entity-edit-btn links-pencil-btn"><i class="ti ti-pencil"></i></button>
                                     <button class="entity-edit-btn" data-action="add-entity-url">
                                         <i class="ti ti-plus"></i>
                                     </button>
+                                    <button class="entity-cancel-btn links-cancel-btn"><i class="ti ti-x"></i></button>
                                 </div>
                             </div>
                         <?php elseif (!empty($event->urls)): ?>

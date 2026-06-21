@@ -854,6 +854,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const entityType = row.dataset.entityType;
         const entityId = row.dataset.entityId;
 
+        const linksPencilBtn = row.querySelector('.links-pencil-btn');
+        const linksCancelBtn = row.querySelector('.links-cancel-btn');
+
+        linksPencilBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.add('editing');
+            document.body.classList.add('is-editing');
+        });
+
+        linksCancelBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.remove('editing');
+        });
+
         // Shared validation helpers — used by both the "add new"
         // and "edit existing" flows, so this only needs to exist once.
         const platformDomains = {

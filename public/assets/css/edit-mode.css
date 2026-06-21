@@ -658,6 +658,29 @@ body.is-editing .edit-bar__indicator i {
     margin-bottom: 0.75rem;
 }
 
+.links-edit-row.editing {
+    border: 2px solid var(--edit-active);
+}
+
+.links-edit-row.editing .edit-row-header {
+    background: var(--edit-active);
+    color: #fff;
+}
+
+.links-pencil-btn { display: inline-flex; }
+.links-edit-row.editing .links-pencil-btn { display: none; }
+
+.links-cancel-btn { display: none; }
+.links-edit-row.editing .links-cancel-btn { display: inline-flex; }
+
+.links-edit-row [data-action="add-entity-url"] { display: none; }
+.links-edit-row.editing [data-action="add-entity-url"] { display: inline-flex; }
+
+.links-edit-row .event-url-item .entity-edit-btn,
+.links-edit-row .event-url-item .entity-remove-btn { display: none; }
+.links-edit-row.editing .event-url-item .entity-edit-btn,
+.links-edit-row.editing .event-url-item .entity-remove-btn { display: inline-flex; }
+
 .event-url-item {
     display: flex;
     align-items: center;
