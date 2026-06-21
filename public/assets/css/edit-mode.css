@@ -403,8 +403,21 @@ body.is-editing .edit-bar__indicator i {
     min-height: 1.2rem;
 }
 
-/* ── Media meta modal (caption / credit batch editor) ───────── */
-.input-modal {
+/* ── Shared modal base ────────────────────────────────────────
+   Every modal (input, confirm, attach-entity) is built from these
+   shared pieces. Each modal's own class ONLY sets what's genuinely
+   unique to it (max-width, etc.) — never re-declares
+   backdrop/card/header/input/button styling.
+   Markup pattern: class="modal-backdrop input-modal" on the outer
+   element, class="modal-card" on the card, class="modal-header"
+   wrapping a class="modal-title" + a class="modal-close" button.
+   Only two button colors exist anywhere — consistent with the rest
+   of the editor's visual language (edit-active / edit-inactive).
+   Even a destructive confirm uses modal-btn-primary, same as a
+   routine save — the button's LABEL names the consequence, never
+   a separate alarm color. */
+
+.ows-modal-backdrop {
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.5);
@@ -414,66 +427,80 @@ body.is-editing .edit-bar__indicator i {
     justify-content: center;
 }
 
-.input-modal-inner {
+.ows-modal-card {
     background: #fff;
     border-radius: 8px;
     padding: 1.5rem;
     width: 100%;
-    max-width: 480px;
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
 
-.input-modal-title {
+.ows-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ows-modal-title {
     font-size: 1rem;
     font-weight: 600;
     margin: 0;
 }
 
-.input-modal-textarea {
+.ows-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #888;
+    padding: 0.2rem;
+}
+
+.ows-modal-close:hover { color: #333; }
+
+/* Text inputs/textareas shared by every modal that collects input */
+.ows-modal-text-input,
+.ows-modal-textarea {
     width: 100%;
     border: 1px solid var(--edit-inactive);
     border-radius: 4px;
     padding: 0.5rem;
     font-size: 0.9rem;
-    resize: vertical;
     outline: none;
 }
 
-.input-modal-actions {
+.ows-modal-textarea { resize: vertical; }
+
+/* Footer action row — Abbrechen + primary button, right-aligned */
+.ows-modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
 }
 
-/* ── Visible buttons on light backgrounds ───────────────────── */
 /* .section-control-btn defaults to white-on-translucent-white,
-   correct for the dark edit-bar/overlay contexts. These three
-   buttons render on light backgrounds (upload zone, modal) and
-   need their own solid colors — scoped tightly, .section-control-btn
-   itself is untouched. */
-
-.media-upload-confirm,
-.input-modal-cancel,
-.input-modal-confirm {
-    background: var(--edit-active);
-    color: #fff;
-}
-
-.media-upload-confirm:hover,
-.input-modal-confirm:hover {
-    background: var(--edit-active);
-    opacity: 0.85;
-}
-
-.input-modal-cancel {
+   correct for the dark edit-bar/overlay contexts. Modal buttons
+   render on a white card and need their own solid colors. */
+.ows-modal-btn-secondary {
     background: var(--edit-inactive);
     color: #333;
 }
 
-.input-modal-cancel:hover {
+.ows-modal-btn-secondary:hover {
     background: var(--edit-inactive);
+    opacity: 0.85;
+}
+
+.ows-modal-btn-primary,
+.media-upload-confirm {
+    background: var(--edit-active);
+    color: #fff;
+}
+
+.ows-modal-btn-primary:hover,
+.media-upload-confirm:hover {
+    background: var(--edit-active);
     opacity: 0.85;
 }
 
@@ -489,4 +516,126 @@ body.is-editing .edit-bar__indicator i {
     font-size: 0.75rem;
     padding: 0.25rem 0;
     color: var(--text-muted, #888);
+}
+
+/* ── Input modal — only what's unique to it ──────────────────── */
+/* Sizing targets the CARD, not the backdrop — the backdrop must
+   always span the full viewport; only the white card inside it
+   should be width/height-constrained. */
+.input-modal .ows-modal-card { max-width: 480px; }
+
+/* ── Confirm modal — only what's unique to it ────────────────── */
+.confirm-modal .ows-modal-card { max-width: 420px; }
+
+.confirm-modal-message {
+    font-size: 0.9rem;
+    color: #444;
+    margin: 0;
+}
+
+/* ── Attach entity modal — only what's unique to it ──────────── */
+.attach-entity-modal .ows-modal-card {
+    max-width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.attach-entity-modal-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--edit-inactive);
+}
+
+.attach-entity-modal-tab {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    color: #888;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition);
+}
+
+.attach-entity-modal-tab--active {
+    color: var(--edit-active);
+    border-bottom: 2px solid var(--edit-active);
+    font-weight: 600;
+}
+
+.attach-entity-modal-panel { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.attach-entity-modal-results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.attach-entity-modal-result {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    text-align: left;
+    background: #f7f7f9;
+    border: 1px solid #e0e0e5;
+    border-radius: 4px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.attach-entity-modal-result:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+}
+
+.attach-entity-modal-empty {
+    font-size: 0.85rem;
+    color: #888;
+    padding: 0.5rem;
+    margin: 0;
+}
+
+.attach-entity-modal-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #666;
+    margin-top: 0.4rem;
+}
+
+.attach-entity-modal-preview {
+    font-size: 0.8rem;
+    color: var(--edit-active);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.attach-entity-modal-test-link {
+    color: var(--edit-active);
+    text-decoration: underline;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+/* ── Links (entity_urls) row ─────────────────────────────────── */
+.links-edit-row {
+    border: 2px solid var(--edit-inactive);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.event-url-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
 }
