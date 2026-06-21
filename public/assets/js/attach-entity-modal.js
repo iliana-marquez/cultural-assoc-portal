@@ -133,11 +133,13 @@ function bindAttachEntityModalOnce() {
                     option.textContent = opt.label;
                     input.appendChild(option);
                 });
+                if (field.value !== undefined) input.value = field.value;
             } else {
                 input = document.createElement('input');
                 input.type = field.type || 'text';
                 input.className = 'ows-modal-text-input attach-entity-modal-field';
                 if (field.placeholder) input.placeholder = field.placeholder;
+                if (field.value !== undefined) input.value = field.value;
             }
             input.dataset.fieldName = field.name;
             fieldsBox.appendChild(input);
@@ -165,18 +167,21 @@ function bindAttachEntityModalOnce() {
 
         // previewFn returns one of:
         //   { error: 'message' }
-        //     — invalid, BLOCKS saving, no Testen link
+        //     — invalid, BLOCKS saving entirely, no Testen link
         //   { warning: 'message', suggestedTypeId: 'x', preview: 'normalized' }
-        //     — valid enough to save, but flags a likely mismatch;
-        //       Testen link still shown; if suggestedTypeId is given,
-        //       a clickable "Typ wechseln" affordance lets the editor
-        //       switch the type field directly from the warning
+        //     — valid enough to save, but flags a likely mismatch.
+        //       BLOCKS saving until the editor either changes the
+        //       type/url (re-running validation fresh) or explicitly
+        //       clicks "Trotzdem speichern" to override.
         //   { preview: 'normalized' }
         //     — no concern at all, show preview + Testen link
         //   null/undefined
         //     — nothing typed yet, show nothing
+        attachEntityModal._warningAcknowledged = false;
+
         if (!result) {
             previewBox.style.display = 'none';
+            confirmNewBtn.disabled = false;
             return;
         }
 
@@ -188,10 +193,12 @@ function bindAttachEntityModalOnce() {
             previewText.innerHTML = '';
             previewText.textContent = result.error;
             testLink.style.display = 'none';
+            confirmNewBtn.disabled = true;
             return;
         }
 
         if (result.warning) {
+            confirmNewBtn.disabled = true;
             previewText.innerHTML = '';
             const warningSpan = document.createElement('span');
             warningSpan.textContent = result.warning + ' ';
@@ -212,7 +219,21 @@ function bindAttachEntityModalOnce() {
                 });
                 previewText.appendChild(switchLink);
             }
+
+            previewText.appendChild(document.createTextNode(' '));
+
+            const overrideLink = document.createElement('a');
+            overrideLink.href = '#';
+            overrideLink.className = 'attach-entity-modal-type-switch';
+            overrideLink.textContent = 'Trotzdem speichern';
+            overrideLink.addEventListener('click', function (e) {
+                e.preventDefault();
+                attachEntityModal._warningAcknowledged = true;
+                confirmNewBtn.disabled = false;
+            });
+            previewText.appendChild(overrideLink);
         } else {
+            confirmNewBtn.disabled = false;
             previewText.textContent = 'Wird gespeichert als: ' + result.preview;
         }
 
@@ -237,6 +258,7 @@ function bindAttachEntityModalOnce() {
         if (config.previewFn) {
             const validation = config.previewFn(values);
             if (validation?.error) return;
+            if (validation?.warning && !attachEntityModal._warningAcknowledged) return;
         }
 
         const data = new FormData();
@@ -279,6 +301,8 @@ function bindAttachEntityModalOnce() {
     attachEntityModal._resetPreview = function () {
         previewBox.style.display = 'none';
         testLink.style.display = 'none';
+        confirmNewBtn.disabled = false;
+        attachEntityModal._warningAcknowledged = false;
     };
     attachEntityModal._tabs = tabs;
 }
@@ -292,12 +316,31 @@ function openAttachEntityModal(config) {
     const titleEl = attachEntityModal.el.querySelector('.ows-modal-title');
     if (titleEl) titleEl.textContent = config.title || 'Auswählen';
 
+    const confirmBtn = attachEntityModal.el.querySelector('.ows-modal-btn-primary');
+    if (confirmBtn) confirmBtn.textContent = config.confirmLabel || 'Hinzufügen';
+
+    const tabsEl = attachEntityModal.el.querySelector('.attach-entity-modal-tabs');
     const searchInput = attachEntityModal.el.querySelector('.attach-entity-modal-search');
-    if (searchInput) searchInput.placeholder = config.searchPlaceholder || 'Suchen...';
 
     attachEntityModal._resetSearch();
     attachEntityModal._resetPreview();
     attachEntityModal._renderFields(config.addFields);
+
+    if (config.mode === 'edit') {
+        // Edit mode: only the fields form is relevant — no tabs,
+        // no "search existing" path, since we're correcting one
+        // already-known record, not finding or creating one.
+        if (tabsEl) tabsEl.style.display = 'none';
+        attachEntityModal.el.querySelectorAll('.attach-entity-modal-panel').forEach(function (panel) {
+            panel.style.display = panel.dataset.panel === 'new' ? 'block' : 'none';
+        });
+        attachEntityModal.el.style.display = 'flex';
+        attachEntityModal.el.querySelector('.attach-entity-modal-field')?.focus();
+        return;
+    }
+
+    if (tabsEl) tabsEl.style.display = 'flex';
+    if (searchInput) searchInput.placeholder = config.searchPlaceholder || 'Suchen...';
 
     attachEntityModal._tabs.forEach(function (t) { t.classList.remove('attach-entity-modal-tab--active'); });
     attachEntityModal._tabs[0]?.classList.add('attach-entity-modal-tab--active');
