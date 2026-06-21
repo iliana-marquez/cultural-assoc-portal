@@ -866,6 +866,7 @@ document.addEventListener('DOMContentLoaded', function () {
         linksCancelBtn?.addEventListener('click', function (e) {
             e.stopPropagation();
             row.classList.remove('editing');
+            document.body.classList.remove('is-editing');
         });
 
         // Shared validation helpers — used by both the "add new"

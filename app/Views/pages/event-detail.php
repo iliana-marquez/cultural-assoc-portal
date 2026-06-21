@@ -359,9 +359,6 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                 <div class="edit-row-actions">
                                     <span class="entity-feedback"></span>
                                     <button class="entity-edit-btn links-pencil-btn"><i class="ti ti-pencil"></i></button>
-                                    <button class="entity-edit-btn" data-action="add-entity-url">
-                                        <i class="ti ti-plus"></i>
-                                    </button>
                                     <button class="entity-cancel-btn links-cancel-btn"><i class="ti ti-x"></i></button>
                                 </div>
                             </div>
@@ -401,6 +398,14 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                     <i class="ti ti-link-off"></i>
                                     Noch keine Links
                                 </p>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($isLoggedIn): ?>
+                            <div class="add-link-wrap p-2">
+                                <button class="entity-edit-btn" data-action="add-entity-url">
+                                    <i class="ti ti-plus"></i> Link hinzufügen
+                                </button>
                             </div>
                         <?php endif; ?>
                     </div>

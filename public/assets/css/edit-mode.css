@@ -673,8 +673,12 @@ body.is-editing .edit-bar__indicator i {
 .links-cancel-btn { display: none; }
 .links-edit-row.editing .links-cancel-btn { display: inline-flex; }
 
-.links-edit-row [data-action="add-entity-url"] { display: none; }
-.links-edit-row.editing [data-action="add-entity-url"] { display: inline-flex; }
+.links-edit-row .add-link-wrap { display: none; }
+.links-edit-row.editing .add-link-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 
 .links-edit-row .event-url-item .entity-edit-btn,
 .links-edit-row .event-url-item .entity-remove-btn { display: none; }
