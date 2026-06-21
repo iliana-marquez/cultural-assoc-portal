@@ -499,6 +499,12 @@ body.is-editing .edit-bar__indicator i {
     color: #fff;
 }
 
+.ows-modal-btn-primary:disabled,
+.media-upload-confirm:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 .ows-modal-btn-primary:hover,
 .media-upload-confirm:hover {
     background: var(--edit-active);
@@ -655,7 +661,5 @@ body.is-editing .edit-bar__indicator i {
 .event-url-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 0.5rem;
-    padding: 0.3rem 0;
 }
