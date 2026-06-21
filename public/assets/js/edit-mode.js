@@ -1023,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             // NOT include that key, and still needs an explicit
                             // attach call to link it to this entity.
                             if (result.success) {
-                                appendUrlToList(row, result);
+                                refreshLinksList(row);
                                 showEntityFeedback(row, 'Hinzugefügt ✓', 'success');
                             } else {
                                 attachAndRenderUrl(row, result, entityType, entityId);
@@ -1055,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         showEntityFeedback(row, 'Fehler', 'error');
                         return;
                     }
-                    appendUrlToList(row, result);
+                    refreshLinksList(row);
                     showEntityFeedback(row, 'Hinzugefügt ✓', 'success');
                 })
                 .catch(function () {
@@ -1063,37 +1063,26 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
         }
 
-        function appendUrlToList(row, result) {
-            let list = row.querySelector('.event-url-list');
-            if (!list) {
-                list = document.createElement('div');
-                list.className = 'event-url-list p-2';
-                addBtn?.closest('.edit-row-header')?.insertAdjacentElement('afterend', list);
-            }
-            // Remove the empty-state message (the <p class="text-muted">
-            // itself) without removing its parent — the parent IS the
-            // list container we're about to append the new item into.
-            list.querySelector('p.text-muted')?.remove();
+        function refreshLinksList(row) {
+            const container = row.querySelector('.links-list-container');
+            if (!container) return;
 
-            const item = document.createElement('div');
-            item.className = 'event-url-item';
-            item.dataset.urlId = result.id;
-            item.innerHTML =
-                '<a href="' + (result.url || '#') + '" target="_blank" rel="noopener">' +
-                '<i class="ti ' + (result.icon ? result.icon : (result.type_label === 'Email' ? 'ti-mail' : 'ti-link')) + '"></i> ' +
-                (result.label || result.type_label || result.url) +
-                '</a>' +
-                '<button class="entity-edit-btn border-0" data-action="edit-entity-url" ' +
-                'data-url-id="' + result.id + '" ' +
-                'data-url-type-id="' + (result.url_type_id ?? '') + '" ' +
-                'data-url-value="' + (result.url || '').replace(/"/g, '&quot;') + '" ' +
-                'data-url-label="' + (result.label || '').replace(/"/g, '&quot;') + '">' +
-                '<i class="ti ti-pencil"></i></button>' +
-                '<button class="entity-remove-btn border-0" data-action="remove-entity-url" data-url-id="' + result.id + '">' +
-                '<i class="ti ti-trash"></i></button>';
-            list.appendChild(item);
-            bindEditUrl(item.querySelector('[data-action="edit-entity-url"]'), row);
-            bindRemoveUrl(item.querySelector('[data-action="remove-entity-url"]'), row);
+            fetch('/urls/fragment?entity_type=' + encodeURIComponent(entityType) + '&entity_id=' + encodeURIComponent(entityId), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.text())
+                .then(function (html) {
+                    container.innerHTML = html;
+                    container.querySelectorAll('[data-action="edit-entity-url"]').forEach(function (btn) {
+                        bindEditUrl(btn, row);
+                    });
+                    container.querySelectorAll('[data-action="remove-entity-url"]').forEach(function (btn) {
+                        bindRemoveUrl(btn, row);
+                    });
+                })
+                .catch(function () {
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                });
         }
 
         function bindEditUrl(btn, row) {
@@ -1132,14 +1121,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 }
                                 const item = row.querySelector('.event-url-item[data-url-id="' + urlId + '"]');
                                 item?.remove();
-                                appendUrlToList(row, {
-                                    id: urlId,
-                                    url: result.url,
-                                    label: result.label,
-                                    url_type_id: result.url_type_id,
-                                    type_label: result.type_label,
-                                    icon: result.icon
-                                });
+                                refreshLinksList(row);
                                 showEntityFeedback(row, 'Gespeichert ✓', 'success');
                             }
                         });
@@ -1188,14 +1170,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             });
                             return;
                         }
-                        btn.closest('.event-url-item')?.remove();
-                        const list = row.querySelector('.event-url-list');
-                        if (list && list.querySelectorAll('.event-url-item').length === 0) {
-                            list.innerHTML =
-                                '<p class="text-muted p-2 mb-0">' +
-                                '<i class="ti ti-link-off"></i> Noch keine Links' +
-                                '</p>';
-                        }
+                        refreshLinksList(row);
                         showEntityFeedback(row, 'Entfernt ✓', 'success');
                     })
                     .catch(function () {
