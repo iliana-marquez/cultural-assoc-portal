@@ -371,17 +371,25 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                             <div class="event-url-list p-2">
                                 <?php foreach ($event->urls as $url): ?>
                                     <div class="event-url-item" data-url-id="<?= $url->id ?>">
-                                        <a href="<?= htmlspecialchars($url->url) ?>" target="_blank" rel="noopener">
-                                            <i class="ti <?= htmlspecialchars($url->icon ?? 'ti-link') ?>"></i>
-                                            <?= htmlspecialchars($url->label ?: $url->type_label) ?>
-                                        </a>
                                         <?php if ($isLoggedIn): ?>
+                                            <button class="entity-edit-btn border-0"
+                                                data-action="edit-entity-url"
+                                                data-url-id="<?= $url->id ?>"
+                                                data-url-type-id="<?= $url->url_type_id ?>"
+                                                data-url-value="<?= htmlspecialchars($url->url) ?>"
+                                                data-url-label="<?= htmlspecialchars($url->label ?? '') ?>">
+                                                <i class="ti ti-pencil"></i>
+                                            </button>
                                             <button class="entity-remove-btn border-0"
                                                 data-action="remove-entity-url"
                                                 data-url-id="<?= $url->id ?>">
                                                 <i class="ti ti-trash"></i>
                                             </button>
                                         <?php endif; ?>
+                                        <a href="<?= htmlspecialchars($url->url) ?>" target="_blank" rel="noopener">
+                                            <i class="ti <?= htmlspecialchars($url->icon ?? 'ti-link') ?>"></i>
+                                            <?= htmlspecialchars($url->label ?: $url->type_label) ?>
+                                        </a>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
