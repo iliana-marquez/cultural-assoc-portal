@@ -81,9 +81,11 @@ $router->post('/media/batch-meta',    'MediaController', 'batchMeta');
 
 // ── URLs CRUD → UrlController ────────────────────────────────
 $router->get('/urls/fragment',        'UrlController', 'fragment');
+$router->get('/urls/named-pages',     'UrlController', 'namedPages');
 $router->get('/urls/types',           'UrlController', 'types');
 $router->get('/urls/search',          'UrlController', 'search');
 $router->post('/urls/add',            'UrlController', 'add');
+$router->post('/urls/add-internal-page', 'UrlController', 'addInternalPage');
 $router->post('/urls/{id}/attach',    'UrlController', 'attach');
 $router->post('/urls/{id}/unlink',    'UrlController', 'unlink');
 $router->post('/urls/{id}/delete',    'UrlController', 'delete');
