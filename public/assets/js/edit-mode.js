@@ -644,6 +644,58 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         });
+
+        function moveSection(direction) {
+            const sectionId = block.dataset.sectionId;
+            const myIndex = parseInt(block.dataset.orderIndex, 10);
+            if (!sectionId || isNaN(myIndex)) return;
+
+            // Find the immediate neighbor (the other .editable-block
+            // whose order_index is exactly one away, in the requested
+            // direction) — a simple two-row swap, not a full shift.
+            const targetIndex = direction === 'up' ? myIndex - 1 : myIndex + 1;
+            let neighbor = null;
+            document.querySelectorAll('.editable-block[data-order-index]').forEach(function (other) {
+                if (parseInt(other.dataset.orderIndex, 10) === targetIndex) {
+                    neighbor = other;
+                }
+            });
+            if (!neighbor) return;
+
+            const order = [
+                { id: sectionId, order_index: targetIndex },
+                { id: neighbor.dataset.sectionId, order_index: myIndex }
+            ];
+
+            const data = new FormData();
+            data.append('order', JSON.stringify(order));
+            fetch('/page/section/reorder', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        window.location.reload();
+                    } else {
+                        showBlockFeedback(block, 'Fehler beim Verschieben', 'error');
+                    }
+                })
+                .catch(function () {
+                    showBlockFeedback(block, 'Verbindungsfehler', 'error');
+                });
+        }
+
+        block.querySelector('.btn-move-up')?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            moveSection('up');
+        });
+
+        block.querySelector('.btn-move-down')?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            moveSection('down');
+        });
     });
 
     // ──────────────────────────────────────────────────────────
