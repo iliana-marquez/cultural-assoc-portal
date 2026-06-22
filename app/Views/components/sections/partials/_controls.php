@@ -110,6 +110,10 @@ $blockType = !empty($section->image) || ($section->image_pos ?? 'none') !== 'non
         <i class="ti ti-x"></i>
     </button>
 
+    <button class="section-control-btn btn-delete-section" data-action="delete-section" data-section-id="<?= $section->id ?? '' ?>">
+        <i class="ti ti-trash"></i> Abschnitt löschen
+    </button>
+
     <span class="block-feedback"></span>
 
 </div>
