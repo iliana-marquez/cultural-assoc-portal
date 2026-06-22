@@ -96,6 +96,42 @@ class UrlController extends BaseController
     }
 
     /**
+     * GET /urls/section-cta-fragment
+     * Returns just the inner buttons + add-trigger HTML for one
+     * section's CTAs — used after any add/edit/remove so the JS can
+     * refresh THIS section's CTA content in place, without reloading
+     * the whole page (which would discard whatever OTHER section the
+     * editor still has open in its own .editing state, completely
+     * unrelated to the CTA that was just saved).
+     *
+     * GET params:
+     *   section_id  int
+     */
+    public function sectionCtaFragment(array $params = []): void
+    {
+        $this->requireLogin();
+
+        $sectionId = (int) ($_GET['section_id'] ?? 0);
+
+        if (!$sectionId) {
+            http_response_code(400);
+            echo '';
+            return;
+        }
+
+        $section      = (object) ['id' => $sectionId];
+        $isLoggedIn   = $this->isLoggedIn();
+        $fragmentOnly = true;
+
+        ob_start();
+        include __DIR__ . '/../Views/components/sections/partials/_cta-buttons.php';
+        $html = ob_get_clean();
+
+        header('Content-Type: text/html; charset=utf-8');
+        echo $html;
+    }
+
+    /**
      * GET /urls/types
      * List all available URL types (Website, Email, Instagram, etc.),
      * so the frontend can show real labels and never needs to guess
