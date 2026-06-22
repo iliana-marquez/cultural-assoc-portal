@@ -287,7 +287,36 @@ body.is-editing .edit-bar__indicator i {
     margin-right: 1rem;
     display: inline-flex;
     gap: 0.3rem;
+}
+
+/* Add-section trigger — a wide, full-width block, deliberately NOT
+   a small floating "+" icon, so it reads as its own clear, self-
+   explanatory affordance and doesn't visually compete with each
+   section's own pencil/cancel controls once editing is active. */
+.add-section-trigger-wrap {
+    padding: 0;
+}
+
+.add-section-trigger {
+    width: 100%;
+    background: none;
+    border: 3px dashed var(--edit-inactive);
+    color: var(--edit-inactive);
+    font-weight: 600;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
     align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.add-section-trigger:hover {
+    border-color: var(--edit-active);
+    color: var(--edit-active);
+    background: var(--edit-inactive);
+    border: 3px dashed var(--edit-active);
 }
 
 
