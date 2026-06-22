@@ -1904,11 +1904,16 @@ document.addEventListener('DOMContentLoaded', function () {
         let ctaTypeOptions = null;
 
         function refreshCtaRow() {
-            // NOTE: a full reload, not a surgical DOM update — _cta-
-            // buttons.php doesn't yet have its own fragment-only
-            // render mode the way entity-urls.php does. Flagged as
-            // a deliberate, temporary shortcut, not the final design.
-            window.location.reload();
+            fetch('/urls/section-cta-fragment?section_id=' + encodeURIComponent(sectionId), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.text())
+                .then(function (html) {
+                    row.innerHTML = html;
+                })
+                .catch(function () {
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                });
         }
 
         function withTypeOptions(callback) {
