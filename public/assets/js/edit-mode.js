@@ -1970,7 +1970,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (addBtn) {
                 withTypeOptions(function (typeOptions) {
                     openAttachEntityModal({
-                        title: 'CTA hinzufügen',
+                        title: 'Button hinzufügen',
                         tabs: ['search', 'new', 'page'],
                         searchFillsNewTab: true,
                         searchEndpoint: '/urls/search',
@@ -1994,9 +1994,51 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             } else if (editBtn) {
                 withTypeOptions(function (typeOptions) {
+                    const currentUrl = editBtn.dataset.urlValue;
+                    let isInternalPage = false;
+                    let currentPagePath = '';
+                    try {
+                        const parsed = new URL(currentUrl);
+                        if (parsed.origin === window.location.origin) {
+                            isInternalPage = true;
+                            currentPagePath = parsed.pathname;
+                        }
+                    } catch (e) {
+                        // Not a valid absolute URL at all — definitely
+                        // not an internal-page link, fall through to
+                        // the ordinary external-link edit form.
+                    }
+
+                    if (isInternalPage) {
+                        openAttachEntityModal({
+                            mode: 'edit',
+                            editPanel: 'page',
+                            title: 'Button bearbeiten (interne Seite)',
+                            confirmLabel: 'Speichern',
+                            addEndpoint: '/urls/' + editBtn.dataset.urlId + '/save',
+                            namedPagesEndpoint: '/urls/named-pages',
+                            buildPageUrl: function (path) { return window.location.origin + path; },
+                            currentPagePath: currentPagePath,
+                            pageFields: [
+                                { name: 'cta_label', label: 'Button-Text', type: 'text', required: true, placeholder: 'z. B. Jetzt Mitglied werden', value: editBtn.dataset.urlLabel }
+                            ],
+                            extraAddParams: {
+                                entity_type: 'section',
+                                entity_id: sectionId,
+                                // save() requires url_type_id explicitly —
+                                // unlike addInternalPage(), it has no
+                                // auto-derivation, so the already-known
+                                // Website type id is supplied directly.
+                                url_type_id: (typeOptions.find(function (t) { return (t.label || '').toLowerCase() === 'website'; }) || {}).value
+                            },
+                            onSelected: refreshCtaRow
+                        });
+                        return;
+                    }
+
                     openAttachEntityModal({
                         mode: 'edit',
-                        title: 'CTA bearbeiten',
+                        title: 'Button bearbeiten (externer Link)',
                         confirmLabel: 'Speichern',
                         addEndpoint: '/urls/' + editBtn.dataset.urlId + '/save',
                         addFields: [
@@ -2029,7 +2071,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(function (json) {
                     if (json.needsConfirmation) {
                         openConfirmModal({
-                            title: 'CTA entfernen',
+                            title: 'Button entfernen',
                             message: 'Dieser Link ist nirgendwo sonst verknüpft. Beim Entfernen wird er endgültig gelöscht.',
                             confirmLabel: 'Endgültig entfernen',
                             onConfirm: function () {
