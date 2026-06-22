@@ -202,7 +202,8 @@ body.is-editing .edit-bar__indicator i {
 /* Buttons */
 .entity-edit-btn,
 .entity-save-btn,
-.entity-cancel-btn {
+.entity-cancel-btn,
+.entity-remove-btn {
     background: none;
     border: none;
     cursor: pointer;
@@ -212,10 +213,11 @@ body.is-editing .edit-bar__indicator i {
     transition: opacity var(--transition);
 }
 
-.entity-edit-btn { color: inherit; opacity: 0.5; }
+.entity-edit-btn, .entity-remove-btn { color: inherit; opacity: 0.5; }
 .entity-edit-btn:hover,
 .entity-save-btn:hover,
-.entity-cancel-btn:hover { opacity: 1; }
+.entity-cancel-btn:hover,
+.entity-remove-btn:hover { opacity: 1; }
 
 /* ── Feedback ───────────────────────────────────────────────── */
 .block-feedback,
@@ -287,6 +289,7 @@ body.is-editing .edit-bar__indicator i {
     margin-right: 1rem;
     display: inline-flex;
     gap: 0.3rem;
+    align-items: center;
 }
 
 /* Add-section trigger — a wide, full-width block, deliberately NOT
@@ -545,6 +548,7 @@ body.is-editing .edit-bar__indicator i {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
+    margin-top: 1rem;
 }
 
 /* .section-control-btn defaults to white-on-translucent-white,
