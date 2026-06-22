@@ -37,11 +37,6 @@
         </p>
     <?php endif; ?>
 
-    <?php if (!empty($cta)): ?>
-        <a href="<?= htmlspecialchars($cta->url) ?>"
-            class="btn-section <?= $ctaAlignClass ?? 'align-self-start' ?>">
-            <?= htmlspecialchars($cta->label) ?>
-        </a>
-    <?php endif; ?>
+    <?php require __DIR__ . '/_cta-buttons.php'; ?>
 
 </div>
