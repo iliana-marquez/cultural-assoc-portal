@@ -22,6 +22,17 @@
  *   $ctaAlignClass  string  already computed by section.php, reused
  *                           so buttons align consistently with the
  *                           section's existing layout
+ *   $fragmentOnly   bool    optional, default false. When true,
+ *                           renders ONLY the inner buttons + add-
+ *                           trigger — no outer .section-cta-row
+ *                           wrapper. Used by UrlController's CTA
+ *                           fragment endpoint, since the JS only
+ *                           ever replaces the WRAPPER's inner
+ *                           content after a save — reloading the
+ *                           whole page would discard whatever
+ *                           section the editor still has open in
+ *                           its own .editing state, completely
+ *                           unrelated to the CTA that was just saved.
  *
  * Provides its own $ctaUrls fetch — callers don't need to fetch
  * entity_urls themselves before including this.
@@ -31,39 +42,47 @@ require_once __DIR__ . '/../../../../Models/UrlModel.php';
 $ctaUrls = (new UrlModel())->getForEntity('section', $section->id);
 
 $maxCtas = 3;
+$fragmentOnly = $fragmentOnly ?? false;
+
+$innerContent = function () use ($ctaUrls, $isLoggedIn, $maxCtas, $section) {
+    foreach ($ctaUrls as $cta): ?>
+        <span class="section-cta-item">
+            <a href="<?= htmlspecialchars($cta->url) ?>" class="btn-section" target="_blank" rel="noopener noreferrer">
+                <?= htmlspecialchars($cta->cta_label ?? '') ?>
+            </a>
+            <?php if ($isLoggedIn): ?>
+                <button class="entity-edit-btn border-0 section-cta-edit"
+                    data-action="edit-section-cta"
+                    data-url-id="<?= $cta->id ?>"
+                    data-url-type-id="<?= $cta->url_type_id ?>"
+                    data-url-value="<?= htmlspecialchars($cta->url) ?>"
+                    data-url-label="<?= htmlspecialchars($cta->cta_label ?? '') ?>">
+                    <i class="ti ti-pencil"></i>
+                </button>
+                <button class="entity-remove-btn border-0 section-cta-remove"
+                    data-action="remove-section-cta"
+                    data-url-id="<?= $cta->id ?>">
+                    <i class="ti ti-trash"></i>
+                </button>
+            <?php endif; ?>
+        </span>
+    <?php endforeach;
+
+    if ($isLoggedIn && count($ctaUrls) < $maxCtas): ?>
+        <button class="entity-edit-btn section-cta-add" data-action="add-section-cta">
+            <i class="ti ti-plus"></i> CTA
+        </button>
+<?php endif;
+};
+
+if ($fragmentOnly) {
+    $innerContent();
+    return;
+}
 ?>
 <?php if (!empty($ctaUrls) || $isLoggedIn): ?>
     <div class="section-cta-row <?= $ctaAlignClass ?? 'align-self-start' ?>"
         data-entity-type="section" data-entity-id="<?= $section->id ?>">
-
-        <?php foreach ($ctaUrls as $cta): ?>
-            <span class="section-cta-item">
-                <a href="<?= htmlspecialchars($cta->url) ?>" class="btn-section" target="_blank" rel="noopener noreferrer">
-                    <?= htmlspecialchars($cta->cta_label ?? '') ?>
-                </a>
-                <?php if ($isLoggedIn): ?>
-                    <button class="entity-edit-btn border-0 section-cta-edit"
-                        data-action="edit-section-cta"
-                        data-url-id="<?= $cta->id ?>"
-                        data-url-type-id="<?= $cta->url_type_id ?>"
-                        data-url-value="<?= htmlspecialchars($cta->url) ?>"
-                        data-url-label="<?= htmlspecialchars($cta->cta_label ?? '') ?>">
-                        <i class="ti ti-pencil"></i>
-                    </button>
-                    <button class="entity-remove-btn border-0 section-cta-remove"
-                        data-action="remove-section-cta"
-                        data-url-id="<?= $cta->id ?>">
-                        <i class="ti ti-trash"></i>
-                    </button>
-                <?php endif; ?>
-            </span>
-        <?php endforeach; ?>
-
-        <?php if ($isLoggedIn && count($ctaUrls) < $maxCtas): ?>
-            <button class="entity-edit-btn section-cta-add" data-action="add-section-cta">
-                <i class="ti ti-plus"></i> CTA
-            </button>
-        <?php endif; ?>
-
+        <?php $innerContent(); ?>
     </div>
 <?php endif; ?>
