@@ -133,11 +133,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function activateBlock(block) {
         if (activeBlock && activeBlock !== block && hasUnsaved) {
-            if (!confirm('Ungespeicherte Änderungen verwerfen?')) return;
-            cancelBlock(activeBlock);
+            openConfirmModal({
+                title: 'Ungespeicherte Änderungen',
+                message: 'Möchtest du die ungespeicherten Änderungen verwerfen?',
+                confirmLabel: 'Verwerfen',
+                onConfirm: function () {
+                    cancelBlock(activeBlock);
+                    doActivateBlock(block);
+                }
+            });
+            return;
         }
         if (activeBlock && activeBlock !== block) deactivateBlock(activeBlock);
+        doActivateBlock(block);
+    }
 
+    function doActivateBlock(block) {
         activeBlock = block;
         block.classList.add('editing');
         document.body.classList.add('is-editing');
@@ -424,8 +435,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         block.querySelectorAll('[data-action="remove-image"]').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                if (!confirm('Bild entfernen?')) return;
-                removeSectionImage(block, 'image', sectionId);
+                openConfirmModal({
+                    title: 'Bild entfernen',
+                    message: 'Dieses Bild wirklich entfernen?',
+                    confirmLabel: 'Entfernen',
+                    onConfirm: function () {
+                        removeSectionImage(block, 'image', sectionId);
+                    }
+                });
             });
         });
 
@@ -435,8 +452,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         block.querySelector('[data-action="remove-bg"]')?.addEventListener('click', function () {
-            if (!confirm('Hintergrundbild entfernen?')) return;
-            removeSectionImage(block, 'bg_image', sectionId);
+            openConfirmModal({
+                title: 'Hintergrundbild entfernen',
+                message: 'Dieses Hintergrundbild wirklich entfernen?',
+                confirmLabel: 'Entfernen',
+                onConfirm: function () {
+                    removeSectionImage(block, 'bg_image', sectionId);
+                }
+            });
         });
     }
 
@@ -579,7 +602,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         block.querySelector('.btn-cancel')?.addEventListener('click', function (e) {
             e.stopPropagation();
-            if (hasUnsaved && !confirm('Änderungen verwerfen?')) return;
+            if (hasUnsaved) {
+                openConfirmModal({
+                    title: 'Ungespeicherte Änderungen',
+                    message: 'Möchtest du die ungespeicherten Änderungen verwerfen?',
+                    confirmLabel: 'Verwerfen',
+                    onConfirm: function () { cancelBlock(block); }
+                });
+                return;
+            }
             cancelBlock(block);
         });
     });
@@ -815,32 +846,38 @@ document.addEventListener('DOMContentLoaded', function () {
         function bindRemoveParticipant(btn, row) {
             btn?.addEventListener('click', function (e) {
                 e.stopPropagation();
-                if (!confirm('Mitwirkende:n entfernen?')) return;
-                const data = new FormData();
-                data.append('participant_id', btn.dataset.participantId);
-                fetch('/events/' + btn.dataset.eventId + '/participant/remove', {
-                    method: 'POST',
-                    body: data,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(res => res.json())
-                    .then(function (json) {
-                        if (json.success) {
-                            const list = btn.closest('.event-participant-list');
-                            btn.closest('.event-participant-item')?.remove();
-                            if (list && list.querySelectorAll('.event-participant-item').length === 0) {
-                                list.innerHTML =
-                                    '<p class="text-muted p-2 mb-0">' +
-                                    '<i class="ti ti-users-group"></i> ' +
-                                    'Noch keine Mitwirkenden' +
-                                    '</p>';
-                            }
-                            showEntityFeedback(row, 'Entfernt ✓', 'success');
-                        } else {
-                            showEntityFeedback(row, 'Fehler', 'error');
-                        }
-                    })
-                    .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+                openConfirmModal({
+                    title: 'Mitwirkende:n entfernen',
+                    message: 'Diese:n Mitwirkende:n wirklich von der Veranstaltung entfernen?',
+                    confirmLabel: 'Entfernen',
+                    onConfirm: function () {
+                        const data = new FormData();
+                        data.append('participant_id', btn.dataset.participantId);
+                        fetch('/events/' + btn.dataset.eventId + '/participant/remove', {
+                            method: 'POST',
+                            body: data,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(res => res.json())
+                            .then(function (json) {
+                                if (json.success) {
+                                    const list = btn.closest('.event-participant-list');
+                                    btn.closest('.event-participant-item')?.remove();
+                                    if (list && list.querySelectorAll('.event-participant-item').length === 0) {
+                                        list.innerHTML =
+                                            '<p class="text-muted p-2 mb-0">' +
+                                            '<i class="ti ti-users-group"></i> ' +
+                                            'Noch keine Mitwirkenden' +
+                                            '</p>';
+                                    }
+                                    showEntityFeedback(row, 'Entfernt ✓', 'success');
+                                } else {
+                                    showEntityFeedback(row, 'Fehler', 'error');
+                                }
+                            })
+                            .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+                    }
+                });
             });
         }
 
@@ -1416,72 +1453,78 @@ document.addEventListener('DOMContentLoaded', function () {
             btn._deleteInitialized = true;
             btn.addEventListener('click', function (e) {
                 e.stopPropagation();
-                if (!confirm('Bild löschen?')) return;
-                const mediaId = btn.dataset.mediaId;
-                const entityType = btn.dataset.entityType;
-                const entityId = btn.dataset.entityId;
-                const data = new FormData();
-                data.append('entity_type', entityType);
-                data.append('entity_id', entityId);
-                fetch('/media/' + mediaId + '/delete', {
-                    method: 'POST',
-                    body: data,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(res => res.json())
-                    .then(function (json) {
-                        if (!json.success) {
-                            showEntityFeedback(row, 'Fehler', 'error');
-                            return;
-                        }
+                openConfirmModal({
+                    title: 'Bild löschen',
+                    message: 'Dieses Bild wirklich löschen?',
+                    confirmLabel: 'Löschen',
+                    onConfirm: function () {
+                        const mediaId = btn.dataset.mediaId;
+                        const entityType = btn.dataset.entityType;
+                        const entityId = btn.dataset.entityId;
+                        const data = new FormData();
+                        data.append('entity_type', entityType);
+                        data.append('entity_id', entityId);
+                        fetch('/media/' + mediaId + '/delete', {
+                            method: 'POST',
+                            body: data,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(res => res.json())
+                            .then(function (json) {
+                                if (!json.success) {
+                                    showEntityFeedback(row, 'Fehler', 'error');
+                                    return;
+                                }
 
-                        const isGalleryItem = !!btn.closest('.gallery-item');
+                                const isGalleryItem = !!btn.closest('.gallery-item');
 
-                        if (isGalleryItem) {
-                            // Gallery: remove the item, empty-state placeholder
-                            // is handled separately when grid becomes empty.
-                            btn.closest('.gallery-item')?.remove();
-                            const grid = row.querySelector('.media-gallery-grid');
-                            const remaining = grid ? grid.querySelectorAll('.gallery-item').length : 0;
-                            if (grid && remaining === 0) {
-                                grid.innerHTML =
-                                    '<div class="col-12"><p class="text-muted p-2">' +
-                                    '<i class="ti ti-photo-off"></i> ' +
-                                    'Noch keine Galeriebilder' +
-                                    '</p></div>';
-                            }
-                            row.classList.toggle('has-items', remaining > 0);
-                            showEntityFeedback(row, 'Gelöscht ✓', 'success');
-                            return;
-                        }
-
-                        // Promo image deletion — fetch the freshly rebuilt
-                        // fragment (single image / carousel / placeholder)
-                        // from the server and swap it in, no reload needed
-                        // for any promo state.
-                        const content = row.querySelector('.media-promo-content');
-                        if (content) {
-                            fetch('/events/' + entityId + '/promo-fragment', {
-                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                            })
-                                .then(res => res.text())
-                                .then(function (html) {
-                                    content.innerHTML = html;
-                                    // Re-wire delete buttons and any upload
-                                    // input present in the fresh markup
-                                    // (the placeholder's upload button, if
-                                    // the gallery dropped back to zero images).
-                                    initMediaDeleteBtns(row);
-                                    initUploadInputs(row);
-                                    updatePromoCount(row, content);
+                                if (isGalleryItem) {
+                                    // Gallery: remove the item, empty-state placeholder
+                                    // is handled separately when grid becomes empty.
+                                    btn.closest('.gallery-item')?.remove();
+                                    const grid = row.querySelector('.media-gallery-grid');
+                                    const remaining = grid ? grid.querySelectorAll('.gallery-item').length : 0;
+                                    if (grid && remaining === 0) {
+                                        grid.innerHTML =
+                                            '<div class="col-12"><p class="text-muted p-2">' +
+                                            '<i class="ti ti-photo-off"></i> ' +
+                                            'Noch keine Galeriebilder' +
+                                            '</p></div>';
+                                    }
+                                    row.classList.toggle('has-items', remaining > 0);
                                     showEntityFeedback(row, 'Gelöscht ✓', 'success');
-                                })
-                                .catch(function () {
-                                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
-                                });
-                        }
-                    })
-                    .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+                                    return;
+                                }
+
+                                // Promo image deletion — fetch the freshly rebuilt
+                                // fragment (single image / carousel / placeholder)
+                                // from the server and swap it in, no reload needed
+                                // for any promo state.
+                                const content = row.querySelector('.media-promo-content');
+                                if (content) {
+                                    fetch('/events/' + entityId + '/promo-fragment', {
+                                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                                    })
+                                        .then(res => res.text())
+                                        .then(function (html) {
+                                            content.innerHTML = html;
+                                            // Re-wire delete buttons and any upload
+                                            // input present in the fresh markup
+                                            // (the placeholder's upload button, if
+                                            // the gallery dropped back to zero images).
+                                            initMediaDeleteBtns(row);
+                                            initUploadInputs(row);
+                                            updatePromoCount(row, content);
+                                            showEntityFeedback(row, 'Gelöscht ✓', 'success');
+                                        })
+                                        .catch(function () {
+                                            showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                                        });
+                                }
+                            })
+                            .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+                    }
+                });
             });
         });
     }
@@ -1690,57 +1733,63 @@ document.addEventListener('DOMContentLoaded', function () {
             if (count === 0) return;
 
             const confirmMsg = count === 1
-                ? 'Dieses Foto löschen?'
-                : count + ' Fotos löschen?';
-            if (!confirm(confirmMsg)) return;
+                ? 'Dieses Foto wirklich löschen?'
+                : count + ' Fotos wirklich löschen?';
 
-            const items = selected.map(cb => cb.closest('.gallery-item')).filter(Boolean);
-            let index = 0;
+            openConfirmModal({
+                title: count === 1 ? 'Foto löschen' : 'Fotos löschen',
+                message: confirmMsg,
+                confirmLabel: 'Löschen',
+                onConfirm: function () {
+                    const items = selected.map(cb => cb.closest('.gallery-item')).filter(Boolean);
+                    let index = 0;
 
-            function deleteNext() {
-                if (index >= items.length) {
-                    const grid = row.querySelector('.media-gallery-grid');
-                    if (grid && grid.querySelectorAll('.gallery-item').length === 0) {
-                        grid.innerHTML =
-                            '<div class="col-12"><p class="text-muted p-2">' +
-                            '<i class="ti ti-photo-off"></i> ' +
-                            'Noch keine Galeriebilder — Bearbeitungsmodus aktivieren um Fotos hochzuladen.' +
-                            '</p></div>';
+                    function deleteNext() {
+                        if (index >= items.length) {
+                            const grid = row.querySelector('.media-gallery-grid');
+                            if (grid && grid.querySelectorAll('.gallery-item').length === 0) {
+                                grid.innerHTML =
+                                    '<div class="col-12"><p class="text-muted p-2">' +
+                                    '<i class="ti ti-photo-off"></i> ' +
+                                    'Noch keine Galeriebilder' +
+                                    '</p></div>';
+                            }
+                            if (checkAll) checkAll.checked = false;
+                            updateHasItems();
+                            updateHeaderBtns();
+                            showEntityFeedback(row, 'Gelöscht ✓', 'success');
+                            return;
+                        }
+
+                        const item = items[index];
+                        const mediaId = item.dataset.mediaId;
+                        const data = new FormData();
+                        data.append('entity_type', entityType);
+                        data.append('entity_id', entityId);
+
+                        const feedback = row.querySelector('.edit-row-header .entity-feedback');
+                        if (feedback) feedback.textContent = 'Löschen ' + (index + 1) + ' / ' + items.length + '...';
+
+                        fetch('/media/' + mediaId + '/delete', {
+                            method: 'POST',
+                            body: data,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(res => res.json())
+                            .then(function (json) {
+                                if (json.success) item.remove();
+                                index++;
+                                deleteNext();
+                            })
+                            .catch(function () {
+                                index++;
+                                deleteNext();
+                            });
                     }
-                    if (checkAll) checkAll.checked = false;
-                    updateHasItems();
-                    updateHeaderBtns();
-                    showEntityFeedback(row, 'Gelöscht ✓', 'success');
-                    return;
+
+                    deleteNext();
                 }
-
-                const item = items[index];
-                const mediaId = item.dataset.mediaId;
-                const data = new FormData();
-                data.append('entity_type', entityType);
-                data.append('entity_id', entityId);
-
-                const feedback = row.querySelector('.edit-row-header .entity-feedback');
-                if (feedback) feedback.textContent = 'Löschen ' + (index + 1) + ' / ' + items.length + '...';
-
-                fetch('/media/' + mediaId + '/delete', {
-                    method: 'POST',
-                    body: data,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(res => res.json())
-                    .then(function (json) {
-                        if (json.success) item.remove();
-                        index++;
-                        deleteNext();
-                    })
-                    .catch(function () {
-                        index++;
-                        deleteNext();
-                    });
-            }
-
-            deleteNext();
+            });
         });
 
         function getExistingMetaValue(checkbox, field) {
@@ -1956,35 +2005,37 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 });
             } else if (removeBtn) {
-                const urlId = removeBtn.dataset.urlId;
-                if (!confirm('Diesen Button wirklich entfernen?')) return;
-                const data = new FormData();
-                data.append('entity_type', 'section');
-                data.append('entity_id', sectionId);
-                fetch('/urls/' + urlId + '/unlink', {
-                    method: 'POST',
-                    body: data,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(res => res.json())
-                    .then(function (json) {
-                        if (json.needsConfirmation) {
-                            if (!confirm('Dieser Link wird sonst nirgends verwendet und komplett gelöscht. Fortfahren?')) return;
-                            const confirmedData = new FormData();
-                            confirmedData.append('entity_type', 'section');
-                            confirmedData.append('entity_id', sectionId);
-                            confirmedData.append('confirmed', '1');
-                            fetch('/urls/' + urlId + '/unlink', {
-                                method: 'POST',
-                                body: confirmedData,
-                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                            }).then(refreshCtaRow);
-                            return;
-                        }
-                        refreshCtaRow();
-                    });
+                performCtaUnlink(removeBtn.dataset.urlId, false);
             }
         });
+
+        function performCtaUnlink(urlId, confirmed) {
+            const data = new FormData();
+            data.append('entity_type', 'section');
+            data.append('entity_id', sectionId);
+            if (confirmed) data.append('confirmed', '1');
+
+            fetch('/urls/' + urlId + '/unlink', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.needsConfirmation) {
+                        openConfirmModal({
+                            title: 'CTA entfernen',
+                            message: 'Dieser Link ist nirgendwo sonst verknüpft. Beim Entfernen wird er endgültig gelöscht.',
+                            confirmLabel: 'Endgültig entfernen',
+                            onConfirm: function () {
+                                performCtaUnlink(urlId, true);
+                            }
+                        });
+                        return;
+                    }
+                    refreshCtaRow();
+                });
+        }
     });
 
     // ── Warn on page leave ────────────────────────────────────
