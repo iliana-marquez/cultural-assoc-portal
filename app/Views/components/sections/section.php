@@ -12,7 +12,7 @@
  *   $image       string|null Cloudinary URL for section image
  *   $imageCredit string|null Photographer credit
  *   $imagePos    string      'left' | 'right' | 'none'
- *   $layout      string      '50-50' | '75-25' | '25-75' | '100-100'
+ *   $layout      string      '50-50' | '75-25' | '25-75'
  *   $align       string      'left' | 'center' | 'right'
  *   $title       string|null
  *   $subtitle    string|null
@@ -56,9 +56,12 @@ $ctaAlignClass = $hasImage
     };
 ?>
 
-<div class="<?= $isLoggedIn ? 'editable-block' : '' ?>"
-    data-section-id="<?= $section->id ?? '' ?>"
-    data-save-url="/page/section/<?= $section->id ?? '' ?>/save">
+<?php if ($isLoggedIn): ?>
+    <div class="editable-block"
+        data-section-id="<?= $section->id ?? '' ?>"
+        data-order-index="<?= $section->order_index ?? '' ?>"
+        data-save-url="/page/section/<?= $section->id ?? '' ?>/save">
+    <?php endif; ?>
 
     <section class="segment <?= $themeClass ?>" <?= $bgStyle ?>>
 
@@ -103,4 +106,5 @@ $ctaAlignClass = $hasImage
 
     </section>
     <?php if ($isLoggedIn): ?>
-</div><?php endif; ?>
+    </div>
+<?php endif; ?>
