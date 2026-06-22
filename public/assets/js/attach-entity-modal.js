@@ -394,7 +394,8 @@ function bindAttachEntityModalOnce() {
             return;
         }
 
-        submitAdd(values, confirmPageBtn, pagePreviewBox, pagePreviewText, config.pageAddEndpoint);
+        const endpoint = config.mode === 'edit' ? config.addEndpoint : config.pageAddEndpoint;
+        submitAdd(values, confirmPageBtn, pagePreviewBox, pagePreviewText, endpoint);
     });
 
     // Shared by both the 'new' and 'page' panels — same POST target,
@@ -493,15 +494,44 @@ function openAttachEntityModal(config) {
     attachEntityModal._renderFields(attachEntityModal._pageFieldsBox, config.pageFields, 'page');
 
     if (config.mode === 'edit') {
-        // Edit mode: only the fields form is relevant — no tabs,
+        // Edit mode: only ONE fields form is relevant — no tabs,
         // no "search existing" path, since we're correcting one
         // already-known record, not finding or creating one.
+        // Which panel depends on config.editPanel ('new' by default,
+        // or 'page' when the value being edited was originally an
+        // internal-page link — lets the editor RESELECT a different
+        // page from the dropdown, rather than hand-editing a raw URL
+        // string to switch destinations).
+        const editPanel = config.editPanel || 'new';
         if (tabsEl) tabsEl.style.display = 'none';
         attachEntityModal.el.querySelectorAll('.attach-entity-modal-panel').forEach(function (panel) {
-            panel.style.display = panel.dataset.panel === 'new' ? 'block' : 'none';
+            panel.style.display = panel.dataset.panel === editPanel ? 'block' : 'none';
         });
+
+        if (editPanel === 'page' && attachEntityModal._pageSelect && config.namedPagesEndpoint) {
+            const select = attachEntityModal._pageSelect;
+            select.innerHTML = '<option value="">— Seite auswählen —</option>';
+            fetch(config.namedPagesEndpoint, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (!json.success) return;
+                    Object.entries(json.pages).forEach(function ([path, label]) {
+                        const opt = document.createElement('option');
+                        opt.value = path;
+                        opt.textContent = label;
+                        select.appendChild(opt);
+                    });
+                    // Pre-select whichever page matches the CTA's
+                    // CURRENT destination, so the editor sees exactly
+                    // where it points today, not a blank dropdown.
+                    if (config.currentPagePath) select.value = config.currentPagePath;
+                });
+        }
+
         attachEntityModal.el.style.display = 'flex';
-        attachEntityModal.el.querySelector('.attach-entity-modal-field')?.focus();
+        attachEntityModal.el.querySelector(
+            editPanel === 'page' ? '.attach-entity-modal-page-select' : '.attach-entity-modal-field'
+        )?.focus();
         return;
     }
 
