@@ -68,7 +68,7 @@ $blockType = !empty($section->image) || ($section->image_pos ?? 'none') !== 'non
 
         <!-- Flip — image block only -->
         <div data-toggle="image_pos"
-            data-value="<?= htmlspecialchars($section->image_pos ?? 'right') ?>"
+            data-value="<?= htmlspecialchars($section->image_pos ?? 'none') ?>"
             class="ctrl-image-block <?= $blockType !== 'image' ? 'd-none' : '' ?>">
             <button class="section-control-btn" data-action="toggle-flip">
                 <i class="ti ti-arrows-left-right"></i> Flip
