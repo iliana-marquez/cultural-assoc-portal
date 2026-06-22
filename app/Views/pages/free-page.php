@@ -4,7 +4,7 @@
  * free-page.php
  *
  * Universal view for all free-section pages.
- * Used by PageController::show() for all non-entity pages.
+ * Used by PageController::show() for all pages.
  * Hero section handled via section type 'hero' in pages table.
  *
  * Variables:
@@ -14,17 +14,11 @@
  */
 ?>
 
-<?php if (!empty($sections)): ?>
-    <?php require __DIR__ . '/../components/sections/render-sections.php'; ?>
-<?php else: ?>
+<?php if (empty($sections)): ?>
     <section class="segment light-segment">
         <div class="container">
             <p>Inhalt folgt in Kürze.</p>
-            <?php if ($isLoggedIn): ?>
-                <button class="btn-section" id="add-first-section">
-                    <i class="ti ti-plus"></i> Ersten Abschnitt hinzufügen
-                </button>
-            <?php endif; ?>
         </div>
     </section>
 <?php endif; ?>
+<?php require __DIR__ . '/../components/sections/render-sections.php'; ?>
