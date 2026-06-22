@@ -97,11 +97,13 @@ if ($sectionsMode === 'intro') {
     // The hero, if present, is a fixed-structure concept entirely
     // separate from this page's free sections — always rendered
     // first, unconditionally, with NO add-section trigger ever
-    // placed before it (it's not part of the reorderable sequence
-    // at all, regardless of whatever order_index its row happens
-    // to carry).
+    // placed before OR immediately after it (it's not part of the
+    // reorderable sequence at all, regardless of whatever
+    // order_index its row happens to carry).
+    $hasHero = false;
     foreach ($sections as $s) {
         if (($s->type ?? 'section') === 'hero') {
+            $hasHero = true;
             $section = $s;
             require $heroFile;
             break;
@@ -118,7 +120,10 @@ if ($sectionsMode === 'intro') {
     $count = count($restSections);
 
     foreach ($restSections as $i => $section) {
-        if ($isLoggedIn) {
+        // Suppress the very first trigger when a hero exists —
+        // its position is physically identical to "right after the
+        // hero", which the hero's own fixed-first rule forbids.
+        if ($isLoggedIn && !($i === 0 && $hasHero)) {
             $afterIndex  = $i === 0 ? null : $restSections[$i - 1]->order_index;
             $beforeIndex = $section->order_index;
             $label       = null;
@@ -137,6 +142,12 @@ if ($sectionsMode === 'intro') {
         $text        = $section->text         ?? null;
         $cta         = $section->cta          ?? null;
         $objectFit   = $section->object_fit   ?? 'cover';
+
+        // Whether this section can move up/down within the
+        // reorderable sequence — never past the hero (it's not
+        // part of this sequence at all), never past the start/end.
+        $canMoveUp   = $i > 0;
+        $canMoveDown = $i < $count - 1;
 
         require $sectionFile;
     }
