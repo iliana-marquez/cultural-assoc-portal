@@ -938,10 +938,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // new URL() is permissive — it parses almost anything into
             // SOME hostname, even pasted garbage text. This stricter
-            // check requires a real domain.tld shape (labels separated
-            // by dots, ending in an alphabetic top-level domain), which
-            // is the actual gap that let nonsense slip through before.
-            const domainShapePattern = /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
+            // check requires a real hostname shape (one or more dot-
+            // separated labels) — accepts a single, bare label too
+            // (e.g. "localhost"), since that's a syntactically real,
+            // legitimate hostname, just not a public one. The actual
+            // gap this closes is garbage text that doesn't even look
+            // like a hostname at all.
+            const domainShapePattern = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/;
             if (!domainShapePattern.test(host)) {
                 return { error: 'Bitte eine gültige URL eingeben (z. B. example.com).' };
             }
@@ -1838,6 +1841,150 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(function () {
                 alert('Verbindungsfehler.');
             });
+    });
+
+    // ── Section CTA buttons (free sections) ───────────────────
+    // Reuses the SHARED attach-entity-modal shell — exactly the
+    // same component already powering the Links picker — rather
+    // than a separate, parallel modal. The only thing genuinely
+    // specific to CTAs is the 'page' tab and the cta_label field;
+    // everything else (search, real type select, validation,
+    // disabled-until-valid logic) comes from the shell for free.
+    document.querySelectorAll('.section-cta-row').forEach(function (row) {
+        const sectionId = row.dataset.entityId;
+        let ctaTypeOptions = null;
+
+        function refreshCtaRow() {
+            // NOTE: a full reload, not a surgical DOM update — _cta-
+            // buttons.php doesn't yet have its own fragment-only
+            // render mode the way entity-urls.php does. Flagged as
+            // a deliberate, temporary shortcut, not the final design.
+            window.location.reload();
+        }
+
+        function withTypeOptions(callback) {
+            if (ctaTypeOptions) {
+                callback(ctaTypeOptions);
+                return;
+            }
+            fetch('/urls/types', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(res => res.json())
+                .then(function (json) {
+                    ctaTypeOptions = (json.success ? json.types : []).map(function (t) {
+                        return { value: t.id, label: t.label };
+                    });
+                    callback(ctaTypeOptions);
+                });
+        }
+
+        // Reuses the SAME validation shape the Links picker's
+        // validateAndPreview() already produces — error/warning/
+        // preview — so a CTA's url gets the exact same real,
+        // type-aware checking, never a weaker, CTA-only version.
+        function ctaPreviewFn(typeOptions) {
+            return function (values) {
+                const typeId = values.url_type_id;
+                const rawUrl = (values.url || '').trim();
+                if (!rawUrl) return null;
+
+                const typeOpt = typeOptions.find(function (t) { return String(t.value) === String(typeId); });
+                const typeLabel = (typeOpt?.label || '').toLowerCase();
+
+                let normalized = rawUrl.replace(/^http:\/\//i, 'https://');
+                if (!/^https?:\/\//i.test(normalized)) normalized = 'https://' + normalized;
+                normalized = normalized.replace(/\/$/, '');
+
+                try {
+                    const parsed = new URL(normalized);
+                    const domainShape = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/;
+                    if (!domainShape.test(parsed.hostname.toLowerCase())) {
+                        return { error: 'Bitte eine gültige URL eingeben (z. B. example.com).' };
+                    }
+                } catch (e) {
+                    return { error: 'Bitte eine gültige URL eingeben.' };
+                }
+
+                return { preview: normalized };
+            };
+        }
+
+        row.addEventListener('click', function (e) {
+            const addBtn = e.target.closest('[data-action="add-section-cta"]');
+            const editBtn = e.target.closest('[data-action="edit-section-cta"]');
+            const removeBtn = e.target.closest('[data-action="remove-section-cta"]');
+
+            if (addBtn) {
+                withTypeOptions(function (typeOptions) {
+                    openAttachEntityModal({
+                        title: 'CTA hinzufügen',
+                        tabs: ['search', 'new', 'page'],
+                        searchFillsNewTab: true,
+                        searchEndpoint: '/urls/search',
+                        searchPlaceholder: 'Vorhandene Links durchsuchen...',
+                        addEndpoint: '/urls/add',
+                        addFields: [
+                            { name: 'url_type_id', label: 'Typ', type: 'select', required: true, options: typeOptions },
+                            { name: 'url', label: 'URL', type: 'text', required: true, placeholder: 'https://...' },
+                            { name: 'cta_label', label: 'Button-Text', type: 'text', required: true, placeholder: 'z. B. Jetzt Mitglied werden' }
+                        ],
+                        pageFields: [
+                            { name: 'cta_label', label: 'Button-Text', type: 'text', required: true, placeholder: 'z. B. Jetzt Mitglied werden' }
+                        ],
+                        namedPagesEndpoint: '/urls/named-pages',
+                        pageAddEndpoint: '/urls/add-internal-page',
+                        buildPageUrl: function (path) { return window.location.origin + path; },
+                        previewFn: ctaPreviewFn(typeOptions),
+                        extraAddParams: { entity_type: 'section', entity_id: sectionId },
+                        onSelected: refreshCtaRow
+                    });
+                });
+            } else if (editBtn) {
+                withTypeOptions(function (typeOptions) {
+                    openAttachEntityModal({
+                        mode: 'edit',
+                        title: 'CTA bearbeiten',
+                        confirmLabel: 'Speichern',
+                        addEndpoint: '/urls/' + editBtn.dataset.urlId + '/save',
+                        addFields: [
+                            { name: 'url_type_id', label: 'Typ', type: 'select', required: true, options: typeOptions, value: editBtn.dataset.urlTypeId },
+                            { name: 'url', label: 'URL', type: 'text', required: true, placeholder: 'https://...', value: editBtn.dataset.urlValue },
+                            { name: 'cta_label', label: 'Button-Text', type: 'text', required: true, placeholder: 'z. B. Jetzt Mitglied werden', value: editBtn.dataset.urlLabel }
+                        ],
+                        previewFn: ctaPreviewFn(typeOptions),
+                        extraAddParams: { entity_type: 'section', entity_id: sectionId },
+                        onSelected: refreshCtaRow
+                    });
+                });
+            } else if (removeBtn) {
+                const urlId = removeBtn.dataset.urlId;
+                if (!confirm('Diesen Button wirklich entfernen?')) return;
+                const data = new FormData();
+                data.append('entity_type', 'section');
+                data.append('entity_id', sectionId);
+                fetch('/urls/' + urlId + '/unlink', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.needsConfirmation) {
+                            if (!confirm('Dieser Link wird sonst nirgends verwendet und komplett gelöscht. Fortfahren?')) return;
+                            const confirmedData = new FormData();
+                            confirmedData.append('entity_type', 'section');
+                            confirmedData.append('entity_id', sectionId);
+                            confirmedData.append('confirmed', '1');
+                            fetch('/urls/' + urlId + '/unlink', {
+                                method: 'POST',
+                                body: confirmedData,
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            }).then(refreshCtaRow);
+                            return;
+                        }
+                        refreshCtaRow();
+                    });
+            }
+        });
     });
 
     // ── Warn on page leave ────────────────────────────────────
