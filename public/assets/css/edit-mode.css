@@ -168,6 +168,11 @@ body.is-editing .edit-bar__indicator i {
 .btn-save   { font-weight: var(--font-semibold); }
 .btn-cancel { opacity: 0.7; }
 
+.richtext-toolbar {
+    display: flex;
+    gap: 0.2rem;
+}
+
 
 /* ── Editable fields (contenteditable) ──────────────────────── */
 .editable-field {
