@@ -22,9 +22,18 @@
  *                            AFTER this slot, or null if this is the
  *                            very last slot on the page
  *   $label         string   optional, defaults to "Abschnitt
- *                            hinzufügen" — used for the reserved
- *                            order_index=0 "Einleitung hinzufügen"
- *                            slot on listing/fixed-structure pages
+ *                            hinzufügen" — when explicitly set to
+ *                            "Einleitung hinzufügen" (the reserved
+ *                            order_index=0 slot on listing/fixed-
+ *                            structure pages), also marks this
+ *                            trigger as the intro slot via
+ *                            data-is-intro, so the JS knows to
+ *                            target order_index=0 specifically —
+ *                            never inferred from afterIndex/
+ *                            beforeIndex alone, since those can't
+ *                            distinguish a genuine intro slot from
+ *                            an ordinary first-position trigger on
+ *                            a page with no reserved slot at all.
  *
  * Deliberately a single, isolated trigger — clicking it calls one
  * function (triggerAddSection in edit-mode.js) that does the whole
@@ -34,13 +43,15 @@
  * markup, to support that later.
  */
 $label = $label ?? 'Abschnitt hinzufügen';
+$isIntro = $label === 'Einleitung hinzufügen';
 ?>
 <div class="add-section-trigger-wrap">
     <button class="add-section-trigger"
         data-action="add-section"
         data-page-key="<?= htmlspecialchars($pageKey) ?>"
         data-after-index="<?= $afterIndex ?? '' ?>"
-        data-before-index="<?= $beforeIndex ?? '' ?>">
+        data-before-index="<?= $beforeIndex ?? '' ?>"
+        data-is-intro="<?= $isIntro ? '1' : '' ?>">
         <i class="ti ti-plus"></i> <?= htmlspecialchars($label) ?>
     </button>
 </div>
