@@ -132,4 +132,26 @@ class PagesModel extends BaseModel
             [$orderIndex, $id]
         );
     }
+
+    /**
+     * Shift every section on a page with order_index GREATER than
+     * the given value down by one — used after deleting a section,
+     * so the remaining sequence stays gapless (e.g. 1,2,4 becomes
+     * 1,2,3, not left with a cosmetic hole at 3). Purely a hygiene
+     * step — rendering and future inserts already tolerate gaps
+     * correctly, this just keeps the stored data clean and matching
+     * what an editor would expect to see.
+     */
+    public function closeOrderGap(string $pageKey, int $deletedOrderIndex): void
+    {
+        $rows = $this->fetchAll(
+            "SELECT id, order_index FROM {$this->table}
+             WHERE page_key = ? AND order_index > ?",
+            [$pageKey, $deletedOrderIndex]
+        );
+
+        foreach ($rows as $row) {
+            $this->updateOrder((int) $row->id, (int) $row->order_index - 1);
+        }
+    }
 }
