@@ -1,4 +1,3 @@
-
 <?php
 
 /**
@@ -32,6 +31,14 @@ return [
 
     // Admin path
     'admin_path' => $_ENV['ADMIN_PATH'] ?? throw new RuntimeException('ADMIN_PATH not set in .env'),
+
+    // This deployment's real, public domain (no scheme, no
+    // trailing slash — e.g. 'example.com'). Used to verify
+    // that an internal-page CTA link genuinely points at THIS
+    // site, not an arbitrary domain a client request might claim —
+    // window.location.origin is browser-reported, client-side
+    // data, never something the server can trust on its own.
+    'site_domain' => $_ENV['SITE_DOMAIN'] ?? throw new RuntimeException('SITE_DOMAIN not set in .env'),
 
     // Cloudinary
     'cloudinary_cloud' => $_ENV['CLOUDINARY_CLOUD_NAME']
