@@ -613,6 +613,37 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             cancelBlock(block);
         });
+
+        block.querySelector('.btn-delete-section')?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const sectionId = block.dataset.sectionId;
+            if (!sectionId) return;
+
+            openConfirmModal({
+                title: 'Abschnitt löschen',
+                message: 'Dieser Abschnitt und sein gesamter Inhalt (inklusive aller Buttons) werden endgültig gelöscht.',
+                confirmLabel: 'Endgültig löschen',
+                onConfirm: function () {
+                    const data = new FormData();
+                    fetch('/page/section/' + sectionId + '/delete', {
+                        method: 'POST',
+                        body: data,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(res => res.json())
+                        .then(function (json) {
+                            if (json.success) {
+                                window.location.reload();
+                            } else {
+                                showBlockFeedback(block, 'Fehler beim Löschen', 'error');
+                            }
+                        })
+                        .catch(function () {
+                            showBlockFeedback(block, 'Verbindungsfehler', 'error');
+                        });
+                }
+            });
+        });
     });
 
     // ──────────────────────────────────────────────────────────
