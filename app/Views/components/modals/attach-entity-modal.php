@@ -7,14 +7,16 @@
  * No hardcoded knowledge of any specific entity — configured at
  * open time via openAttachEntityModal({...}) in edit-mode.js.
  *
- * Used for any entity that's both numerous enough to need search
- * (rather than a plain <select>) and creatable inline without
- * leaving the current page: URLs, venues, participants, and
- * future entities following the same pattern.
- *
- * The "add new" panel's fields are rendered dynamically by JS,
- * based on the calling config's addFields list — this file only
- * provides the empty container they get rendered into.
+ * Supports three possible tabs/panels — a caller's config decides
+ * which ones to show via the `tabs` option:
+ *   'search' — search existing records (the original default)
+ *   'new'    — add a new record, fields rendered dynamically
+ *   'page'   — pick one of this site's own real pages (e.g. for
+ *              a free section's CTA, or an internal-link choice);
+ *              populated from GET /urls/named-pages
+ * A caller omits whichever tabs don't apply to it — e.g. a plain
+ * Links-list entity never requests 'page', since "link to a page
+ * on this site" isn't a meaningful concept there.
  *
  * Shared classes (ows-modal-*) are prefixed to avoid colliding with
  * Bootstrap's own .modal-backdrop/.modal-* classes, which are
@@ -32,9 +34,10 @@
             </button>
         </div>
 
-        <div class="attach-entity-modal-tabs">
-            <button class="attach-entity-modal-tab attach-entity-modal-tab--active" data-tab="search">Vorhandene</button>
-            <button class="attach-entity-modal-tab" data-tab="new">Neu hinzufügen</button>
+        <div class="ows-modal-tabs">
+            <button class="ows-modal-tab ows-modal-tab--active" data-tab="search">Vorhandene</button>
+            <button class="ows-modal-tab" data-tab="new">Neu hinzufügen</button>
+            <button class="ows-modal-tab" data-tab="page">Seite hier</button>
         </div>
 
         <!-- Search panel -->
@@ -52,7 +55,35 @@
                     Link Testen <i class="ti ti-external-link"></i>
                 </a>
             </div>
-            <button class="section-control-btn ows-modal-btn-primary">Hinzufügen</button>
+            <div class="ows-modal-actions">
+                <button class="section-control-btn ows-modal-btn-primary">Hinzufügen</button>
+            </div>
+        </div>
+
+        <!-- Page panel — pick a real, known site page. Options
+             populated by JS from GET /urls/named-pages right
+             before this panel is shown. The page-select sits
+             alongside whichever OTHER fields this call's config
+             still needs (e.g. a CTA's button-text label) — those
+             render into the SAME .attach-entity-modal-fields
+             container the "new" panel uses, so a config combining
+             a page-select with a text field works without any
+             separate field-rendering path. -->
+        <div class="attach-entity-modal-panel" data-panel="page" style="display:none;">
+            <small class="ows-modal-field-label">Seite</small>
+            <select class="ows-modal-text-input attach-entity-modal-page-select">
+                <option value="">— Seite auswählen —</option>
+            </select>
+            <div class="attach-entity-modal-page-fields"></div>
+            <div class="attach-entity-modal-preview" data-preview="page" style="display:none;">
+                <span class="attach-entity-modal-preview-text"></span>
+                <a class="attach-entity-modal-test-link" href="#" target="_blank" rel="noopener" style="display:none;">
+                    Link Testen <i class="ti ti-external-link"></i>
+                </a>
+            </div>
+            <div class="ows-modal-actions">
+                <button class="section-control-btn ows-modal-btn-primary">Hinzufügen</button>
+            </div>
         </div>
     </div>
 </div>
