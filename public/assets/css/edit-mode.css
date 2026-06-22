@@ -258,6 +258,38 @@ body.is-editing .edit-bar__indicator i {
     opacity: 1;
 }
 
+/* CTA controls — hidden until the SECTION itself is in edit mode,
+   same convention as every other control here (image overlay,
+   layout toggles, etc). These were built without this scoping
+   originally, which let them stay clickable even outside edit
+   mode — noisy and inconsistent with the rest of this system. */
+.section-cta-edit,
+.section-cta-remove,
+.section-cta-add {
+    display: none;
+}
+
+.editable-block.editing .section-cta-edit,
+.editable-block.editing .section-cta-remove,
+.editable-block.editing .section-cta-add {
+    display: inline-flex;
+}
+
+/* Visual grouping while editing — so it's clear which pencil/
+   trash belongs to which CTA button when 2-3 sit side by side.
+   Scoped to the editing state only: this never changes the
+   public-facing appearance of a CTA button, since the grouping
+   cue only matters once the edit controls themselves are visible. */
+.editable-block.editing .section-cta-item {
+    background: var(--edit-inactive);
+    border-radius: 4px;
+    padding: 0.3rem 0.5rem;
+    margin-right: 1rem;
+    display: inline-flex;
+    gap: 0.3rem;
+    align-items: center;
+}
+
 
 /* -- Event-edit -------------------------------------------------*/
 .event-participant-item,
@@ -484,7 +516,6 @@ body.is-editing .edit-bar__indicator i {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
-    margin-top: 1rem;
 }
 
 /* .section-control-btn defaults to white-on-translucent-white,
@@ -554,17 +585,6 @@ body.is-editing .edit-bar__indicator i {
     overflow-y: auto;
 }
 
-/* ── CTA modal — only what's unique to it ────────────────────── */
-.cta-modal .ows-modal-card {
-    max-width: 480px;
-}
-
-.cta-modal-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-}
-
 .ows-modal-tabs {
     display: flex;
     gap: 0.5rem;
@@ -590,8 +610,7 @@ body.is-editing .edit-bar__indicator i {
 
 .attach-entity-modal-panel { display: flex; flex-direction: column; gap: 0.6rem; }
 
-.attach-entity-modal-results,
-.cta-modal-search-results {
+.attach-entity-modal-results {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
@@ -633,8 +652,7 @@ body.is-editing .edit-bar__indicator i {
     margin-top: 0.4rem;
 }
 
-.attach-entity-modal-preview,
-.cta-modal-preview {
+.attach-entity-modal-preview {
     font-size: 0.8rem;
     color: var(--edit-active);
     align-items: center;
@@ -661,8 +679,7 @@ body.is-editing .edit-bar__indicator i {
     cursor: pointer;
 }
 
-.attach-entity-modal-test-link,
-.cta-modal-test-link {
+.attach-entity-modal-test-link {
     color: var(--edit-active);
     align-items: center;
     gap: 0.2rem;
