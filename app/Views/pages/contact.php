@@ -8,9 +8,8 @@
  */
 ?>
 
-<?php if (!empty($sections)): ?>
-    <?php require __DIR__ . '/../components/sections/render-sections.php'; ?>
-<?php endif; ?>
+<?php $sectionsMode = 'intro'; ?>
+<?php require __DIR__ . '/../components/sections/render-sections.php'; ?>
 
 <section class="segment light-segment">
     <div class="container">
@@ -22,7 +21,7 @@
                 <!-- Email -->
                 <?php if (!empty($org->email)): ?>
                     <div class="contact-block">
-                        <h2>Anfragen &amp; Feedback</h2>
+                        <h3>Anfragen &amp; Feedback</h3>
                         <a href="mailto:<?= htmlspecialchars($org->email) ?>" class="contact-link">
                             <i class="ti ti-mail"></i>
                             <?= htmlspecialchars($org->email) ?>
@@ -33,27 +32,18 @@
                 <!-- Address -->
                 <?php if (!empty($org->name)): ?>
                     <div class="contact-block">
-                        <h2>Veranstalter</h2>
-                        <p class="text-uppercase fw-bold"><?= htmlspecialchars($org->name) ?></p>
+                        <h3>Veranstalter</h3>
+                        <p><?= htmlspecialchars($org->name) ?></p>
                         <?php if (!empty($org->street)): ?>
                             <p class="contact-address">
                                 <i class="ti ti-map-pin"></i>
-                                <?= htmlspecialchars($org->street) ?>, <br>
+                                <?= htmlspecialchars($org->street) ?>,
                                 <?= htmlspecialchars($org->postcode) ?>
                                 <?= htmlspecialchars($org->city) ?>
                             </p>
                         <?php endif; ?>
-                        <!-- Phone -->
-                        <?php if (!empty($org->phone)): ?>
-                            <p>
-                                <i class="ti ti-phone"></i>
-                                <?= htmlspecialchars($org->phone) ?>
-                            </p>
-                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
-
-
 
                 <!-- Social links -->
                 <?php if (!empty($urls)): ?>
@@ -73,28 +63,28 @@
 
                 <!-- ZVR -->
                 <?php if (!empty($org->registration_number)): ?>
-                    <div class="text-nowrap">
-                        <span class="fw-bold">ZVR: </span>
-                        <?= htmlspecialchars($org->registration_number) ?>
+                    <div class="contact-block">
+                        <small>ZVR: <?= htmlspecialchars($org->registration_number) ?></small>
                     </div>
                 <?php endif; ?>
 
-                <!-- Website credit -->
+                <!-- Credit -->
                 <div class="contact-block contact-credit">
-                    <h2>Websitegestaltung</h2>
-                    <p>Christina Mayer <small>(2025)</small> </p>
-                    <a href="https://ilianamarquez.com" target="_blank" rel="noopener noreferrer">
-                        Iliana Márquez <small>(2026)</small>
-                    </a>
-
+                    <small>
+                        Websitegestaltung<br>
+                        Christina Mayer (2025)<br>
+                        <a href="https://ilianamarquez.com" target="_blank" rel="noopener noreferrer">
+                            Iliana Márquez
+                        </a> (2026)
+                    </small>
                 </div>
 
             </div>
 
-            <!-- ── Contact form ───────────────────────────────── -->
+            <!-- Contact form -->
             <div class="col-12 col-md-7">
                 <div class="contact-form-wrap">
-                    <h2>Nachricht senden</h2>
+                    <h3>Nachricht senden</h3>
 
                     <div class="contact-form">
 
@@ -128,3 +118,6 @@
         </div>
     </div>
 </section>
+
+<?php $sectionsMode = 'rest'; ?>
+<?php require __DIR__ . '/../components/sections/render-sections.php'; ?>

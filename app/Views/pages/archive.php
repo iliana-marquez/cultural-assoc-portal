@@ -13,9 +13,8 @@
  */
 ?>
 
-<?php if (!empty($sections)): ?>
-    <?php require __DIR__ . '/../components/sections/render-sections.php'; ?>
-<?php endif; ?>
+<?php $sectionsMode = 'intro'; ?>
+<?php require __DIR__ . '/../components/sections/render-sections.php'; ?>
 
 <section class="segment light-segment">
     <div class="container">
@@ -32,3 +31,6 @@
 
     </div>
 </section>
+
+<?php $sectionsMode = 'rest'; ?>
+<?php require __DIR__ . '/../components/sections/render-sections.php'; ?>
