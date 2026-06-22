@@ -10,7 +10,13 @@
 ?>
 
 <footer class="text-center mt-auto segment-fix dark-segment">
-
+    <div class="footer-wave">
+        <svg viewBox="0 0 710 100" preserveAspectRatio="none">
+            <path
+                d="M709.969 0H0C0 0 75 109.375 187.992 98.5269C300.984 87.6791 273 5 479 46C685 87 709.969 0 709.969 0Z"
+                fill="#900000" />
+        </svg>
+    </div>
     <div class="footer-logo margin-top">
         <img src="<?= htmlspecialchars($org->logo_url ?? '') ?>" alt="<?= htmlspecialchars($org->name ?? 'Organisation') ?> Logo">
     </div>
