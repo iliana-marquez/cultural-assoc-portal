@@ -81,6 +81,7 @@ $router->post('/media/batch-meta',    'MediaController', 'batchMeta');
 
 // ── URLs CRUD → UrlController ────────────────────────────────
 $router->get('/urls/fragment',        'UrlController', 'fragment');
+$router->get('/urls/section-cta-fragment', 'UrlController', 'sectionCtaFragment');
 $router->get('/urls/named-pages',     'UrlController', 'namedPages');
 $router->get('/urls/types',           'UrlController', 'types');
 $router->get('/urls/search',          'UrlController', 'search');
