@@ -31,6 +31,13 @@ class PagesModel extends BaseModel
         // Decode JSON content into object for each section
         return array_map(function ($row) {
             $content = json_decode($row->content ?? '{}');
+            // Defensive: a malformed or pre-existing "[]"-style row
+            // (see addSection()'s fix for why this could happen)
+            // would decode as an array, not an object — recover
+            // gracefully rather than fatally erroring the whole page.
+            if (!is_object($content)) {
+                $content = (object) [];
+            }
             // Merge page metadata with content fields
             $content->type        = $row->type_key;
             $content->id          = $row->id;
@@ -79,10 +86,20 @@ class PagesModel extends BaseModel
      */
     public function addSection(string $pageKey, string $sectionKey, int $orderIndex, array $content): bool
     {
+        // json_encode([]) always produces "[]", never "{}" — PHP has
+        // no way to tell "empty associative array" from "empty list"
+        // apart. getForPage() expects every row's content to decode
+        // as an OBJECT (it assigns ->type, ->id, etc. onto it right
+        // after decoding), so an empty array must be forced to encode
+        // as {} instead, or that decode fails with a fatal error.
+        $encoded = empty($content)
+            ? '{}'
+            : json_encode($content, JSON_UNESCAPED_UNICODE);
+
         return $this->execute(
             "INSERT INTO {$this->table} (page_key, section_key, order_index, content)
              VALUES (?, ?, ?, ?)",
-            [$pageKey, $sectionKey, $orderIndex, json_encode($content, JSON_UNESCAPED_UNICODE)]
+            [$pageKey, $sectionKey, $orderIndex, $encoded]
         );
     }
 
