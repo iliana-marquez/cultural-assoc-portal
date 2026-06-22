@@ -56,6 +56,7 @@ class TeamController extends BaseController
             'sections' => $sections,
             'members'  => $members,
             'seo'      => $seo,
+            'pageKey'  => 'team',
         ]);
     }
 

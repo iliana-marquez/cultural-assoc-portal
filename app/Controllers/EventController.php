@@ -73,6 +73,7 @@ class EventController extends BaseController
             'past'       => $past,
             'categories' => $categories,
             'seo'        => $seo,
+            'pageKey'    => 'veranstaltungen',
         ]);
     }
 
@@ -151,6 +152,7 @@ class EventController extends BaseController
             'sections' => $sections,
             'events'   => $events,
             'seo'      => $seo,
+            'pageKey'  => 'archiv',
         ]);
     }
 
