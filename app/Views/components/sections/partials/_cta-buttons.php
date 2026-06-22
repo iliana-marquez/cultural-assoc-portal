@@ -70,7 +70,7 @@ $innerContent = function () use ($ctaUrls, $isLoggedIn, $maxCtas, $section) {
 
     if ($isLoggedIn && count($ctaUrls) < $maxCtas): ?>
         <button class="entity-edit-btn section-cta-add" data-action="add-section-cta">
-            <i class="ti ti-plus"></i> CTA
+            <i class="ti ti-plus"></i> Button
         </button>
 <?php endif;
 };
