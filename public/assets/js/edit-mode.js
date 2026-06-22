@@ -2038,6 +2038,102 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // ── Add-section triggers ────────────────────────────────────
+    // One isolated function handling the whole job in v1 (compute
+    // position, shift, create, reload). In v2, THIS function's body
+    // becomes the natural place to open a layout/thumbnail picker
+    // first — no changes needed to the triggers themselves, their
+    // markup, or where they're placed on the page.
+    function triggerAddSection(pageKey, afterIndex, beforeIndex, isIntro) {
+        let newIndex;
+        if (isIntro) {
+            // The one reserved slot — always exactly 0, on pages
+            // that have this concept at all (listing/fixed-structure
+            // pages). Never inferred from afterIndex/beforeIndex,
+            // since those alone can't distinguish this from an
+            // ordinary first-position trigger on a page with no
+            // reserved slot.
+            newIndex = 0;
+        } else {
+            // Ordinary trigger — minimum 1, since order_index=0 is
+            // EXCLUSIVELY the reserved intro slot's value; a regular
+            // section must never claim it, even when inserting at
+            // the very start of a page's free-section sequence.
+            newIndex = Math.max(1, (afterIndex === null ? 0 : afterIndex + 1));
+        }
+
+        // Find every existing section on THIS page whose order_index
+        // is at or above the slot the new section needs to occupy —
+        // each of those needs to shift up by one first, so the new
+        // section can claim newIndex without colliding.
+        const toShift = [];
+        document.querySelectorAll('.editable-block[data-order-index]').forEach(function (block) {
+            const blockIndex = parseInt(block.dataset.orderIndex, 10);
+            if (!isNaN(blockIndex) && blockIndex >= newIndex) {
+                toShift.push({ id: parseInt(block.dataset.sectionId, 10), order_index: blockIndex + 1 });
+            }
+        });
+
+        function createSection() {
+            const data = new FormData();
+            data.append('page_key', pageKey);
+            data.append('order_index', newIndex);
+            data.append('content', '{}');
+
+            fetch('/page/section/add', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Fehler beim Hinzufügen des Abschnitts.');
+                    }
+                })
+                .catch(function () {
+                    alert('Verbindungsfehler.');
+                });
+        }
+
+        if (toShift.length === 0) {
+            createSection();
+            return;
+        }
+
+        const reorderData = new FormData();
+        reorderData.append('order', JSON.stringify(toShift));
+        fetch('/page/section/reorder', {
+            method: 'POST',
+            body: reorderData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(res => res.json())
+            .then(function (json) {
+                if (json.success) {
+                    createSection();
+                } else {
+                    alert('Fehler beim Verschieben bestehender Abschnitte.');
+                }
+            })
+            .catch(function () {
+                alert('Verbindungsfehler.');
+            });
+    }
+
+    document.querySelectorAll('[data-action="add-section"]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const pageKey = btn.dataset.pageKey;
+            const afterIndex = btn.dataset.afterIndex !== '' ? parseInt(btn.dataset.afterIndex, 10) : null;
+            const beforeIndex = btn.dataset.beforeIndex !== '' ? parseInt(btn.dataset.beforeIndex, 10) : null;
+            const isIntro = btn.dataset.isIntro === '1';
+            triggerAddSection(pageKey, afterIndex, beforeIndex, isIntro);
+        });
+    });
+
     // ── Warn on page leave ────────────────────────────────────
     window.addEventListener('beforeunload', function (e) {
         if (hasUnsaved) { e.preventDefault(); e.returnValue = ''; }
