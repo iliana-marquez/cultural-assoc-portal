@@ -130,7 +130,6 @@ body.is-editing .edit-bar__indicator i {
     align-items: center;
     gap: 0.3rem;
     transition: var(--transition);
-    margin-top: 1rem;
 }
 
 .section-control-btn:hover { background: rgba(255,255,255,0.35); }
@@ -473,11 +472,19 @@ body.is-editing .edit-bar__indicator i {
 
 .ows-modal-textarea { resize: vertical; }
 
+.ows-modal-field-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #666;
+}
+
 /* Footer action row — Abbrechen + primary button, right-aligned */
 .ows-modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
+    margin-top: 1rem;
 }
 
 /* .section-control-btn defaults to white-on-translucent-white,
@@ -547,13 +554,24 @@ body.is-editing .edit-bar__indicator i {
     overflow-y: auto;
 }
 
-.attach-entity-modal-tabs {
+/* ── CTA modal — only what's unique to it ────────────────────── */
+.cta-modal .ows-modal-card {
+    max-width: 480px;
+}
+
+.cta-modal-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.ows-modal-tabs {
     display: flex;
     gap: 0.5rem;
     border-bottom: 1px solid var(--edit-inactive);
 }
 
-.attach-entity-modal-tab {
+.ows-modal-tab {
     background: none;
     border: none;
     cursor: pointer;
@@ -564,7 +582,7 @@ body.is-editing .edit-bar__indicator i {
     transition: var(--transition);
 }
 
-.attach-entity-modal-tab--active {
+.ows-modal-tab--active {
     color: var(--edit-active);
     border-bottom: 2px solid var(--edit-active);
     font-weight: 600;
@@ -572,11 +590,12 @@ body.is-editing .edit-bar__indicator i {
 
 .attach-entity-modal-panel { display: flex; flex-direction: column; gap: 0.6rem; }
 
-.attach-entity-modal-results {
+.attach-entity-modal-results,
+.cta-modal-search-results {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-    max-height: 240px;
+    max-height: 180px;
     overflow-y: auto;
 }
 
@@ -614,7 +633,8 @@ body.is-editing .edit-bar__indicator i {
     margin-top: 0.4rem;
 }
 
-.attach-entity-modal-preview {
+.attach-entity-modal-preview,
+.cta-modal-preview {
     font-size: 0.8rem;
     color: var(--edit-active);
     align-items: center;
@@ -641,7 +661,8 @@ body.is-editing .edit-bar__indicator i {
     cursor: pointer;
 }
 
-.attach-entity-modal-test-link {
+.attach-entity-modal-test-link,
+.cta-modal-test-link {
     color: var(--edit-active);
     align-items: center;
     gap: 0.2rem;
