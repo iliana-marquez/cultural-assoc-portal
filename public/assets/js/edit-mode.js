@@ -192,6 +192,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         initToggles(block);
         initImageControls(block);
+        initRichTextToolbar(block);
     }
 
     function deactivateBlock(block) {
@@ -458,6 +459,138 @@ document.addEventListener('DOMContentLoaded', function () {
                 confirmLabel: 'Entfernen',
                 onConfirm: function () {
                     removeSectionImage(block, 'bg_image', sectionId);
+                }
+            });
+        });
+    }
+
+    // ── Rich-text toolbar ───────────────────────────────────────
+    // Called fresh on every activation, exactly like initToggles()/
+    // initImageControls() — NOT a separate, page-load-only script
+    // with document-level delegation. doActivateBlock() clones
+    // .block-edit-controls (which this toolbar's buttons live
+    // inside) on every activation to clear ITS OWN stale listeners;
+    // a listener attached once at page load has no way to survive
+    // that. Scoping setup to THIS block, called every time it
+    // activates, sidesteps the problem entirely rather than trying
+    // to out-guess the clone's timing.
+    function initRichTextToolbar(block) {
+        let savedRange = null;
+
+        function getActiveField() {
+            const sel = document.getSelection();
+            if (!sel || sel.rangeCount === 0) return null;
+            const field = sel.anchorNode && (sel.anchorNode.nodeType === 1
+                ? sel.anchorNode.closest('[data-field].editable-field')
+                : sel.anchorNode.parentElement?.closest('[data-field].editable-field'));
+            return field && block.contains(field) ? field : null;
+        }
+
+        // Track the live selection continuously WHILE it's genuinely
+        // inside one of THIS block's text fields.
+        block.querySelectorAll('[data-field]').forEach(function (field) {
+            field.addEventListener('keyup', captureSelection);
+            field.addEventListener('mouseup', captureSelection);
+        });
+
+        function captureSelection() {
+            const sel = document.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            const range = sel.getRangeAt(0);
+            const field = getActiveField();
+            if (field) savedRange = range.cloneRange();
+        }
+
+        function restoreSelection() {
+            if (!savedRange) return null;
+            const sel = document.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(savedRange);
+            return getActiveField();
+        }
+
+        function applyInlineFormat(command) {
+            const field = restoreSelection();
+            if (!field) return;
+            if (document.getSelection().toString() === '') return;
+            field.focus();
+            document.execCommand(command, false, null);
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function applyListFormat(listTag) {
+            const field = restoreSelection();
+            if (!field) return;
+            field.focus();
+
+            const sel = document.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            const range = sel.getRangeAt(0);
+
+            const node = range.commonAncestorContainer;
+            const existingList = node.nodeType === 1
+                ? node.closest(listTag)
+                : node.parentElement?.closest(listTag);
+
+            if (existingList && field.contains(existingList)) {
+                const items = Array.from(existingList.querySelectorAll('li')).map(li => li.textContent);
+                existingList.replaceWith(document.createTextNode(items.join('\n')));
+            } else {
+                document.execCommand(listTag === 'ol' ? 'insertOrderedList' : 'insertUnorderedList', false, null);
+            }
+
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function applyLinkFormat() {
+            const field = restoreSelection();
+            if (!field) return;
+            const selectedText = document.getSelection().toString();
+            if (selectedText === '') {
+                alert('Bitte zuerst Text markieren, der verlinkt werden soll.');
+                return;
+            }
+
+            const url = prompt('Link-Adresse:', 'https://');
+            if (!url || url.trim() === '' || url.trim() === 'https://') return;
+
+            let normalized = url.trim().replace(/^http:\/\//i, 'https://');
+            if (!/^https?:\/\//i.test(normalized)) normalized = 'https://' + normalized;
+
+            restoreSelection();
+            field.focus();
+            document.execCommand('createLink', false, normalized);
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        // mousedown, not click — stops the button from stealing
+        // focus/collapsing the selection BEFORE it has a chance to,
+        // rather than reacting after the fact.
+        block.querySelectorAll('[data-action^="richtext-"]').forEach(function (btn) {
+            btn.addEventListener('mousedown', function (e) {
+                e.preventDefault();
+            });
+
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                switch (btn.dataset.action) {
+                    case 'richtext-bold':
+                        applyInlineFormat('bold');
+                        break;
+                    case 'richtext-italic':
+                        applyInlineFormat('italic');
+                        break;
+                    case 'richtext-bullet-list':
+                        applyListFormat('ul');
+                        break;
+                    case 'richtext-numbered-list':
+                        applyListFormat('ol');
+                        break;
+                    case 'richtext-link':
+                        applyLinkFormat();
+                        break;
                 }
             });
         });
