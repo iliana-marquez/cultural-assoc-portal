@@ -76,47 +76,70 @@ body.is-editing .edit-bar__indicator i {
     margin-bottom: 0.15rem;  /* tight gap between label and field */
 }
 
-/* ── Block controls — free sections ─────────────────────────── */
-.block-controls {
+/* ── Structural controls — pencil, move up/down, delete ──────
+   Visible ONLY when NOT editing. These are one-click, structural
+   actions (reposition, remove) that are CORE to managing a free-
+   section page — unlike captions/participants/links elsewhere,
+   where editing content is secondary to the entity's main purpose.
+   Stacked in a column, top-right, matching the editing row's own
+   corner position so the controls don't jump around when toggling. */
+.block-structural-controls {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    flex-direction: column;
+    gap: 0.4rem;
     padding: 0.5rem;
-    background: var(--edit-inactive);
     position: absolute;
     top: 0;
     right: 0;
     z-index: 10;
-    border-radius: 0 0 0 4px;
-    transition: background var(--transition);
+    background-color: var(--edit-inactive);
+    border-bottom-left-radius: 4px;
 }
 
-/* Active — switch to indigo */
-.editable-block.editing .block-controls {
-    background: var(--edit-active);
-}
-
-/* Toggle controls — hidden when inactive */
-.block-edit-controls {
+.editable-block.editing .block-structural-controls {
     display: none;
-    flex-wrap: wrap;
-    gap: 0.5rem;
 }
 
-.editable-block.editing .block-edit-controls {
+/* ── Block controls — the editing-mode row ───────────────────
+   Visible ONLY while editing. Feedback span sits on the OPPOSITE
+   side of this row from the toggle/save/cancel controls. */
+.block-controls {
+    display: none;
+    align-items: center;
+    justify-content: end;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--edit-active) ;
+    position: absolute;
+    top: 0;
+    left: auto;
+    right: 0;
+    z-index: 10;
+    max-width: auto;
+    border-bottom-left-radius: 4px;
+}
+
+.editable-block.editing .block-controls {
     display: flex;
 }
 
-/* Pencil — visible inactive, hidden when editing */
-.editable-block .btn-edit { display: inline-flex; }
-.editable-block.editing .btn-edit { display: none; }
+.block-controls > .block-edit-controls,
+.block-controls > .btn-save,
+.block-controls > .btn-cancel {
+    /* These sit together, opposite the feedback span — wrapped in
+       their own inline group so space-between only separates TWO
+       things (feedback vs. everything else), not every individual
+       child. */
+    display: contents;
+}
 
-/* Save/Cancel — hidden inactive, visible when editing */
-.editable-block .btn-save,
-.editable-block .btn-cancel { display: none; }
-
-.editable-block.editing .btn-save,
-.editable-block.editing .btn-cancel { display: inline-flex; }
+/* Toggle controls — only rendered while editing at all, so no
+   separate inactive-state hiding needed here anymore. */
+.block-edit-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
 
 .section-control-btn {
     background: rgba(255,255,255,0.2);
@@ -133,6 +156,14 @@ body.is-editing .edit-bar__indicator i {
 }
 
 .section-control-btn:hover { background: rgba(255,255,255,0.35); }
+
+.btn-edit,
+.btn-move-up,
+.btn-move-down,
+.btn-delete-section {
+    padding: 0.4rem;
+    justify-content: center;
+}
 
 .btn-save   { font-weight: var(--font-semibold); }
 .btn-cancel { opacity: 0.7; }
@@ -224,6 +255,13 @@ body.is-editing .edit-bar__indicator i {
 .entity-feedback {
     font-size: var(--text-small);
     padding: 0.25rem 0.5rem;
+}
+
+.block-feedback {
+    position: absolute;
+    top: .5rem;
+    left: .5rem;
+    z-index: 11;
 }
 
 .block-feedback--success,
