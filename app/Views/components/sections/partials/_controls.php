@@ -140,6 +140,16 @@ $canMoveDown = $canMoveDown ?? false;
             <?php endif; ?>
         </div>
 
+        <!-- Text formatting — operates on whatever text field is
+             currently focused/selected on the page, applied live
+             in the contenteditable DOM. The editor never sees
+             marker syntax; conversion to/from the safe storage
+             format happens only at save/load time, via
+             RichTextFormatter. Extracted to its own partial since
+             ANY entity-edit-row (org-info, event, team, not just
+             sections) can include it identically. -->
+        <?php include __DIR__ . '/../../_richtext-toolbar.php'; ?>
+
     </div>
     <!-- END .block-edit-controls -->
 
