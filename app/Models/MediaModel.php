@@ -90,6 +90,23 @@ class MediaModel extends BaseModel
     }
 
     /**
+     * Get the profile image for an entity (stage='profile').
+     * Used by participant and team member listings and detail pages.
+     */
+    public function getProfile(string $entityType, int $entityId): ?object
+    {
+        return $this->fetchOne(
+            "SELECT m.*
+             FROM {$this->table} m
+             INNER JOIN {$this->pivotTable} em ON em.media_id = m.id
+             WHERE em.entity_type = ? AND em.entity_id = ? AND m.stage = 'profile'
+             ORDER BY m.order_index ASC
+             LIMIT 1",
+            [$entityType, $entityId]
+        );
+    }
+
+    /**
      * Get random media items across entities.
      * Used in free sections to display curated media from any entity.
      *
@@ -123,10 +140,10 @@ class MediaModel extends BaseModel
      *
      * @param string $entityType
      * @param int    $entityId
-     * @param array  $data  media_url, caption, credit, stage, order_index
-     * @return int   the media row's id (existing or newly created)
+     * @param array  $data  media_url, caption, stage, order_index
+     * @return bool
      */
-    public function addForEntity(string $entityType, int $entityId, array $data): int
+    public function addForEntity(string $entityType, int $entityId, array $data): bool
     {
         // Check if media_url already exists
         $existing = $this->fetchOne(
@@ -152,13 +169,11 @@ class MediaModel extends BaseModel
         }
 
         // Link to entity via pivot
-        $this->execute(
+        return $this->execute(
             "INSERT IGNORE INTO {$this->pivotTable} (media_id, entity_type, entity_id)
              VALUES (?, ?, ?)",
             [$mediaId, $entityType, $entityId]
         );
-
-        return $mediaId;
     }
 
     /**
@@ -196,37 +211,27 @@ class MediaModel extends BaseModel
     }
 
     /**
-     * Update media item — partial update.
-     * Only columns present in $data are touched; everything else
-     * on the row is left exactly as it was.
-     * Updates once — reflects on all linked entities.
+     * Update media item.
+     * Updates once — reflects on all linked entities. 
      *
      * @param int   $mediaId
-     * @param array $data  any of: media_url, caption, credit, stage, order_index
+     * @param array $data
      * @return bool
      */
     public function update(int $mediaId, array $data): bool
     {
-        $allowed = ['media_url', 'caption', 'credit', 'stage', 'order_index'];
-        $fields  = [];
-        $params  = [];
-
-        foreach ($allowed as $column) {
-            if (array_key_exists($column, $data)) {
-                $fields[] = "{$column} = ?";
-                $params[] = $data[$column];
-            }
-        }
-
-        if (empty($fields)) {
-            return false;
-        }
-
-        $params[] = $mediaId;
-
         return $this->execute(
-            "UPDATE {$this->table} SET " . implode(', ', $fields) . " WHERE id = ?",
-            $params
+            "UPDATE {$this->table}
+             SET media_url = ?, caption = ?, stage = ?, order_index = ?
+             WHERE id = ?",
+            [
+                $data['media_url']   ?? null,
+                $data['caption']     ?? null,
+                $data['credit']      ?? null,
+                $data['stage']       ?? 'promo',
+                $data['order_index'] ?? 0,
+                $mediaId,
+            ]
         );
     }
 

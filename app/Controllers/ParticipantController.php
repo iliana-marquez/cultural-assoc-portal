@@ -46,7 +46,7 @@ class ParticipantController extends BaseController
         foreach ($participants as $participant) {
             $participant->displayName = ParticipantModel::displayName($participant);
             $participant->slug        = ParticipantModel::generateSlug($participant);
-            $participant->promo       = $this->mediaModel->getPromo('participant', $participant->id);
+            $participant->profileImg  = $this->mediaModel->getProfile('participant', $participant->id);
         }
 
         $seo = $this->buildSeo(
@@ -76,7 +76,11 @@ class ParticipantController extends BaseController
         $participant->displayName = ParticipantModel::displayName($participant);
         $participant->slug        = $slug;
         $participant->urls        = $this->urlModel->getForEntity('participant', $participant->id);
-        $participant->media       = $this->mediaModel->getForEntity('participant', $participant->id);
+
+        // Profile image — stored in entity_media (stage='profile'), URL also
+        // synced to the direct image column for use in listings/cards.
+        $profileMedia             = $this->mediaModel->getForEntity('participant', $participant->id, 'profile');
+        $participant->profileImg  = $profileMedia[0] ?? null;
 
         // Events this participant appeared in
         $participant->events = $this->eventModel->getForParticipant($participant->id);
@@ -89,7 +93,7 @@ class ParticipantController extends BaseController
             $this->org,
             $participant->displayName . ' | ' . $this->org->name,
             $participant->field ?? '',
-            $participant->media[0]->media_url ?? $this->org->logo_url ?? ''
+            $participant->image ?? $this->org->logo_url ?? ''
         );
 
         $this->render('pages/participant-detail', [
@@ -103,18 +107,70 @@ class ParticipantController extends BaseController
     public function add(array $params = []): void
     {
         $this->requireLogin();
-        $success = $this->participantModel->add($_POST);
-        $success
-            ? $this->jsonSuccess(['id' => $this->participantModel->lastInsertId()])
-            : $this->jsonError('Failed to add participant');
+
+        // Create minimal participant → redirect to detail for inline editing
+        $id = $this->participantModel->add([
+            'first_name' => 'Neue:r Künstler:in',
+        ]);
+
+        if (!$id) {
+            $this->jsonError('Failed to create participant');
+            return;
+        }
+
+        $participant = $this->participantModel->getById($id);
+        $slug        = ParticipantModel::generateSlug($participant);
+
+        $this->jsonSuccess(['slug' => $slug]);
     }
 
     public function save(array $params = []): void
     {
         $this->requireLogin();
-        $id      = (int) ($params['id'] ?? 0);
-        $success = $this->participantModel->update($id, $_POST);
-        $success ? $this->jsonSuccess() : $this->jsonError('Failed to save participant');
+        $id = (int) ($params['id'] ?? 0);
+
+        $allowed = [
+            'type',
+            'title',
+            'first_name',
+            'last_name',
+            'field',
+            'bio',
+            'image',
+            'image_credit',
+        ];
+
+        $field = null;
+        $value = null;
+        foreach ($allowed as $f) {
+            if (isset($_POST[$f])) {
+                $field = $f;
+                $value = trim($_POST[$f]);
+                break;
+            }
+        }
+
+        if (!$field) {
+            $this->jsonError('No valid field');
+            return;
+        }
+
+        $success = $this->participantModel->updateField($id, $field, $value);
+
+        if (!$success) {
+            $this->jsonError('Failed to save');
+            return;
+        }
+
+        // If a name field changed the slug changes too — return it
+        if (in_array($field, ['title', 'first_name', 'last_name'], true)) {
+            $participant = $this->participantModel->getById($id);
+            $slug        = ParticipantModel::generateSlug($participant);
+            $this->jsonSuccess(['slug' => $slug]);
+            return;
+        }
+
+        $this->jsonSuccess();
     }
 
     public function delete(array $params = []): void
@@ -123,5 +179,58 @@ class ParticipantController extends BaseController
         $id      = (int) ($params['id'] ?? 0);
         $success = $this->participantModel->delete($id);
         $success ? $this->jsonSuccess() : $this->jsonError('Failed to delete participant');
+    }
+
+    /**
+     * GET /participants/{id}/profile-fragment
+     * Re-renders the profile image partial for in-place refresh after upload.
+     */
+    public function profileFragment(array $params = []): void
+    {
+        $id          = (int) ($params['id'] ?? 0);
+        $participant = $this->participantModel->getById($id);
+
+        if (!$participant) {
+            http_response_code(404);
+            echo '';
+            return;
+        }
+
+        $participant->displayName = ParticipantModel::displayName($participant);
+        $participant->slug        = ParticipantModel::generateSlug($participant);
+        $profileMedia             = $this->mediaModel->getForEntity('participant', $id, 'profile');
+        $entity                   = $participant;
+        $entityType               = 'participant';
+        $profileImg               = $profileMedia[0] ?? null;
+        $isLoggedIn               = $this->isLoggedIn();
+
+        ob_start();
+        include __DIR__ . '/../Views/components/profile-img.php';
+        $html = ob_get_clean();
+
+        header('Content-Type: text/html; charset=utf-8');
+        echo $html;
+    }
+
+    /**
+     * POST /participants/{id}/remove-image
+     * Remove profile image URL from image column.
+     */
+    public function removeImage(array $params = []): void
+    {
+        $this->requireLogin();
+        $id = (int) ($params['id'] ?? 0);
+
+        if (!$id) {
+            $this->jsonError('Invalid request');
+            return;
+        }
+
+        $participant = $this->participantModel->getById($id);
+        $current     = $participant ? (array) $participant : [];
+        $current['image'] = null;
+
+        $success = $this->participantModel->update($id, $current);
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to remove image');
     }
 }
