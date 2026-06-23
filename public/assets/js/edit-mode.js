@@ -517,30 +517,41 @@ document.addEventListener('DOMContentLoaded', function () {
                 : node.parentElement?.closest('[data-field].editable-field');
             if (!field || !block.contains(field)) return;
 
-            const selectedText = window.getSelection().toString();
-            if (!selectedText) return;
+            field.focus();
+            const sel = document.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(savedRange);
+            if (sel.toString() === '') return;
 
-            // Check if selected text is already wrapped in this class
-            const existing = Array.from(field.querySelectorAll('span.' + className))
-                .find(function (span) { return span.textContent === selectedText; });
+            const range = sel.getRangeAt(0);
 
-            if (existing) {
-                // Unwrap
+            // Check the CURRENT DOM parent of the anchor node —
+            // not startContainer from the range, which reflects the
+            // pre-wrap position. After surroundContents(), the text
+            // node's parentElement IS the newly created span, so
+            // checking anchorNode.parentElement correctly detects
+            // an already-wrapped selection on subsequent clicks.
+            const anchorEl = sel.anchorNode.nodeType === 1
+                ? sel.anchorNode
+                : sel.anchorNode.parentElement;
+            const existing = anchorEl?.closest('.' + className);
+
+            if (existing && field.contains(existing)) {
+                // Unwrap — move children out, remove the span
                 const parent = existing.parentNode;
                 while (existing.firstChild) {
                     parent.insertBefore(existing.firstChild, existing);
                 }
                 existing.remove();
             } else {
-                field.focus();
-                const sel = document.getSelection();
-                sel.removeAllRanges();
-                sel.addRange(savedRange);
-                const range = sel.getRangeAt(0);
                 const span = document.createElement('span');
                 span.className = className;
-                span.appendChild(range.extractContents());
-                range.insertNode(span);
+                try {
+                    range.surroundContents(span);
+                } catch (e) {
+                    span.appendChild(range.extractContents());
+                    range.insertNode(span);
+                }
             }
 
             field.dispatchEvent(new Event('input', { bubbles: true }));
@@ -2130,6 +2141,55 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(function () {
                 alert('Verbindungsfehler.');
             });
+    });
+
+    // ── New participant ───────────────────────────────────────
+    document.querySelector('[data-action="new-participant"]')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        fetch('/participants/add', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(res => res.json())
+            .then(function (json) {
+                if (json.success && json.slug) {
+                    window.location.href = '/kuenstlerinnen/' + json.slug;
+                } else {
+                    alert('Fehler beim Erstellen der Künstler:in.');
+                }
+            })
+            .catch(function () {
+                alert('Verbindungsfehler.');
+            });
+    });
+
+    // ── Delete participant ────────────────────────────────────
+    document.querySelector('[data-action="delete-participant"]')?.addEventListener('click', function (e) {
+        const btn = e.currentTarget;
+        const participantId = btn.dataset.participantId;
+
+        openConfirmModal({
+            title: 'Künstler:in löschen',
+            message: 'Diese:r Künstler:in wird dauerhaft gelöscht. Alle Verknüpfungen zu Veranstaltungen werden ebenfalls entfernt.',
+            confirmLabel: 'Endgültig löschen',
+            onConfirm: function () {
+                fetch('/participants/' + participantId + '/delete', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            window.location.href = '/kuenstlerinnen';
+                        } else {
+                            alert('Löschen fehlgeschlagen.');
+                        }
+                    })
+                    .catch(function () {
+                        alert('Verbindungsfehler.');
+                    });
+            }
+        });
     });
 
     // ── Section CTA buttons (free sections) ───────────────────

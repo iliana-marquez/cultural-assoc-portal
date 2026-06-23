@@ -61,9 +61,11 @@ $router->post('/events/{id}/participant/remove', 'EventController', 'removeParti
 // ── Participants CRUD → ParticipantController ──────────────────
 $router->get('/kuenstlerinnen',               'ParticipantController', 'index');
 $router->get('/kuenstlerinnen/{slug}',        'ParticipantController', 'show');
-$router->post('/participants/add',            'ParticipantController', 'add');
-$router->post('/participants/{id}/save',      'ParticipantController', 'save');
-$router->post('/participants/{id}/delete',    'ParticipantController', 'delete');
+$router->post('/participants/add',                    'ParticipantController', 'add');
+$router->post('/participants/{id}/save',              'ParticipantController', 'save');
+$router->post('/participants/{id}/delete',            'ParticipantController', 'delete');
+$router->post('/participants/{id}/upload-image',      'ParticipantController', 'uploadImage');
+$router->post('/participants/{id}/remove-image',      'ParticipantController', 'removeImage');
 
 
 // Organisation

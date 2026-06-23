@@ -30,6 +30,12 @@
         </a>
         <span class="edit-bar__exit">|</span>
 
+        <a href="#" class="edit-bar__exit" data-action="new-participant">
+            <i class="ti ti-plus"></i>
+            Neue:r Künstler:in
+        </a>
+        <span class="edit-bar__exit">|</span>
+
         <a href="/<?= htmlspecialchars($config['admin_path']) ?>/org"
             class="edit-bar__exit" title="Exit edit mode">
             <i class="ti ti-edit"></i>
