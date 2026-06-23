@@ -52,6 +52,8 @@ $partialsDir  = __DIR__ . '/partials/';
 $heroFile     = __DIR__ . '/../hero.php';
 $triggerFile  = $partialsDir . '_add-section-trigger.php';
 
+require_once __DIR__ . '/../../../../core/RichTextFormatter.php';
+
 $sectionsMode = $sectionsMode ?? 'rest';
 
 if ($sectionsMode === 'intro') {
@@ -79,9 +81,9 @@ if ($sectionsMode === 'intro') {
             $imagePos    = $section->image_pos    ?? 'none';
             $layout      = $section->layout       ?? '50-50';
             $align       = $section->align        ?? 'left';
-            $title       = $section->title        ?? null;
-            $subtitle    = $section->subtitle     ?? null;
-            $text        = $section->text         ?? null;
+            $title       = RichTextFormatter::markerToHtml($section->title    ?? '') ?: null;
+            $subtitle    = RichTextFormatter::markerToHtml($section->subtitle ?? '') ?: null;
+            $text        = RichTextFormatter::markerToHtml($section->text     ?? '') ?: null;
             $cta         = $section->cta          ?? null;
             $objectFit   = $section->object_fit   ?? 'cover';
 
@@ -137,9 +139,9 @@ if ($sectionsMode === 'intro') {
         $imagePos    = $section->image_pos    ?? 'none';
         $layout      = $section->layout       ?? '50-50';
         $align       = $section->align        ?? 'left';
-        $title       = $section->title        ?? null;
-        $subtitle    = $section->subtitle     ?? null;
-        $text        = $section->text         ?? null;
+        $title       = RichTextFormatter::markerToHtml($section->title    ?? '') ?: null;
+        $subtitle    = RichTextFormatter::markerToHtml($section->subtitle ?? '') ?: null;
+        $text        = RichTextFormatter::markerToHtml($section->text     ?? '') ?: null;
         $cta         = $section->cta          ?? null;
         $objectFit   = $section->object_fit   ?? 'cover';
 
