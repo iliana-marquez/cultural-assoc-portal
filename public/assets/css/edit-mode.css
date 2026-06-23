@@ -168,6 +168,19 @@ body.is-editing .edit-bar__indicator i {
 .btn-save   { font-weight: var(--font-semibold); }
 .btn-cancel { opacity: 0.7; }
 
+.editable-field {
+    font-size: inherit;
+    font-family: inherit;
+}
+
+/* Editor-produced inline formatting classes.
+   The toolbar wraps selections in <span class="rt-X"> only —
+   never execCommand, never browser-generated tags. */
+.rt-bold   { font-weight: bold; }
+.rt-italic { font-style: italic; }
+.rt-ul     { display: list-item; list-style-type: disc;    margin-left: 1.5rem; }
+.rt-ol     { display: list-item; list-style-type: decimal; margin-left: 1.5rem; }
+
 .richtext-toolbar {
     display: flex;
     gap: 0.2rem;
@@ -591,7 +604,6 @@ body.is-editing .edit-bar__indicator i {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
-    margin-top: 1rem;
 }
 
 /* .section-control-btn defaults to white-on-translucent-white,
