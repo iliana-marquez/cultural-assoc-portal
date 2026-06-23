@@ -1778,6 +1778,72 @@ UPDATE organisation_info SET id = 1 WHERE id = 2;
 - Full inactive/editing toggle tested for visual and behavioral parity with the existing participants/media rows, including the navbar's global edit indicator turning on and off correctly on pencil/cancel
 - `entity-urls.php` integration re-tested after the org-edit.php wiring to confirm zero behavior change on the already-working event page — same partial, two different controllers' data shapes, no regressions
 
+# feat/free-sections-lifecycle
+
+## Overview
+
+- Lets an editor build, arrange, and style the content of any free-section page (home, über uns, etc.) entirely from the browser, without touching the database or code
+- Replaces what would otherwise be a static, developer-maintained page structure — every section an editor would ever touch is already visible where it lives, with controls appearing only when needed
+- Rich-text formatting (bold, italic, link, bullet list) is applied live in the editor and stored as a safe marker syntax, converted back to semantic HTML at display time — editors never see markup syntax
+- Built as a single, reusable section rendering and editing system; proven across all free-section pages with zero duplicated markup or logic between them
+
+## Architecture
+
+- Sections are stored as rows in the `pages` table, each with a `page_key`, `order_index`, and a JSON `content` blob holding all field values (title, subtitle, text, theme, layout, image settings)
+- The `order_index` sequence is always kept gapless — adding a section shifts later sections up, deleting one shifts later sections down, reordering swaps exactly two rows
+- CTAs (call-to-action buttons) follow the same shared-resource pattern as links and media: stored once in `urls`, linked to the section via `entity_urls` with a `cta_label` column on the pivot, so the same URL can carry a different button label on every section that uses it
+- Rich text uses a deliberate marker syntax (`**bold**`, `*italic*`, `[text](url)`, `- item`) as the storage format — never raw HTML — so the stored content is safe to output regardless of what the editor typed or pasted. `RichTextFormatter::htmlToMarker()` runs on every save; `markerToHtml()` runs at display time
+- The editor's own formatting is applied via CSS classes (`rt-bold`, `rt-italic`, `rt-ul`) on `<span>` elements — not `execCommand`, not semantic tags directly — so the browser never generates unexpected markup during editing
+- The section editing controls are split into two deliberate groups: structural controls (pencil, move up/down, delete) visible when not editing; content controls (layout toggles, rich-text toolbar, save/cancel) visible only while editing. This matches the established pattern already used by participants, media, and links rows throughout the editor
+- The rich-text toolbar lives in its own standalone partial (`_richtext-toolbar.php`) and JS module (`initRichTextToolbar`), scoped per-block and called fresh on every activation — making it reusable by any entity-edit-row (org-info, event description, team bio) with a single `include` and zero JS changes
+
+## Development
+
+- Built in five sequential steps: CTA/button lifecycle first (reusing `attach-entity-modal`), then add-section with trigger placement and order-shift logic, then delete-section with orphan cleanup and gap closing, then reorder with conditional chevrons, then rich-text formatting
+- The rich-text toolbar went through multiple approaches before settling on the current design: `execCommand` was abandoned due to browser inconsistency (producing `<b>` vs `<strong>`, injecting unexpected `<span style="font-size">` wrappers); direct DOM manipulation via `Range.extractContents()` and custom span classes was chosen instead as the only reliably cross-browser approach
+- Field containers were changed from semantic `<h2>`/`<p>` tags to `<div class="section-h2/h3/p">` after discovering that `execCommand('insertUnorderedList')` inside a `<p>` causes browsers to forcibly eject the `<ul>` outside the `<p>` (HTML spec violation), corrupting the field structure. `<div>` has no such constraint
+- The toolbar's `initRichTextToolbar` is called fresh on every block activation (alongside `initToggles` and `initImageControls`) rather than registered once at page load — because `doActivateBlock()` clones `.block-edit-controls` on every activation to clear stale listeners, so any page-load-only listener would silently die on the first activate/deactivate cycle
+- Several pre-existing bugs were found and fixed as a side effect of this feature creating enough new sections to expose them: `section.php`'s outer wrapper div was unconditionally opened but conditionally closed (causing every section to nest inside the previous one via browser error-recovery); `_controls.php`'s `image_pos` toggle defaulted to `'right'` instead of `'none'` (causing every untouched section to silently become an image block on its first save)
+
+## Files
+
+- **`RichTextFormatter.php`** — `htmlToMarker()` (editor HTML → safe marker syntax for storage, handling `<span class="rt-bold/italic/ul">`, `<a>`, `<strong>`, `<em>`, `<b>`, `<i>`, `<ul><li>` from any prior iteration), `markerToHtml()` (marker syntax → safe HTML for public display, converting `**text**`/`*text*`/`[text](url)`/`- item` to `<strong>`/`<em>`/`<a>`/`<ul><li>`)
+- **`PagesModel.php`** — `getForPage()`, `addSection()`, `getById()`, `updateContent()`, `updateOrder()`, `deleteSection()`, `closeOrderGap()` (shifts all later sections down by one after a deletion)
+- **`PageController.php`** — `show()`, `addSection()`, `saveSection()` (runs `htmlToMarker()` on rich-text fields before storage), `deleteSection()` (cleans up CTAs via orphan-aware unlink before deleting), `reorderSections()`, `removeSectionImage()`
+- **`render-sections.php`** — two-mode rendering (`intro` for the capped single slot at `order_index=0` on listing pages, `rest` for all ordinary sections); runs `markerToHtml()` on title/subtitle/text at display time; computes `$canMoveUp`/`$canMoveDown` per section for conditional chevrons; suppresses the first add-trigger when a hero exists
+- **`section.php`** — outer wrapper conditionally rendered only when logged in (fixing the unconditional-open/conditional-close bug); passes `$canMoveUp`/`$canMoveDown` through to `_controls.php`
+- **`partials/_content.php`** — field containers use `<div class="section-h2/h3/p">` not `<h2>`/`<p>`; outputs raw HTML (no `htmlspecialchars`) since values have already been converted by `markerToHtml()`
+- **`partials/_controls.php`** — two groups: `.block-structural-controls` (pencil, conditional chevrons, delete — visible when not editing) and `.block-controls` (toggle row with rich-text toolbar, save/cancel — visible only while editing); fixed `image_pos` toggle default from `'right'` to `'none'`
+- **`partials/_add-section-trigger.php`** — the `+ Abschnitt hinzufügen` / `Einleitung hinzufügen` trigger partial, with `data-is-intro` flag to distinguish the reserved slot from an ordinary first-position trigger
+- **`partials/_cta-buttons.php`** — supports a `$fragmentOnly` mode for in-place refresh after any CTA add/edit/remove, so the editor's unsaved work in other sections is never discarded by a full page reload
+- **`components/_richtext-toolbar.php`** — standalone, entity-agnostic toolbar partial (Bold, Italic, Bullet list, Numbered list, Link); includable from any entity-edit-row with a single path-adjusted `include`
+- **`UrlController.php`** — added `sectionCtaFragment()` (returns inner CTA row HTML for in-place refresh), `addInternalPage()` (adds an internal page link, auto-deriving the Website type), `namedPages()` (returns the site's own named pages for the page-picker tab)
+- **`edit-mode.js`** — `initRichTextToolbar(block)` (scoped per-block, fresh every activation: `applySpanClass`, `applyLinkFormat`, delegated `mousedown`/`click` handlers); `triggerAddSection()` (reorder-shift then create, isolated for v2 layout picker extension); `moveSection()` (two-row order_index swap); delete-section confirm flow with `window.location.reload()`; `refreshCtaRow()` (fragment fetch replacing full-page reload)
+- **`main.css`** — `.section-h2`, `.section-h3`, `.section-p` styles matching the replaced semantic tags; `.rt-bold`, `.rt-italic`, `.rt-ul`, `.rt-ol` for live editor formatting; `strong { font-weight: var(--font-bold) }` to override Bootstrap's `bolder` resolving to `400` against a `300` base weight; `[data-field] ul/ol` list marker restore
+
+## Bugs / Fixes
+
+- **`section.php` unconditional-open / conditional-close div** — the outer `.editable-block` wrapper was opened unconditionally but closed only when `$isLoggedIn`, leaving one unclosed `<div>` per section for logged-out visitors; the browser's HTML error-recovery silently nested every subsequent section inside the previous one. Never visible until pages accumulated multiple sections through this feature
+- **`_controls.php` image_pos toggle wrong default** — the `data-value` fallback for the image position toggle was `'right'` instead of `'none'`; since `saveBlock()` sends every toggle's current rendered value on save regardless of whether the editor touched it, every first save of an untouched section silently wrote `image_pos: 'right'` into the database, turning it into a structural image block
+- **`deleteSection()` never cleaned up CTAs** — the original implementation only deleted the `pages` row, leaving `entity_urls` rows permanently orphaned. Fixed to run the same orphan-aware unlink logic used everywhere else before deleting the section itself
+- **`saveBlock()` sent `innerText` instead of `innerHTML`** — `innerText` strips all markup, meaning rich-text formatting was silently discarded before ever reaching the server. Fixed to send `innerHTML`
+- **Bold not rendering publicly despite correct DB storage** — `strong { font-weight: bolder }` from Bootstrap resolves to `400` when the body's base weight is `300` (via `--font-regular: 300`), making bold visually indistinguishable from regular text. Fixed with an explicit `strong { font-weight: var(--font-bold) }` override
+- **`execCommand` producing `<b>` instead of `<strong>` in Firefox** — `htmlToMarker()` originally only handled `<strong>`, so `<b>` tags from Firefox's `execCommand('bold')` were silently stripped by `strip_tags()`. Added `<b>` and `<i>` handling alongside their semantic equivalents for backwards compatibility
+- **CTA add/edit/remove triggering full page reload** — discarded any unsaved edits the editor had open in another section. Fixed by adding a `$fragmentOnly` mode to `_cta-buttons.php` and a dedicated `/urls/section-cta-fragment` endpoint, replacing the reload with a targeted inner-HTML swap
+- **Internal-page CTA edit always showing the raw URL form** — editing a CTA originally created via the "Seite hier" tab would reopen on the plain URL text field instead of the page-picker dropdown. Fixed by detecting whether the stored URL's origin matches `window.location.origin` and routing to the correct modal panel
+- **`doActivateBlock()` cloning `.block-edit-controls`** — any listener attached directly to toolbar buttons at page load was silently destroyed on the first activate/deactivate cycle. Fixed by scoping `initRichTextToolbar` to run fresh on every activation, identical to `initToggles` and `initImageControls`
+
+## Testing
+
+- Add, edit (layout, theme, image, bg image, alignment), save, and cancel tested across all free-section pages
+- Add-section trigger placement tested for all cases: pure free-section pages (triggers before first, between every pair, after last), listing pages (intro slot capped at one, rest sequence unlimited), hero suppression (no trigger between hero and first ordinary section)
+- Order gap closing tested: delete a section at index 2 with sections at 3 and 4 — confirmed 3 becomes 2 and 4 becomes 3 in the database
+- Reorder chevron conditionality tested: first section shows only down, last shows only up, middle shows both, hero and intro slot show neither
+- CTA fragment refresh tested: add a CTA to one section while another section has unsaved text edits — confirmed the CTA saves and the unsaved text is untouched
+- Internal vs external CTA edit routing tested: CTA created via "Seite hier" reopens on the page-picker tab with the correct page pre-selected; external CTA reopens on the URL form
+- Rich-text round-trip tested: bold, italic, link, and bullet list each applied, saved, and confirmed in the database as marker syntax (`**text**`, `*text*`, `[text](url)`, `- text`); reloaded and confirmed as rendered HTML publicly
+- `htmlToMarker()` tested against both editor span classes (`rt-bold`/`rt-italic`) and public display tags (`<strong>`/`<em>`/`<ul><li>`) to confirm the round-trip is stable across multiple edit cycles
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
