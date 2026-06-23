@@ -25,6 +25,7 @@
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../Models/PagesModel.php';
 require_once __DIR__ . '/../Models/UrlModel.php';
+require_once __DIR__ . '/../../core/RichTextFormatter.php';
 
 class PageController extends BaseController
 {
@@ -143,9 +144,15 @@ class PageController extends BaseController
             'bg_image'
         ];
 
+        $richText = ['title', 'subtitle', 'text'];
+
         foreach ($updatable as $field) {
             if (isset($_POST[$field])) {
-                $current[$field] = $_POST[$field];
+                $value = $_POST[$field];
+                if (in_array($field, $richText, true)) {
+                    $value = RichTextFormatter::htmlToMarker($value);
+                }
+                $current[$field] = $value;
             }
         }
 
