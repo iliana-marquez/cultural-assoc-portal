@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const data = new FormData();
 
         block.querySelectorAll('[data-field]').forEach(function (el) {
-            data.append(el.dataset.field, el.innerText.trim());
+            data.append(el.dataset.field, el.innerHTML.trim());
         });
         block.querySelectorAll('[data-toggle]').forEach(function (el) {
             data.append(el.dataset.toggle, el.dataset.value);
@@ -509,44 +509,57 @@ document.addEventListener('DOMContentLoaded', function () {
             return getActiveField();
         }
 
-        function applyInlineFormat(command) {
-            const field = restoreSelection();
-            if (!field) return;
-            if (document.getSelection().toString() === '') return;
-            field.focus();
-            document.execCommand(command, false, null);
-            field.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+        function applySpanClass(className) {
+            if (!savedRange) return;
+            const node = savedRange.commonAncestorContainer;
+            const field = node.nodeType === 1
+                ? node.closest('[data-field].editable-field')
+                : node.parentElement?.closest('[data-field].editable-field');
+            if (!field || !block.contains(field)) return;
 
-        function applyListFormat(listTag) {
-            const field = restoreSelection();
-            if (!field) return;
-            field.focus();
+            const selectedText = window.getSelection().toString();
+            if (!selectedText) return;
 
-            const sel = document.getSelection();
-            if (!sel || sel.rangeCount === 0) return;
-            const range = sel.getRangeAt(0);
+            // Check if selected text is already wrapped in this class
+            const existing = Array.from(field.querySelectorAll('span.' + className))
+                .find(function (span) { return span.textContent === selectedText; });
 
-            const node = range.commonAncestorContainer;
-            const existingList = node.nodeType === 1
-                ? node.closest(listTag)
-                : node.parentElement?.closest(listTag);
-
-            if (existingList && field.contains(existingList)) {
-                const items = Array.from(existingList.querySelectorAll('li')).map(li => li.textContent);
-                existingList.replaceWith(document.createTextNode(items.join('\n')));
+            if (existing) {
+                // Unwrap
+                const parent = existing.parentNode;
+                while (existing.firstChild) {
+                    parent.insertBefore(existing.firstChild, existing);
+                }
+                existing.remove();
             } else {
-                document.execCommand(listTag === 'ol' ? 'insertOrderedList' : 'insertUnorderedList', false, null);
+                field.focus();
+                const sel = document.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedRange);
+                const range = sel.getRangeAt(0);
+                const span = document.createElement('span');
+                span.className = className;
+                span.appendChild(range.extractContents());
+                range.insertNode(span);
             }
 
             field.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
         function applyLinkFormat() {
-            const field = restoreSelection();
-            if (!field) return;
-            const selectedText = document.getSelection().toString();
-            if (selectedText === '') {
+            if (!savedRange) return;
+            const node = savedRange.commonAncestorContainer;
+            const field = node.nodeType === 1
+                ? node.closest('[data-field].editable-field')
+                : node.parentElement?.closest('[data-field].editable-field');
+            if (!field || !block.contains(field)) return;
+
+            field.focus();
+            const sel = document.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(savedRange);
+
+            if (sel.toString() === '') {
                 alert('Bitte zuerst Text markieren, der verlinkt werden soll.');
                 return;
             }
@@ -554,39 +567,50 @@ document.addEventListener('DOMContentLoaded', function () {
             const url = prompt('Link-Adresse:', 'https://');
             if (!url || url.trim() === '' || url.trim() === 'https://') return;
 
-            let normalized = url.trim().replace(/^http:\/\//i, 'https://');
+            let normalized = url.trim();
             if (!/^https?:\/\//i.test(normalized)) normalized = 'https://' + normalized;
 
-            restoreSelection();
             field.focus();
-            document.execCommand('createLink', false, normalized);
+            sel.removeAllRanges();
+            sel.addRange(savedRange);
+
+            const range = sel.getRangeAt(0);
+            const a = document.createElement('a');
+            a.href = normalized;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            try {
+                range.surroundContents(a);
+            } catch (e) {
+                a.appendChild(range.extractContents());
+                range.insertNode(a);
+            }
+
             field.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
-        // mousedown, not click — stops the button from stealing
-        // focus/collapsing the selection BEFORE it has a chance to,
-        // rather than reacting after the fact.
-        block.querySelectorAll('[data-action^="richtext-"]').forEach(function (btn) {
-            btn.addEventListener('mousedown', function (e) {
+        block.addEventListener('mousedown', function (e) {
+            if (e.target.closest('[data-action^="richtext-"]')) {
                 e.preventDefault();
-            });
+            }
+        });
 
+        block.querySelectorAll('[data-action^="richtext-"]').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-
                 switch (btn.dataset.action) {
                     case 'richtext-bold':
-                        applyInlineFormat('bold');
+                        applySpanClass('rt-bold');
                         break;
                     case 'richtext-italic':
-                        applyInlineFormat('italic');
+                        applySpanClass('rt-italic');
                         break;
                     case 'richtext-bullet-list':
-                        applyListFormat('ul');
+                        applySpanClass('rt-ul');
                         break;
                     case 'richtext-numbered-list':
-                        applyListFormat('ol');
+                        applySpanClass('rt-ol');
                         break;
                     case 'richtext-link':
                         applyLinkFormat();
