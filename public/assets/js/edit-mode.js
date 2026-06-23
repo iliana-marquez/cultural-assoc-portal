@@ -133,11 +133,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function activateBlock(block) {
         if (activeBlock && activeBlock !== block && hasUnsaved) {
-            if (!confirm('Ungespeicherte Änderungen verwerfen?')) return;
-            cancelBlock(activeBlock);
+            openConfirmModal({
+                title: 'Ungespeicherte Änderungen',
+                message: 'Möchtest du die ungespeicherten Änderungen verwerfen?',
+                confirmLabel: 'Verwerfen',
+                onConfirm: function () {
+                    cancelBlock(activeBlock);
+                    doActivateBlock(block);
+                }
+            });
+            return;
         }
         if (activeBlock && activeBlock !== block) deactivateBlock(activeBlock);
+        doActivateBlock(block);
+    }
 
+    function doActivateBlock(block) {
         activeBlock = block;
         block.classList.add('editing');
         document.body.classList.add('is-editing');
@@ -181,6 +192,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         initToggles(block);
         initImageControls(block);
+        initRichTextToolbar(block);
     }
 
     function deactivateBlock(block) {
@@ -225,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const data = new FormData();
 
         block.querySelectorAll('[data-field]').forEach(function (el) {
-            data.append(el.dataset.field, el.innerText.trim());
+            data.append(el.dataset.field, el.innerHTML.trim());
         });
         block.querySelectorAll('[data-toggle]').forEach(function (el) {
             data.append(el.dataset.toggle, el.dataset.value);
@@ -424,8 +436,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         block.querySelectorAll('[data-action="remove-image"]').forEach(function (btn) {
             btn.addEventListener('click', function () {
-                if (!confirm('Bild entfernen?')) return;
-                removeSectionImage(block, 'image', sectionId);
+                openConfirmModal({
+                    title: 'Bild entfernen',
+                    message: 'Dieses Bild wirklich entfernen?',
+                    confirmLabel: 'Entfernen',
+                    onConfirm: function () {
+                        removeSectionImage(block, 'image', sectionId);
+                    }
+                });
             });
         });
 
@@ -435,8 +453,170 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         block.querySelector('[data-action="remove-bg"]')?.addEventListener('click', function () {
-            if (!confirm('Hintergrundbild entfernen?')) return;
-            removeSectionImage(block, 'bg_image', sectionId);
+            openConfirmModal({
+                title: 'Hintergrundbild entfernen',
+                message: 'Dieses Hintergrundbild wirklich entfernen?',
+                confirmLabel: 'Entfernen',
+                onConfirm: function () {
+                    removeSectionImage(block, 'bg_image', sectionId);
+                }
+            });
+        });
+    }
+
+    // ── Rich-text toolbar ───────────────────────────────────────
+    // Called fresh on every activation, exactly like initToggles()/
+    // initImageControls() — NOT a separate, page-load-only script
+    // with document-level delegation. doActivateBlock() clones
+    // .block-edit-controls (which this toolbar's buttons live
+    // inside) on every activation to clear ITS OWN stale listeners;
+    // a listener attached once at page load has no way to survive
+    // that. Scoping setup to THIS block, called every time it
+    // activates, sidesteps the problem entirely rather than trying
+    // to out-guess the clone's timing.
+    function initRichTextToolbar(block) {
+        let savedRange = null;
+
+        function getActiveField() {
+            const sel = document.getSelection();
+            if (!sel || sel.rangeCount === 0) return null;
+            const field = sel.anchorNode && (sel.anchorNode.nodeType === 1
+                ? sel.anchorNode.closest('[data-field].editable-field')
+                : sel.anchorNode.parentElement?.closest('[data-field].editable-field'));
+            return field && block.contains(field) ? field : null;
+        }
+
+        // Track the live selection continuously WHILE it's genuinely
+        // inside one of THIS block's text fields.
+        block.querySelectorAll('[data-field]').forEach(function (field) {
+            field.addEventListener('keyup', captureSelection);
+            field.addEventListener('mouseup', captureSelection);
+        });
+
+        function captureSelection() {
+            const sel = document.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            const range = sel.getRangeAt(0);
+            const field = getActiveField();
+            if (field) savedRange = range.cloneRange();
+        }
+
+        function restoreSelection() {
+            if (!savedRange) return null;
+            const sel = document.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(savedRange);
+            return getActiveField();
+        }
+
+        function applySpanClass(className) {
+            if (!savedRange) return;
+            const node = savedRange.commonAncestorContainer;
+            const field = node.nodeType === 1
+                ? node.closest('[data-field].editable-field')
+                : node.parentElement?.closest('[data-field].editable-field');
+            if (!field || !block.contains(field)) return;
+
+            const selectedText = window.getSelection().toString();
+            if (!selectedText) return;
+
+            // Check if selected text is already wrapped in this class
+            const existing = Array.from(field.querySelectorAll('span.' + className))
+                .find(function (span) { return span.textContent === selectedText; });
+
+            if (existing) {
+                // Unwrap
+                const parent = existing.parentNode;
+                while (existing.firstChild) {
+                    parent.insertBefore(existing.firstChild, existing);
+                }
+                existing.remove();
+            } else {
+                field.focus();
+                const sel = document.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(savedRange);
+                const range = sel.getRangeAt(0);
+                const span = document.createElement('span');
+                span.className = className;
+                span.appendChild(range.extractContents());
+                range.insertNode(span);
+            }
+
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function applyLinkFormat() {
+            if (!savedRange) return;
+            const node = savedRange.commonAncestorContainer;
+            const field = node.nodeType === 1
+                ? node.closest('[data-field].editable-field')
+                : node.parentElement?.closest('[data-field].editable-field');
+            if (!field || !block.contains(field)) return;
+
+            field.focus();
+            const sel = document.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(savedRange);
+
+            if (sel.toString() === '') {
+                alert('Bitte zuerst Text markieren, der verlinkt werden soll.');
+                return;
+            }
+
+            const url = prompt('Link-Adresse:', 'https://');
+            if (!url || url.trim() === '' || url.trim() === 'https://') return;
+
+            let normalized = url.trim();
+            if (!/^https?:\/\//i.test(normalized)) normalized = 'https://' + normalized;
+
+            field.focus();
+            sel.removeAllRanges();
+            sel.addRange(savedRange);
+
+            const range = sel.getRangeAt(0);
+            const a = document.createElement('a');
+            a.href = normalized;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            try {
+                range.surroundContents(a);
+            } catch (e) {
+                a.appendChild(range.extractContents());
+                range.insertNode(a);
+            }
+
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        block.addEventListener('mousedown', function (e) {
+            if (e.target.closest('[data-action^="richtext-"]')) {
+                e.preventDefault();
+            }
+        });
+
+        block.querySelectorAll('[data-action^="richtext-"]').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                switch (btn.dataset.action) {
+                    case 'richtext-bold':
+                        applySpanClass('rt-bold');
+                        break;
+                    case 'richtext-italic':
+                        applySpanClass('rt-italic');
+                        break;
+                    case 'richtext-bullet-list':
+                        applySpanClass('rt-ul');
+                        break;
+                    case 'richtext-numbered-list':
+                        applySpanClass('rt-ol');
+                        break;
+                    case 'richtext-link':
+                        applyLinkFormat();
+                        break;
+                }
+            });
         });
     }
 
@@ -579,8 +759,99 @@ document.addEventListener('DOMContentLoaded', function () {
 
         block.querySelector('.btn-cancel')?.addEventListener('click', function (e) {
             e.stopPropagation();
-            if (hasUnsaved && !confirm('Änderungen verwerfen?')) return;
+            if (hasUnsaved) {
+                openConfirmModal({
+                    title: 'Ungespeicherte Änderungen',
+                    message: 'Möchtest du die ungespeicherten Änderungen verwerfen?',
+                    confirmLabel: 'Verwerfen',
+                    onConfirm: function () { cancelBlock(block); }
+                });
+                return;
+            }
             cancelBlock(block);
+        });
+
+        block.querySelector('.btn-delete-section')?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const sectionId = block.dataset.sectionId;
+            if (!sectionId) return;
+
+            openConfirmModal({
+                title: 'Abschnitt löschen',
+                message: 'Dieser Abschnitt und sein gesamter Inhalt (inklusive aller Buttons) werden endgültig gelöscht.',
+                confirmLabel: 'Endgültig löschen',
+                onConfirm: function () {
+                    const data = new FormData();
+                    fetch('/page/section/' + sectionId + '/delete', {
+                        method: 'POST',
+                        body: data,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(res => res.json())
+                        .then(function (json) {
+                            if (json.success) {
+                                window.location.reload();
+                            } else {
+                                showBlockFeedback(block, 'Fehler beim Löschen', 'error');
+                            }
+                        })
+                        .catch(function () {
+                            showBlockFeedback(block, 'Verbindungsfehler', 'error');
+                        });
+                }
+            });
+        });
+
+        function moveSection(direction) {
+            const sectionId = block.dataset.sectionId;
+            const myIndex = parseInt(block.dataset.orderIndex, 10);
+            if (!sectionId || isNaN(myIndex)) return;
+
+            // Find the immediate neighbor (the other .editable-block
+            // whose order_index is exactly one away, in the requested
+            // direction) — a simple two-row swap, not a full shift.
+            const targetIndex = direction === 'up' ? myIndex - 1 : myIndex + 1;
+            let neighbor = null;
+            document.querySelectorAll('.editable-block[data-order-index]').forEach(function (other) {
+                if (parseInt(other.dataset.orderIndex, 10) === targetIndex) {
+                    neighbor = other;
+                }
+            });
+            if (!neighbor) return;
+
+            const order = [
+                { id: sectionId, order_index: targetIndex },
+                { id: neighbor.dataset.sectionId, order_index: myIndex }
+            ];
+
+            const data = new FormData();
+            data.append('order', JSON.stringify(order));
+            fetch('/page/section/reorder', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        window.location.reload();
+                    } else {
+                        showBlockFeedback(block, 'Fehler beim Verschieben', 'error');
+                    }
+                })
+                .catch(function () {
+                    showBlockFeedback(block, 'Verbindungsfehler', 'error');
+                });
+        }
+
+        block.querySelector('.btn-move-up')?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            moveSection('up');
+        });
+
+        block.querySelector('.btn-move-down')?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            moveSection('down');
         });
     });
 
@@ -815,32 +1086,38 @@ document.addEventListener('DOMContentLoaded', function () {
         function bindRemoveParticipant(btn, row) {
             btn?.addEventListener('click', function (e) {
                 e.stopPropagation();
-                if (!confirm('Mitwirkende:n entfernen?')) return;
-                const data = new FormData();
-                data.append('participant_id', btn.dataset.participantId);
-                fetch('/events/' + btn.dataset.eventId + '/participant/remove', {
-                    method: 'POST',
-                    body: data,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(res => res.json())
-                    .then(function (json) {
-                        if (json.success) {
-                            const list = btn.closest('.event-participant-list');
-                            btn.closest('.event-participant-item')?.remove();
-                            if (list && list.querySelectorAll('.event-participant-item').length === 0) {
-                                list.innerHTML =
-                                    '<p class="text-muted p-2 mb-0">' +
-                                    '<i class="ti ti-users-group"></i> ' +
-                                    'Noch keine Mitwirkenden' +
-                                    '</p>';
-                            }
-                            showEntityFeedback(row, 'Entfernt ✓', 'success');
-                        } else {
-                            showEntityFeedback(row, 'Fehler', 'error');
-                        }
-                    })
-                    .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+                openConfirmModal({
+                    title: 'Mitwirkende:n entfernen',
+                    message: 'Diese:n Mitwirkende:n wirklich von der Veranstaltung entfernen?',
+                    confirmLabel: 'Entfernen',
+                    onConfirm: function () {
+                        const data = new FormData();
+                        data.append('participant_id', btn.dataset.participantId);
+                        fetch('/events/' + btn.dataset.eventId + '/participant/remove', {
+                            method: 'POST',
+                            body: data,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(res => res.json())
+                            .then(function (json) {
+                                if (json.success) {
+                                    const list = btn.closest('.event-participant-list');
+                                    btn.closest('.event-participant-item')?.remove();
+                                    if (list && list.querySelectorAll('.event-participant-item').length === 0) {
+                                        list.innerHTML =
+                                            '<p class="text-muted p-2 mb-0">' +
+                                            '<i class="ti ti-users-group"></i> ' +
+                                            'Noch keine Mitwirkenden' +
+                                            '</p>';
+                                    }
+                                    showEntityFeedback(row, 'Entfernt ✓', 'success');
+                                } else {
+                                    showEntityFeedback(row, 'Fehler', 'error');
+                                }
+                            })
+                            .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+                    }
+                });
             });
         }
 
@@ -938,10 +1215,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // new URL() is permissive — it parses almost anything into
             // SOME hostname, even pasted garbage text. This stricter
-            // check requires a real domain.tld shape (labels separated
-            // by dots, ending in an alphabetic top-level domain), which
-            // is the actual gap that let nonsense slip through before.
-            const domainShapePattern = /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
+            // check requires a real hostname shape (one or more dot-
+            // separated labels) — accepts a single, bare label too
+            // (e.g. "localhost"), since that's a syntactically real,
+            // legitimate hostname, just not a public one. The actual
+            // gap this closes is garbage text that doesn't even look
+            // like a hostname at all.
+            const domainShapePattern = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/;
             if (!domainShapePattern.test(host)) {
                 return { error: 'Bitte eine gültige URL eingeben (z. B. example.com).' };
             }
@@ -1413,72 +1693,78 @@ document.addEventListener('DOMContentLoaded', function () {
             btn._deleteInitialized = true;
             btn.addEventListener('click', function (e) {
                 e.stopPropagation();
-                if (!confirm('Bild löschen?')) return;
-                const mediaId = btn.dataset.mediaId;
-                const entityType = btn.dataset.entityType;
-                const entityId = btn.dataset.entityId;
-                const data = new FormData();
-                data.append('entity_type', entityType);
-                data.append('entity_id', entityId);
-                fetch('/media/' + mediaId + '/delete', {
-                    method: 'POST',
-                    body: data,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(res => res.json())
-                    .then(function (json) {
-                        if (!json.success) {
-                            showEntityFeedback(row, 'Fehler', 'error');
-                            return;
-                        }
+                openConfirmModal({
+                    title: 'Bild löschen',
+                    message: 'Dieses Bild wirklich löschen?',
+                    confirmLabel: 'Löschen',
+                    onConfirm: function () {
+                        const mediaId = btn.dataset.mediaId;
+                        const entityType = btn.dataset.entityType;
+                        const entityId = btn.dataset.entityId;
+                        const data = new FormData();
+                        data.append('entity_type', entityType);
+                        data.append('entity_id', entityId);
+                        fetch('/media/' + mediaId + '/delete', {
+                            method: 'POST',
+                            body: data,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(res => res.json())
+                            .then(function (json) {
+                                if (!json.success) {
+                                    showEntityFeedback(row, 'Fehler', 'error');
+                                    return;
+                                }
 
-                        const isGalleryItem = !!btn.closest('.gallery-item');
+                                const isGalleryItem = !!btn.closest('.gallery-item');
 
-                        if (isGalleryItem) {
-                            // Gallery: remove the item, empty-state placeholder
-                            // is handled separately when grid becomes empty.
-                            btn.closest('.gallery-item')?.remove();
-                            const grid = row.querySelector('.media-gallery-grid');
-                            const remaining = grid ? grid.querySelectorAll('.gallery-item').length : 0;
-                            if (grid && remaining === 0) {
-                                grid.innerHTML =
-                                    '<div class="col-12"><p class="text-muted p-2">' +
-                                    '<i class="ti ti-photo-off"></i> ' +
-                                    'Noch keine Galeriebilder' +
-                                    '</p></div>';
-                            }
-                            row.classList.toggle('has-items', remaining > 0);
-                            showEntityFeedback(row, 'Gelöscht ✓', 'success');
-                            return;
-                        }
-
-                        // Promo image deletion — fetch the freshly rebuilt
-                        // fragment (single image / carousel / placeholder)
-                        // from the server and swap it in, no reload needed
-                        // for any promo state.
-                        const content = row.querySelector('.media-promo-content');
-                        if (content) {
-                            fetch('/events/' + entityId + '/promo-fragment', {
-                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                            })
-                                .then(res => res.text())
-                                .then(function (html) {
-                                    content.innerHTML = html;
-                                    // Re-wire delete buttons and any upload
-                                    // input present in the fresh markup
-                                    // (the placeholder's upload button, if
-                                    // the gallery dropped back to zero images).
-                                    initMediaDeleteBtns(row);
-                                    initUploadInputs(row);
-                                    updatePromoCount(row, content);
+                                if (isGalleryItem) {
+                                    // Gallery: remove the item, empty-state placeholder
+                                    // is handled separately when grid becomes empty.
+                                    btn.closest('.gallery-item')?.remove();
+                                    const grid = row.querySelector('.media-gallery-grid');
+                                    const remaining = grid ? grid.querySelectorAll('.gallery-item').length : 0;
+                                    if (grid && remaining === 0) {
+                                        grid.innerHTML =
+                                            '<div class="col-12"><p class="text-muted p-2">' +
+                                            '<i class="ti ti-photo-off"></i> ' +
+                                            'Noch keine Galeriebilder' +
+                                            '</p></div>';
+                                    }
+                                    row.classList.toggle('has-items', remaining > 0);
                                     showEntityFeedback(row, 'Gelöscht ✓', 'success');
-                                })
-                                .catch(function () {
-                                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
-                                });
-                        }
-                    })
-                    .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+                                    return;
+                                }
+
+                                // Promo image deletion — fetch the freshly rebuilt
+                                // fragment (single image / carousel / placeholder)
+                                // from the server and swap it in, no reload needed
+                                // for any promo state.
+                                const content = row.querySelector('.media-promo-content');
+                                if (content) {
+                                    fetch('/events/' + entityId + '/promo-fragment', {
+                                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                                    })
+                                        .then(res => res.text())
+                                        .then(function (html) {
+                                            content.innerHTML = html;
+                                            // Re-wire delete buttons and any upload
+                                            // input present in the fresh markup
+                                            // (the placeholder's upload button, if
+                                            // the gallery dropped back to zero images).
+                                            initMediaDeleteBtns(row);
+                                            initUploadInputs(row);
+                                            updatePromoCount(row, content);
+                                            showEntityFeedback(row, 'Gelöscht ✓', 'success');
+                                        })
+                                        .catch(function () {
+                                            showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                                        });
+                                }
+                            })
+                            .catch(function () { showEntityFeedback(row, 'Verbindungsfehler', 'error'); });
+                    }
+                });
             });
         });
     }
@@ -1687,57 +1973,63 @@ document.addEventListener('DOMContentLoaded', function () {
             if (count === 0) return;
 
             const confirmMsg = count === 1
-                ? 'Dieses Foto löschen?'
-                : count + ' Fotos löschen?';
-            if (!confirm(confirmMsg)) return;
+                ? 'Dieses Foto wirklich löschen?'
+                : count + ' Fotos wirklich löschen?';
 
-            const items = selected.map(cb => cb.closest('.gallery-item')).filter(Boolean);
-            let index = 0;
+            openConfirmModal({
+                title: count === 1 ? 'Foto löschen' : 'Fotos löschen',
+                message: confirmMsg,
+                confirmLabel: 'Löschen',
+                onConfirm: function () {
+                    const items = selected.map(cb => cb.closest('.gallery-item')).filter(Boolean);
+                    let index = 0;
 
-            function deleteNext() {
-                if (index >= items.length) {
-                    const grid = row.querySelector('.media-gallery-grid');
-                    if (grid && grid.querySelectorAll('.gallery-item').length === 0) {
-                        grid.innerHTML =
-                            '<div class="col-12"><p class="text-muted p-2">' +
-                            '<i class="ti ti-photo-off"></i> ' +
-                            'Noch keine Galeriebilder — Bearbeitungsmodus aktivieren um Fotos hochzuladen.' +
-                            '</p></div>';
+                    function deleteNext() {
+                        if (index >= items.length) {
+                            const grid = row.querySelector('.media-gallery-grid');
+                            if (grid && grid.querySelectorAll('.gallery-item').length === 0) {
+                                grid.innerHTML =
+                                    '<div class="col-12"><p class="text-muted p-2">' +
+                                    '<i class="ti ti-photo-off"></i> ' +
+                                    'Noch keine Galeriebilder' +
+                                    '</p></div>';
+                            }
+                            if (checkAll) checkAll.checked = false;
+                            updateHasItems();
+                            updateHeaderBtns();
+                            showEntityFeedback(row, 'Gelöscht ✓', 'success');
+                            return;
+                        }
+
+                        const item = items[index];
+                        const mediaId = item.dataset.mediaId;
+                        const data = new FormData();
+                        data.append('entity_type', entityType);
+                        data.append('entity_id', entityId);
+
+                        const feedback = row.querySelector('.edit-row-header .entity-feedback');
+                        if (feedback) feedback.textContent = 'Löschen ' + (index + 1) + ' / ' + items.length + '...';
+
+                        fetch('/media/' + mediaId + '/delete', {
+                            method: 'POST',
+                            body: data,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(res => res.json())
+                            .then(function (json) {
+                                if (json.success) item.remove();
+                                index++;
+                                deleteNext();
+                            })
+                            .catch(function () {
+                                index++;
+                                deleteNext();
+                            });
                     }
-                    if (checkAll) checkAll.checked = false;
-                    updateHasItems();
-                    updateHeaderBtns();
-                    showEntityFeedback(row, 'Gelöscht ✓', 'success');
-                    return;
+
+                    deleteNext();
                 }
-
-                const item = items[index];
-                const mediaId = item.dataset.mediaId;
-                const data = new FormData();
-                data.append('entity_type', entityType);
-                data.append('entity_id', entityId);
-
-                const feedback = row.querySelector('.edit-row-header .entity-feedback');
-                if (feedback) feedback.textContent = 'Löschen ' + (index + 1) + ' / ' + items.length + '...';
-
-                fetch('/media/' + mediaId + '/delete', {
-                    method: 'POST',
-                    body: data,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                    .then(res => res.json())
-                    .then(function (json) {
-                        if (json.success) item.remove();
-                        index++;
-                        deleteNext();
-                    })
-                    .catch(function () {
-                        index++;
-                        deleteNext();
-                    });
-            }
-
-            deleteNext();
+            });
         });
 
         function getExistingMetaValue(checkbox, field) {
@@ -1838,6 +2130,295 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(function () {
                 alert('Verbindungsfehler.');
             });
+    });
+
+    // ── Section CTA buttons (free sections) ───────────────────
+    // Reuses the SHARED attach-entity-modal shell — exactly the
+    // same component already powering the Links picker — rather
+    // than a separate, parallel modal. The only thing genuinely
+    // specific to CTAs is the 'page' tab and the cta_label field;
+    // everything else (search, real type select, validation,
+    // disabled-until-valid logic) comes from the shell for free.
+    document.querySelectorAll('.section-cta-row').forEach(function (row) {
+        const sectionId = row.dataset.entityId;
+        let ctaTypeOptions = null;
+
+        function refreshCtaRow() {
+            fetch('/urls/section-cta-fragment?section_id=' + encodeURIComponent(sectionId), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.text())
+                .then(function (html) {
+                    row.innerHTML = html;
+                })
+                .catch(function () {
+                    showEntityFeedback(row, 'Verbindungsfehler', 'error');
+                });
+        }
+
+        function withTypeOptions(callback) {
+            if (ctaTypeOptions) {
+                callback(ctaTypeOptions);
+                return;
+            }
+            fetch('/urls/types', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(res => res.json())
+                .then(function (json) {
+                    ctaTypeOptions = (json.success ? json.types : []).map(function (t) {
+                        return { value: t.id, label: t.label };
+                    });
+                    callback(ctaTypeOptions);
+                });
+        }
+
+        // Reuses the SAME validation shape the Links picker's
+        // validateAndPreview() already produces — error/warning/
+        // preview — so a CTA's url gets the exact same real,
+        // type-aware checking, never a weaker, CTA-only version.
+        function ctaPreviewFn(typeOptions) {
+            return function (values) {
+                const typeId = values.url_type_id;
+                const rawUrl = (values.url || '').trim();
+                if (!rawUrl) return null;
+
+                const typeOpt = typeOptions.find(function (t) { return String(t.value) === String(typeId); });
+                const typeLabel = (typeOpt?.label || '').toLowerCase();
+
+                let normalized = rawUrl.replace(/^http:\/\//i, 'https://');
+                if (!/^https?:\/\//i.test(normalized)) normalized = 'https://' + normalized;
+                normalized = normalized.replace(/\/$/, '');
+
+                try {
+                    const parsed = new URL(normalized);
+                    const domainShape = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/;
+                    if (!domainShape.test(parsed.hostname.toLowerCase())) {
+                        return { error: 'Bitte eine gültige URL eingeben (z. B. example.com).' };
+                    }
+                } catch (e) {
+                    return { error: 'Bitte eine gültige URL eingeben.' };
+                }
+
+                return { preview: normalized };
+            };
+        }
+
+        row.addEventListener('click', function (e) {
+            const addBtn = e.target.closest('[data-action="add-section-cta"]');
+            const editBtn = e.target.closest('[data-action="edit-section-cta"]');
+            const removeBtn = e.target.closest('[data-action="remove-section-cta"]');
+
+            if (addBtn) {
+                withTypeOptions(function (typeOptions) {
+                    openAttachEntityModal({
+                        title: 'Button hinzufügen',
+                        tabs: ['search', 'new', 'page'],
+                        searchFillsNewTab: true,
+                        searchEndpoint: '/urls/search',
+                        searchPlaceholder: 'Vorhandene Links durchsuchen...',
+                        addEndpoint: '/urls/add',
+                        addFields: [
+                            { name: 'url_type_id', label: 'Typ', type: 'select', required: true, options: typeOptions },
+                            { name: 'url', label: 'URL', type: 'text', required: true, placeholder: 'https://...' },
+                            { name: 'cta_label', label: 'Button-Text', type: 'text', required: true, placeholder: 'z. B. Jetzt Mitglied werden' }
+                        ],
+                        pageFields: [
+                            { name: 'cta_label', label: 'Button-Text', type: 'text', required: true, placeholder: 'z. B. Jetzt Mitglied werden' }
+                        ],
+                        namedPagesEndpoint: '/urls/named-pages',
+                        pageAddEndpoint: '/urls/add-internal-page',
+                        buildPageUrl: function (path) { return window.location.origin + path; },
+                        previewFn: ctaPreviewFn(typeOptions),
+                        extraAddParams: { entity_type: 'section', entity_id: sectionId },
+                        onSelected: refreshCtaRow
+                    });
+                });
+            } else if (editBtn) {
+                withTypeOptions(function (typeOptions) {
+                    const currentUrl = editBtn.dataset.urlValue;
+                    let isInternalPage = false;
+                    let currentPagePath = '';
+                    try {
+                        const parsed = new URL(currentUrl);
+                        if (parsed.origin === window.location.origin) {
+                            isInternalPage = true;
+                            currentPagePath = parsed.pathname;
+                        }
+                    } catch (e) {
+                        // Not a valid absolute URL at all — definitely
+                        // not an internal-page link, fall through to
+                        // the ordinary external-link edit form.
+                    }
+
+                    if (isInternalPage) {
+                        openAttachEntityModal({
+                            mode: 'edit',
+                            editPanel: 'page',
+                            title: 'Button bearbeiten (interne Seite)',
+                            confirmLabel: 'Speichern',
+                            addEndpoint: '/urls/' + editBtn.dataset.urlId + '/save',
+                            namedPagesEndpoint: '/urls/named-pages',
+                            buildPageUrl: function (path) { return window.location.origin + path; },
+                            currentPagePath: currentPagePath,
+                            pageFields: [
+                                { name: 'cta_label', label: 'Button-Text', type: 'text', required: true, placeholder: 'z. B. Jetzt Mitglied werden', value: editBtn.dataset.urlLabel }
+                            ],
+                            extraAddParams: {
+                                entity_type: 'section',
+                                entity_id: sectionId,
+                                // save() requires url_type_id explicitly —
+                                // unlike addInternalPage(), it has no
+                                // auto-derivation, so the already-known
+                                // Website type id is supplied directly.
+                                url_type_id: (typeOptions.find(function (t) { return (t.label || '').toLowerCase() === 'website'; }) || {}).value
+                            },
+                            onSelected: refreshCtaRow
+                        });
+                        return;
+                    }
+
+                    openAttachEntityModal({
+                        mode: 'edit',
+                        title: 'Button bearbeiten (externer Link)',
+                        confirmLabel: 'Speichern',
+                        addEndpoint: '/urls/' + editBtn.dataset.urlId + '/save',
+                        addFields: [
+                            { name: 'url_type_id', label: 'Typ', type: 'select', required: true, options: typeOptions, value: editBtn.dataset.urlTypeId },
+                            { name: 'url', label: 'URL', type: 'text', required: true, placeholder: 'https://...', value: editBtn.dataset.urlValue },
+                            { name: 'cta_label', label: 'Button-Text', type: 'text', required: true, placeholder: 'z. B. Jetzt Mitglied werden', value: editBtn.dataset.urlLabel }
+                        ],
+                        previewFn: ctaPreviewFn(typeOptions),
+                        extraAddParams: { entity_type: 'section', entity_id: sectionId },
+                        onSelected: refreshCtaRow
+                    });
+                });
+            } else if (removeBtn) {
+                performCtaUnlink(removeBtn.dataset.urlId, false);
+            }
+        });
+
+        function performCtaUnlink(urlId, confirmed) {
+            const data = new FormData();
+            data.append('entity_type', 'section');
+            data.append('entity_id', sectionId);
+            if (confirmed) data.append('confirmed', '1');
+
+            fetch('/urls/' + urlId + '/unlink', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.needsConfirmation) {
+                        openConfirmModal({
+                            title: 'Button entfernen',
+                            message: 'Dieser Link ist nirgendwo sonst verknüpft. Beim Entfernen wird er endgültig gelöscht.',
+                            confirmLabel: 'Endgültig entfernen',
+                            onConfirm: function () {
+                                performCtaUnlink(urlId, true);
+                            }
+                        });
+                        return;
+                    }
+                    refreshCtaRow();
+                });
+        }
+    });
+
+    // ── Add-section triggers ────────────────────────────────────
+    // One isolated function handling the whole job in v1 (compute
+    // position, shift, create, reload). In v2, THIS function's body
+    // becomes the natural place to open a layout/thumbnail picker
+    // first — no changes needed to the triggers themselves, their
+    // markup, or where they're placed on the page.
+    function triggerAddSection(pageKey, afterIndex, beforeIndex, isIntro) {
+        let newIndex;
+        if (isIntro) {
+            // The one reserved slot — always exactly 0, on pages
+            // that have this concept at all (listing/fixed-structure
+            // pages). Never inferred from afterIndex/beforeIndex,
+            // since those alone can't distinguish this from an
+            // ordinary first-position trigger on a page with no
+            // reserved slot.
+            newIndex = 0;
+        } else {
+            // Ordinary trigger — minimum 1, since order_index=0 is
+            // EXCLUSIVELY the reserved intro slot's value; a regular
+            // section must never claim it, even when inserting at
+            // the very start of a page's free-section sequence.
+            newIndex = Math.max(1, (afterIndex === null ? 0 : afterIndex + 1));
+        }
+
+        // Find every existing section on THIS page whose order_index
+        // is at or above the slot the new section needs to occupy —
+        // each of those needs to shift up by one first, so the new
+        // section can claim newIndex without colliding.
+        const toShift = [];
+        document.querySelectorAll('.editable-block[data-order-index]').forEach(function (block) {
+            const blockIndex = parseInt(block.dataset.orderIndex, 10);
+            if (!isNaN(blockIndex) && blockIndex >= newIndex) {
+                toShift.push({ id: parseInt(block.dataset.sectionId, 10), order_index: blockIndex + 1 });
+            }
+        });
+
+        function createSection() {
+            const data = new FormData();
+            data.append('page_key', pageKey);
+            data.append('order_index', newIndex);
+            data.append('content', '{}');
+
+            fetch('/page/section/add', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Fehler beim Hinzufügen des Abschnitts.');
+                    }
+                })
+                .catch(function () {
+                    alert('Verbindungsfehler.');
+                });
+        }
+
+        if (toShift.length === 0) {
+            createSection();
+            return;
+        }
+
+        const reorderData = new FormData();
+        reorderData.append('order', JSON.stringify(toShift));
+        fetch('/page/section/reorder', {
+            method: 'POST',
+            body: reorderData,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(res => res.json())
+            .then(function (json) {
+                if (json.success) {
+                    createSection();
+                } else {
+                    alert('Fehler beim Verschieben bestehender Abschnitte.');
+                }
+            })
+            .catch(function () {
+                alert('Verbindungsfehler.');
+            });
+    }
+
+    document.querySelectorAll('[data-action="add-section"]').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const pageKey = btn.dataset.pageKey;
+            const afterIndex = btn.dataset.afterIndex !== '' ? parseInt(btn.dataset.afterIndex, 10) : null;
+            const beforeIndex = btn.dataset.beforeIndex !== '' ? parseInt(btn.dataset.beforeIndex, 10) : null;
+            const isIntro = btn.dataset.isIntro === '1';
+            triggerAddSection(pageKey, afterIndex, beforeIndex, isIntro);
+        });
     });
 
     // ── Warn on page leave ────────────────────────────────────

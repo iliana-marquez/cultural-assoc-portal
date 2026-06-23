@@ -94,6 +94,42 @@ class UrlModel extends BaseModel
      * @param int    $urlTypeId
      * @return string|null
      */
+    /**
+     * Check whether a url's host genuinely belongs to this
+     * deployment — either the real, configured production domain,
+     * or a recognized local-development host. Used specifically by
+     * the "Seite hier" / internal-page-link flow, where the whole
+     * point is verifying the destination is actually this site, not
+     * an arbitrary domain a client request might claim. Deliberately
+     * NOT part of validateForType() — that function correctly serves
+     * every url type, most of which (Instagram, press, email) are
+     * SUPPOSED to point elsewhere, so this check would be wrong to
+     * apply there.
+     *
+     * @param string $url       The full url to check
+     * @param string $siteDomain  This deployment's configured
+     *                            production domain (no scheme, e.g.
+     *                            'klubalsergrund.at'), from
+     *                            $config['site_domain']
+     */
+    public static function isOwnDomain(string $url, string $siteDomain): bool
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!$host) return false;
+        $host = strtolower($host);
+        $siteDomain = strtolower(trim($siteDomain));
+
+        if ($host === $siteDomain || str_ends_with($host, '.' . $siteDomain)) {
+            return true;
+        }
+
+        // Local development hosts — recognized explicitly, never
+        // via a client-supplied flag, since the server must decide
+        // this for itself from the actual url string.
+        $localHosts = ['localhost', '127.0.0.1'];
+        return in_array($host, $localHosts, true);
+    }
+
     public function validateForType(string $url, int $urlTypeId): ?string
     {
         $type = $this->fetchOne(
@@ -134,9 +170,13 @@ class UrlModel extends BaseModel
 
         // parse_url() is permissive — it can extract SOME host value
         // even from malformed input. This stricter check requires a
-        // real domain.tld shape, closing the gap where arbitrary
-        // pasted text could otherwise slip through as a "valid" URL.
-        if (!preg_match('/^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/', $host)) {
+        // real hostname shape (one or more dot-separated labels),
+        // closing the gap where arbitrary pasted text could otherwise
+        // slip through as a "valid" URL. Deliberately accepts a
+        // single, bare label too (e.g. "localhost") — that's a
+        // syntactically real, legitimate hostname, just not a public
+        // one; rejecting it isn't this check's actual purpose.
+        if (!preg_match('/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/', $host)) {
             return 'Bitte eine gültige URL eingeben (z. B. example.com).';
         }
 
@@ -195,8 +235,14 @@ class UrlModel extends BaseModel
             return strtolower($url);
         }
 
-        // Upgrade http:// to https://
-        $url = preg_replace('/^http:\/\//i', 'https://', $url);
+        // Upgrade http:// to https:// — except for local-development
+        // hosts, which genuinely don't have a valid HTTPS certificate.
+        // Forcing the scheme there breaks the link (ERR_SSL_PROTOCOL_ERROR)
+        // rather than securing it, unlike every real production domain.
+        $isLocalHost = (bool) preg_match('#^https?://(localhost|127\.0\.0\.1)(:\d+)?(/|$)#i', $url);
+        if (!$isLocalHost) {
+            $url = preg_replace('/^http:\/\//i', 'https://', $url);
+        }
 
         // If no protocol at all, assume https://
         if (!preg_match('#^https?://#i', $url)) {
@@ -206,7 +252,7 @@ class UrlModel extends BaseModel
         // Lowercase only the domain portion (scheme + host),
         // leave path/query/fragment untouched.
         $url = preg_replace_callback(
-            '#^(https://)([^/]+)#i',
+            '#^(https?://)([^/]+)#i',
             function ($m) {
                 return $m[1] . strtolower($m[2]);
             },
@@ -229,7 +275,7 @@ class UrlModel extends BaseModel
     public function getForEntity(string $entityType, int $entityId): array
     {
         return $this->fetchAll(
-            "SELECT u.*, ut.label as type_label, ut.icon
+            "SELECT u.*, ut.label as type_label, ut.icon, eu.cta_label
              FROM {$this->table} u
              INNER JOIN {$this->pivotTable} eu ON eu.url_id = u.id
              INNER JOIN url_types ut ON ut.id = u.url_type_id
@@ -281,6 +327,26 @@ class UrlModel extends BaseModel
      * @param int $urlId
      * @return object|null
      */
+    /**
+     * Get a URL by its id, joined with its type's label and icon —
+     * the same shape getForEntity() returns per row. Used by the
+     * fragment endpoint, which renders the same partial used for
+     * the full page, so it needs the same fields.
+     *
+     * @param int $urlId
+     * @return object|null
+     */
+    public function getByIdWithType(int $urlId): ?object
+    {
+        return $this->fetchOne(
+            "SELECT u.*, ut.label as type_label, ut.icon
+             FROM {$this->table} u
+             INNER JOIN url_types ut ON ut.id = u.url_type_id
+             WHERE u.id = ?",
+            [$urlId]
+        );
+    }
+
     public function getById(int $urlId): ?object
     {
         return $this->fetchOne(
@@ -318,7 +384,7 @@ class UrlModel extends BaseModel
      * @param string|null $label       optional display label
      * @return int|false  the url row's id (existing or newly created), or false on failure
      */
-    public function addForEntity(string $entityType, int $entityId, int $urlTypeId, string $url, ?string $label = null)
+    public function addForEntity(string $entityType, int $entityId, int $urlTypeId, string $url, ?string $label = null, ?string $ctaLabel = null)
     {
         $url = self::normalize($url, $this->isEmailType($urlTypeId));
 
@@ -336,11 +402,14 @@ class UrlModel extends BaseModel
             $urlId = $this->lastInsertId();
         }
 
-        // Link to entity via pivot (ignore if already linked)
+        // Link to entity via pivot (ignore if already linked).
+        // cta_label lives on THIS row specifically — it's a property
+        // of this one attachment, not of the url itself, since the
+        // same url reused elsewhere should never inherit it.
         $linked = $this->execute(
-            "INSERT IGNORE INTO {$this->pivotTable} (url_id, entity_type, entity_id)
-             VALUES (?, ?, ?)",
-            [$urlId, $entityType, $entityId]
+            "INSERT IGNORE INTO {$this->pivotTable} (url_id, entity_type, entity_id, cta_label)
+             VALUES (?, ?, ?, ?)",
+            [$urlId, $entityType, $entityId, $ctaLabel]
         );
 
         return $linked ? $urlId : false;
@@ -375,12 +444,12 @@ class UrlModel extends BaseModel
      * @param int    $entityId
      * @return bool
      */
-    public function attachToEntity(int $urlId, string $entityType, int $entityId): bool
+    public function attachToEntity(int $urlId, string $entityType, int $entityId, ?string $ctaLabel = null): bool
     {
         return $this->execute(
-            "INSERT IGNORE INTO {$this->pivotTable} (url_id, entity_type, entity_id)
-             VALUES (?, ?, ?)",
-            [$urlId, $entityType, $entityId]
+            "INSERT IGNORE INTO {$this->pivotTable} (url_id, entity_type, entity_id, cta_label)
+             VALUES (?, ?, ?, ?)",
+            [$urlId, $entityType, $entityId, $ctaLabel]
         );
     }
 
@@ -456,6 +525,22 @@ class UrlModel extends BaseModel
         return $this->execute(
             "UPDATE {$this->table} SET url = ?, url_type_id = ?, label = ? WHERE id = ?",
             [$url, $urlTypeId, $label, $urlId]
+        );
+    }
+
+    /**
+     * Update the CTA-specific button text for one particular
+     * attachment — lives on entity_urls, not urls, since it's a
+     * property of THIS one pairing (this url, used as a CTA, on
+     * this entity), never shared with any other attachment of the
+     * same url elsewhere.
+     */
+    public function updateCtaLabel(int $urlId, string $entityType, int $entityId, string $ctaLabel): bool
+    {
+        return $this->execute(
+            "UPDATE {$this->pivotTable} SET cta_label = ?
+             WHERE url_id = ? AND entity_type = ? AND entity_id = ?",
+            [$ctaLabel, $urlId, $entityType, $entityId]
         );
     }
 }

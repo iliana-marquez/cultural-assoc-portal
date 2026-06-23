@@ -11,6 +11,8 @@
  * for listing an entity's URLs.
  *
  * GET  /urls/search           → search existing URLs (picker modal)
+ * GET  /urls/named-pages      → real, navigable site pages, for the
+ *                                picker's "Seite hier" tab
  * POST /urls/add              → create-or-reuse a URL, attach to an entity
  * POST /urls/{id}/attach      → attach an already-existing URL to an entity
  * POST /urls/{id}/unlink      → remove a URL from one entity (may delete
@@ -31,6 +33,24 @@ class UrlController extends BaseController
     {
         parent::__construct();
         $this->urlModel = new UrlModel();
+    }
+
+    /**
+     * GET /urls/named-pages
+     * Every real, navigable page on this site — the source of truth
+     * for the picker modal's "Seite hier" tab. Reads directly from
+     * the already-running Router instance via Router::getInstance() —
+     * no constructor changes anywhere, no second list to maintain
+     * alongside routes.php.
+     */
+    public function namedPages(array $params = []): void
+    {
+        $this->requireLogin();
+
+        $router = Router::getInstance();
+        $pages  = $router ? $router->getLinkablePages() : [];
+
+        $this->jsonSuccess(['pages' => $pages]);
     }
 
     /**
@@ -69,6 +89,42 @@ class UrlController extends BaseController
 
         ob_start();
         include __DIR__ . '/../Views/components/entity-urls.php';
+        $html = ob_get_clean();
+
+        header('Content-Type: text/html; charset=utf-8');
+        echo $html;
+    }
+
+    /**
+     * GET /urls/section-cta-fragment
+     * Returns just the inner buttons + add-trigger HTML for one
+     * section's CTAs — used after any add/edit/remove so the JS can
+     * refresh THIS section's CTA content in place, without reloading
+     * the whole page (which would discard whatever OTHER section the
+     * editor still has open in its own .editing state, completely
+     * unrelated to the CTA that was just saved).
+     *
+     * GET params:
+     *   section_id  int
+     */
+    public function sectionCtaFragment(array $params = []): void
+    {
+        $this->requireLogin();
+
+        $sectionId = (int) ($_GET['section_id'] ?? 0);
+
+        if (!$sectionId) {
+            http_response_code(400);
+            echo '';
+            return;
+        }
+
+        $section      = (object) ['id' => $sectionId];
+        $isLoggedIn   = $this->isLoggedIn();
+        $fragmentOnly = true;
+
+        ob_start();
+        include __DIR__ . '/../Views/components/sections/partials/_cta-buttons.php';
         $html = ob_get_clean();
 
         header('Content-Type: text/html; charset=utf-8');
@@ -124,6 +180,87 @@ class UrlController extends BaseController
      *   url           string
      *   label         string  optional
      */
+    /**
+     * POST /urls/add-internal-page
+     * Attach a link to one of this site's own real pages (e.g. a
+     * free section's CTA pointing at "Mitglied werden"). Distinct
+     * from add() specifically so the server can verify the
+     * submitted url genuinely belongs to this deployment — every
+     * request to THIS route is, by definition, claiming to be an
+     * internal page link, so that check can run unconditionally,
+     * rather than as a client-reported flag on the generic add()
+     * endpoint (which would let any caller claim "trust me, this is
+     * internal" for an arbitrary url). Always uses the Website type,
+     * since there's nothing for the editor to choose — every
+     * internal page link is the same kind of destination.
+     *
+     * POST params:
+     *   entity_type   string
+     *   entity_id     int
+     *   url           string  the full, absolute url (already built
+     *                         client-side from the selected page path)
+     *   label         string  optional
+     *   cta_label     string  optional
+     */
+    public function addInternalPage(array $params = []): void
+    {
+        $this->requireLogin();
+
+        $entityType = trim($_POST['entity_type'] ?? '');
+        $entityId   = (int) ($_POST['entity_id'] ?? 0);
+        $url        = trim($_POST['url'] ?? '');
+        $label      = trim($_POST['label'] ?? '');
+        $ctaLabel   = trim($_POST['cta_label'] ?? '');
+
+        if (!$entityType || !$entityId || !$url) {
+            $this->jsonError('entity_type, entity_id and url are required');
+            return;
+        }
+
+        if (!UrlModel::isOwnDomain($url, $this->config['site_domain'])) {
+            $this->jsonError('Diese URL gehört nicht zu dieser Website.');
+            return;
+        }
+
+        $websiteType = null;
+        foreach ($this->urlModel->getTypes() as $t) {
+            if (strtolower($t->label) === 'website') {
+                $websiteType = $t;
+                break;
+            }
+        }
+        if (!$websiteType) {
+            $this->jsonError('Website-Typ nicht gefunden.');
+            return;
+        }
+
+        $urlId = $this->urlModel->addForEntity(
+            $entityType,
+            $entityId,
+            (int) $websiteType->id,
+            $url,
+            $label ?: null,
+            $ctaLabel ?: null
+        );
+
+        if ($urlId === false) {
+            $this->jsonError('Failed to add URL');
+            return;
+        }
+
+        $saved = $this->urlModel->getById($urlId);
+
+        $this->jsonSuccess([
+            'id'          => $urlId,
+            'url'         => $saved->url ?? null,
+            'label'       => $saved->label ?? null,
+            'url_type_id' => $websiteType->id,
+            'type_label'  => $websiteType->label,
+            'icon'        => $websiteType->icon ?? null,
+            'cta_label'   => $ctaLabel ?: null,
+        ]);
+    }
+
     public function add(array $params = []): void
     {
         $this->requireLogin();
@@ -133,6 +270,7 @@ class UrlController extends BaseController
         $urlTypeId  = (int) ($_POST['url_type_id'] ?? 0);
         $url        = trim($_POST['url'] ?? '');
         $label      = trim($_POST['label'] ?? '');
+        $ctaLabel   = trim($_POST['cta_label'] ?? '');
 
         if (!$entityType || !$entityId || !$urlTypeId || !$url) {
             $this->jsonError('entity_type, entity_id, url_type_id and url are required');
@@ -150,7 +288,8 @@ class UrlController extends BaseController
             $entityId,
             $urlTypeId,
             $url,
-            $label ?: null
+            $label ?: null,
+            $ctaLabel ?: null
         );
 
         if ($urlId === false) {
@@ -174,7 +313,8 @@ class UrlController extends BaseController
             'label'       => $saved->label ?? null,
             'url_type_id' => $urlTypeId,
             'type_label'  => $type->label ?? null,
-            'icon'       => $type->icon ?? null,
+            'icon'        => $type->icon ?? null,
+            'cta_label'   => $ctaLabel ?: null,
         ]);
     }
 
@@ -195,13 +335,14 @@ class UrlController extends BaseController
         $urlId      = (int) ($params['id'] ?? 0);
         $entityType = trim($_POST['entity_type'] ?? '');
         $entityId   = (int) ($_POST['entity_id'] ?? 0);
+        $ctaLabel   = trim($_POST['cta_label'] ?? '');
 
         if (!$urlId || !$entityType || !$entityId) {
             $this->jsonError('url_id, entity_type and entity_id are required');
             return;
         }
 
-        $success = $this->urlModel->attachToEntity($urlId, $entityType, $entityId);
+        $success = $this->urlModel->attachToEntity($urlId, $entityType, $entityId, $ctaLabel ?: null);
         $success ? $this->jsonSuccess() : $this->jsonError('Failed to attach URL');
     }
 
@@ -293,10 +434,13 @@ class UrlController extends BaseController
     {
         $this->requireLogin();
 
-        $urlId     = (int) ($params['id'] ?? 0);
-        $urlTypeId = (int) ($_POST['url_type_id'] ?? 0);
-        $url       = trim($_POST['url'] ?? '');
-        $label     = trim($_POST['label'] ?? '');
+        $urlId      = (int) ($params['id'] ?? 0);
+        $urlTypeId  = (int) ($_POST['url_type_id'] ?? 0);
+        $url        = trim($_POST['url'] ?? '');
+        $label      = trim($_POST['label'] ?? '');
+        $entityType = trim($_POST['entity_type'] ?? '');
+        $entityId   = (int) ($_POST['entity_id'] ?? 0);
+        $ctaLabel   = trim($_POST['cta_label'] ?? '');
 
         if (!$urlId || !$urlTypeId || !$url) {
             $this->jsonError('url_id, url_type_id and url are required');
@@ -316,6 +460,15 @@ class UrlController extends BaseController
             return;
         }
 
+        // Editing a CTA also needs to update THIS attachment's own
+        // button text, which lives on the pivot, not on the url
+        // itself — only attempted when both entity fields are given,
+        // since a non-CTA save() call (the regular Links picker)
+        // never sends these at all.
+        if ($entityType && $entityId) {
+            $this->urlModel->updateCtaLabel($urlId, $entityType, $entityId, $ctaLabel);
+        }
+
         $saved = $this->urlModel->getById($urlId);
         $types = $this->urlModel->getTypes();
         $type  = null;
@@ -333,6 +486,7 @@ class UrlController extends BaseController
             'url_type_id' => $urlTypeId,
             'type_label'  => $type->label ?? null,
             'icon'        => $type->icon ?? null,
+            'cta_label'   => $ctaLabel ?: null,
         ]);
     }
 }

@@ -59,6 +59,7 @@ class ParticipantController extends BaseController
             'sections'     => $sections,
             'participants' => $participants,
             'seo'          => $seo,
+            'pageKey'      => 'kuenstlerinnen',
         ]);
     }
 

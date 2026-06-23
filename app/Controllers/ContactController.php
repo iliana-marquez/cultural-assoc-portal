@@ -27,6 +27,7 @@ class ContactController extends BaseController
         $this->render('pages/contact', [
             'sections' => $sections,
             'urls' => $urls,
+            'pageKey' => 'kontakt',
         ]);
     }
 }

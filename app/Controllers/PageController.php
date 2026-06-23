@@ -24,10 +24,13 @@
 
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../Models/PagesModel.php';
+require_once __DIR__ . '/../Models/UrlModel.php';
+require_once __DIR__ . '/../../core/RichTextFormatter.php';
 
 class PageController extends BaseController
 {
     private PagesModel $pagesModel;
+    private UrlModel   $urlModel;
 
     // Page titles for SEO — headless default, overridden by DB content
     private array $pageTitles = [
@@ -43,6 +46,7 @@ class PageController extends BaseController
     {
         parent::__construct();
         $this->pagesModel = new PagesModel();
+        $this->urlModel   = new UrlModel();
     }
 
     // ── GET — display page ───────────────────────────────────
@@ -140,9 +144,15 @@ class PageController extends BaseController
             'bg_image'
         ];
 
+        $richText = ['title', 'subtitle', 'text'];
+
         foreach ($updatable as $field) {
             if (isset($_POST[$field])) {
-                $current[$field] = $_POST[$field];
+                $value = $_POST[$field];
+                if (in_array($field, $richText, true)) {
+                    $value = RichTextFormatter::htmlToMarker($value);
+                }
+                $current[$field] = $value;
             }
         }
 
@@ -189,6 +199,32 @@ class PageController extends BaseController
         if (!$id) {
             $this->jsonError('Invalid section ID');
             return;
+        }
+
+        // Clean up this section's CTAs first — same orphan-aware
+        // unlink used everywhere else, so each underlying url either
+        // stays (if reused on another entity) or is genuinely
+        // deleted (if this was its last reference), rather than
+        // leaving permanently orphaned entity_urls/urls rows behind.
+        $ctaUrls = $this->urlModel->getForEntity('section', $id);
+        foreach ($ctaUrls as $cta) {
+            $this->urlModel->unlinkFromEntity($cta->id, 'section', $id);
+        }
+
+        // Fetch BEFORE deleting, since the row won't exist afterward
+        // and the gap-closing step needs to know exactly which page
+        // and which order_index just became free.
+        $section = $this->pagesModel->getById($id);
+
+        $success = $this->pagesModel->deleteSection($id);
+
+        // Close the resulting gap so the remaining sequence stays
+        // clean (e.g. 1,2,4 becomes 1,2,3) — only for ordinary
+        // sections; the reserved order_index=0 slot has special
+        // meaning (a hero, or the capped intro), so shifting other
+        // sections to "fill" position 0 would be incorrect, not tidy.
+        if ($success && $section && (int) $section->order_index >= 1) {
+            $this->pagesModel->closeOrderGap($section->page_key, (int) $section->order_index);
         }
 
         $success = $this->pagesModel->deleteSection($id);

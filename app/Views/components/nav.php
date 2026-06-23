@@ -14,9 +14,11 @@
 <header class="site-header light-segment">
     <div class="nav-container">
 
-        <a href="/" class="nav-brand">
-            <?= htmlspecialchars($org->name ?? 'Organisation') ?>
+        <a href="/">
+            <img class="nav-brand" src="https://res.cloudinary.com/dj2lk9daf/image/upload/v1782164126/Logo_KLA_bxe3kv.png" alt="">
         </a>
+
+
 
         <nav id="main-nav">
             <ul class="nav-links">

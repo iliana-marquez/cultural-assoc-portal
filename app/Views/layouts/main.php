@@ -8,7 +8,7 @@
     <meta name="description" content="<?= htmlspecialchars($seo['description'] ?? '') ?>">
 
     <link rel="canonical" href="<?= htmlspecialchars($seo['url'] ?? '') ?>">
-    <!-- <link rel="icon" href=" dynamic "> -->
+    <link rel="icon" type="image/png" href="https://res.cloudinary.com/dj2lk9daf/image/upload/v1782165980/Logo_KLA_4_rnndrm.png">
 
 
 
