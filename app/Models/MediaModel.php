@@ -220,18 +220,24 @@ class MediaModel extends BaseModel
      */
     public function update(int $mediaId, array $data): bool
     {
+        $allowed = ['media_url', 'caption', 'credit', 'stage', 'order_index'];
+        $sets    = [];
+        $params  = [];
+
+        foreach ($allowed as $field) {
+            if (array_key_exists($field, $data)) {
+                $sets[]   = "{$field} = ?";
+                $params[] = $data[$field];
+            }
+        }
+
+        if (empty($sets)) return false;
+
+        $params[] = $mediaId;
+
         return $this->execute(
-            "UPDATE {$this->table}
-             SET media_url = ?, caption = ?, stage = ?, order_index = ?
-             WHERE id = ?",
-            [
-                $data['media_url']   ?? null,
-                $data['caption']     ?? null,
-                $data['credit']      ?? null,
-                $data['stage']       ?? 'promo',
-                $data['order_index'] ?? 0,
-                $mediaId,
-            ]
+            "UPDATE {$this->table} SET " . implode(', ', $sets) . " WHERE id = ?",
+            $params
         );
     }
 

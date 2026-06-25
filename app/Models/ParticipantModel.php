@@ -119,18 +119,16 @@ class ParticipantModel extends BaseModel
     {
         $ok = $this->execute(
             "INSERT INTO {$this->table}
-             (type, title, first_name, last_name, category_id, field, bio, image, image_credit)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             (type, title, first_name, last_name, category_id, field, bio)
+             VALUES (?, ?, ?, ?, ?, ?, ?)",
             [
-                $data['type']         ?? null,
-                $data['title']        ?? null,
-                $data['first_name']   ?? null,
-                $data['last_name']    ?? null,
-                $data['category_id']  ?? null,
-                $data['field']        ?? null,
-                $data['bio']          ?? null,
-                $data['image']        ?? null,
-                $data['image_credit'] ?? null,
+                $data['type']        ?? null,
+                $data['title']       ?? null,
+                $data['first_name']  ?? null,
+                $data['last_name']   ?? null,
+                $data['category_id'] ?? null,
+                $data['field']       ?? null,
+                $data['bio']         ?? null,
             ]
         );
 
@@ -156,7 +154,7 @@ class ParticipantModel extends BaseModel
         return $this->execute(
             "UPDATE {$this->table}
              SET type = ?, title = ?, first_name = ?, last_name = ?,
-                 category_id = ?, field = ?, bio = ?, image = ?, image_credit = ?
+                 category_id = ?, field = ?
              WHERE id = ?",
             [
                 $data['type']         ?? null,
@@ -165,9 +163,6 @@ class ParticipantModel extends BaseModel
                 $data['last_name']    ?? null,
                 $data['category_id']  ?? null,
                 $data['field']        ?? null,
-                $data['bio']          ?? null,
-                $data['image']        ?? null,
-                $data['image_credit'] ?? null,
                 $id,
             ]
         );

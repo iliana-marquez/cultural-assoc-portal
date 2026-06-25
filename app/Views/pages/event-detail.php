@@ -256,10 +256,10 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                     'reserve' => print(
                                         '<div class="admission-action">'
                                         . '<span class="event-admission-label">'
-                                        . '<i class="ti ti-ticket"></i> Anmeldung erforderlich'
+                                        . '<i class="ti ti-user-edit"></i> Anmeldung erforderlich'
                                         . '</span>'
                                         . '<a href="' . $admissionUrl . '" class="btn-section">'
-                                        . '<i class="ti ti-ticket"></i> Jetzt anmelden'
+                                        . 'Jetzt anmelden'
                                         . '</a></div>'
                                     ),
                                     'ticket' => print(
@@ -269,7 +269,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                         . ($admissionAmount ? ': ' . $admissionAmount : '')
                                         . '</span>'
                                         . '<a href="' . $admissionUrl . '" target="_blank" class="btn-section">'
-                                        . '<i class="ti ti-ticket"></i> Tickets kaufen'
+                                        . 'Tickets kaufen'
                                         . '</a></div>'
                                     ),
                                     'external' => print(

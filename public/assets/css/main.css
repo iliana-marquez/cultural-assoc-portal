@@ -554,6 +554,7 @@ footer {
     letter-spacing: 0.05em;
     align-self: flex-start;
     opacity: 0.7;
+    margin-top: 1rem;
 }
 
 button {

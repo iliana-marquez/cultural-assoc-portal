@@ -75,12 +75,8 @@ class ParticipantController extends BaseController
 
         $participant->displayName = ParticipantModel::displayName($participant);
         $participant->slug        = $slug;
-        $participant->urls        = $this->urlModel->getForEntity('participant', $participant->id);
-
-        // Profile image — stored in entity_media (stage='profile'), URL also
-        // synced to the direct image column for use in listings/cards.
-        $profileMedia             = $this->mediaModel->getForEntity('participant', $participant->id, 'profile');
-        $participant->profileImg  = $profileMedia[0] ?? null;
+        $participant->urls       = $this->urlModel->getForEntity('participant', $participant->id);
+        $participant->profileImg = $this->mediaModel->getProfile('participant', $participant->id);
 
         // Events this participant appeared in
         $participant->events = $this->eventModel->getForParticipant($participant->id);
@@ -93,7 +89,7 @@ class ParticipantController extends BaseController
             $this->org,
             $participant->displayName . ' | ' . $this->org->name,
             $participant->field ?? '',
-            $participant->image ?? $this->org->logo_url ?? ''
+            $participant->profileImg?->media_url ?? $this->org->logo_url ?? ''
         );
 
         $this->render('pages/participant-detail', [
@@ -108,7 +104,6 @@ class ParticipantController extends BaseController
     {
         $this->requireLogin();
 
-        // Create minimal participant → redirect to detail for inline editing
         $id = $this->participantModel->add([
             'first_name' => 'Neue:r Künstler:in',
         ]);
@@ -136,8 +131,6 @@ class ParticipantController extends BaseController
             'last_name',
             'field',
             'bio',
-            'image',
-            'image_credit',
         ];
 
         $field = null;
@@ -183,7 +176,7 @@ class ParticipantController extends BaseController
 
     /**
      * GET /participants/{id}/profile-fragment
-     * Re-renders the profile image partial for in-place refresh after upload.
+     * Re-renders the profile image partial for in-place refresh after upload/delete.
      */
     public function profileFragment(array $params = []): void
     {
@@ -198,10 +191,9 @@ class ParticipantController extends BaseController
 
         $participant->displayName = ParticipantModel::displayName($participant);
         $participant->slug        = ParticipantModel::generateSlug($participant);
-        $profileMedia             = $this->mediaModel->getForEntity('participant', $id, 'profile');
-        $entity                   = $participant;
-        $entityType               = 'participant';
-        $profileImg               = $profileMedia[0] ?? null;
+        $entity     = $participant;
+        $entityType = 'participant';
+        $profileImg = $this->mediaModel->getProfile('participant', $id);
         $isLoggedIn               = $this->isLoggedIn();
 
         ob_start();
@@ -210,27 +202,5 @@ class ParticipantController extends BaseController
 
         header('Content-Type: text/html; charset=utf-8');
         echo $html;
-    }
-
-    /**
-     * POST /participants/{id}/remove-image
-     * Remove profile image URL from image column.
-     */
-    public function removeImage(array $params = []): void
-    {
-        $this->requireLogin();
-        $id = (int) ($params['id'] ?? 0);
-
-        if (!$id) {
-            $this->jsonError('Invalid request');
-            return;
-        }
-
-        $participant = $this->participantModel->getById($id);
-        $current     = $participant ? (array) $participant : [];
-        $current['image'] = null;
-
-        $success = $this->participantModel->update($id, $current);
-        $success ? $this->jsonSuccess() : $this->jsonError('Failed to remove image');
     }
 }

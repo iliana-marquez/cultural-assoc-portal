@@ -1844,6 +1844,77 @@ UPDATE organisation_info SET id = 1 WHERE id = 2;
 - Rich-text round-trip tested: bold, italic, link, and bullet list each applied, saved, and confirmed in the database as marker syntax (`**text**`, `*text*`, `[text](url)`, `- text`); reloaded and confirmed as rendered HTML publicly
 - `htmlToMarker()` tested against both editor span classes (`rt-bold`/`rt-italic`) and public display tags (`<strong>`/`<em>`/`<ul><li>`) to confirm the round-trip is stable across multiple edit cycles
 
+# feat/participants-lifecycle
+
+## Overview
+
+- Lets an editor create, edit, and delete artist/ensemble/orchestra profiles entirely from the browser, without touching the database or code
+- Follows the exact same inline editing pattern already proven on events and organisation — entity-edit-rows, pencil/cancel/save, confirm modal for destructive actions, no separate admin screen
+- Profile images are stored via the shared `entity_media` pivot (same upload system as event promo and gallery), not a direct `image` column — the direct column was deliberately dropped from `participants` as part of this branch, with `entity_media` as the single source of truth
+- The profile image partial (`profile-img.php`) is entity-agnostic and reusable — team members and any future entity with a single portrait-style image use the same file with zero changes
+
+## Architecture
+
+- Participants already existed as a database entity linked to events via `event_participants`. This branch adds the missing editor-facing lifecycle: create → redirect → edit in place → delete
+- `bio TEXT NULL` was added to the `participants` table; the now-redundant `image` and `image_credit` columns were dropped — `entity_media` is the single source of truth for all participant media
+- `participants.id` was missing `AUTO_INCREMENT` — fixed via `ALTER TABLE participants MODIFY id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY`
+- Profile images use `stage='profile'` in `entity_media`, consistent with `stage='promo'` and `stage='gallery'` for events — stage is the mechanism by which Cloudinary folder organisation and media type are tracked across all entities
+- `MediaModel::getProfile()` fetches the single profile image directly — a named, stage-specific method identical in structure to `getPromo()`, avoiding the array-then-index pattern of `getForEntity()`
+- Type-conditional name fields: selecting `Ensemble` or `Orchester` hides the `title` and `last_name` fields live in the editor, since those entity types use only `first_name` as their full name
+- Slug generation is derived from `displayName()` at the app level — not stored in the DB — following the same convention as events
+- Routes follow the static-before-dynamic rule throughout — `batch-meta` and `reorder` were previously swallowed by `{id}/delete` due to wrong route ordering
+
+## Development
+
+- `ParticipantModel::add()` originally returned `bool`, making it impossible to fetch the new record and generate a slug for redirect. Changed to `int|false`, returning the actual inserted id
+- `save()` was originally written to call `update($id, $_POST)` — full-row update from empty POST body. Rewrote to `updateField()` with an allowed list, matching `EventController::save()` exactly
+- `MediaModel::update()` had a silent bug predating this branch: `credit` was in the params array but had no matching `?` placeholder in the SQL SET clause — params were misaligned, credit was silently dropped, and subsequent fields received wrong values. Fixed with a dynamic SET clause that only updates fields actually present in `$data`
+- The upload/delete JS handlers hardcoded `/events/{id}/promo-fragment` for all non-gallery stages — participants got the wrong fragment URL. Fixed by reading `stage` from the button's own `data-stage` attribute and routing to `/{entityType}s/{id}/profile-fragment` for `stage='profile'`
+- `profile-img.php` delete button was missing `data-stage="profile"` — the JS couldn't determine the correct fragment endpoint after delete without it
+- Routes were ordered dynamic-before-static for the media group — `/media/{id}/delete` was matching `batch-meta` and `reorder` as literal id values, routing them to the wrong handler
+
+## Files
+
+- **`ParticipantController.php`** — `add()` creates placeholder with `first_name='Neue:r Künstler:in'`, returns slug for redirect; `save()` uses `updateField()` with allowed list (`type`, `title`, `first_name`, `last_name`, `field`, `bio`); `show()` and `profileFragment()` use `getProfile()` directly; SEO uses `profileImg?->media_url` with org logo fallback for og:image only
+- **`ParticipantModel.php`** — `add()` returns `int|false`; `updateField()` added for single-field saves; `update()` includes `bio`; `image` and `image_credit` removed from all queries
+- **`MediaModel.php`** — `update()` rewritten as dynamic SET clause — only updates fields present in `$data`, preventing partial saves from nulling unrelated fields; `getProfile()` added for `stage='profile'`
+- **`participants.php`** — rewritten (was incorrectly using the team template with `$members` and `TeamModel`); uses `$participants`, `$participant->profileImg->media_url`, `/kuenstlerinnen/` slugs
+- **`participant-detail.php`** — full inline edit UI: type selector with person-only field toggling, name/field/bio edit rows, profile image section, `entity-urls.php` partial, events list, delete button
+- **`profile-img.php`** — generic portrait image partial; `data-stage="profile"` on the delete button so the JS can route to the correct fragment endpoint; variables: `$entity`, `$entityType`, `$profileImg`, `$isLoggedIn`
+- **`TeamController.php`** — added `MediaModel` dependency; `index()` loads `$member->profileImg` via `getProfile('team', $member->id)`
+- **`team.php`** — switched from `$member->image` to `$member->profileImg->media_url`
+- **`edit-bar.php`** — added `+ Neue:r Künstler:in` button alongside `+ Neue Veranstaltung`
+- **`edit-mode.js`** — `new-participant` and `delete-participant` handlers; `profile` stage branch in upload/delete handlers reads `btn.dataset.stage` first, routes to `/{entityType}s/{id}/profile-fragment`
+- **`routes.php`** — static before dynamic throughout; removed dead participant image routes; added `GET /participants/{id}/profile-fragment`
+
+## Bugs / Fixes
+
+- **`participants.id` missing AUTO_INCREMENT** — table was created without it; `INSERT` always failed. Fixed: `ALTER TABLE participants MODIFY id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY`
+- **`MediaModel::update()` silent data loss** — `credit` column missing from SQL SET clause; params misaligned so credit was dropped and subsequent fields received wrong values. Rewritten as dynamic SET
+- **Media routes static-after-dynamic** — `/media/{id}/delete` matched `batch-meta`, `reorder`, `upload-section` as literal id values, routing them to `delete()`. Fixed by reordering static routes before dynamic
+- **`add()` returned `bool`** — impossible to get inserted id for slug generation. Fixed to `int|false`
+- **`save()` sent full `$_POST` to `update()`** — edit rows send one field at a time; full-row update with empty POST caused constraint violations. Rewritten to `updateField()` with allowed list
+- **`profile-img.php` delete missing `data-stage`** — JS used outer row scope for stage; if `data-stage` was absent from the row, fragment URL defaulted to the events endpoint. Fixed by adding `data-stage="profile"` directly to the delete button
+- **Upload/delete JS hardcoded `/events/{id}/promo-fragment`** — participant profile uploads and deletes got the wrong fragment URL. Fixed with entity-agnostic routing based on `btn.dataset.stage`
+- **`participants.php` was the team template** — used `$members`, `TeamModel::displayName()`, `/team/` slugs. Completely rewritten
+- **`image` and `image_credit` columns dropped** — removed from all model queries and controller allowed lists after confirming no unmigrated data existed
+
+## Testing
+
+- Create via edit bar → redirect to `/kuenstlerinnen/{slug}` with placeholder name ✓
+- Type selector: `Person` shows title/last_name; `Ensemble`/`Orchester` hides them; persists after reload ✓
+- All edit rows (type, title, first_name, last_name, field, bio) save correctly one field at a time ✓
+- Profile image upload → appears in detail page and listing card ✓
+- Profile image credit edit → saves and displays correctly ✓
+- Profile image delete → removes from DB, re-renders placeholder in place ✓
+- Links via `entity-urls.php` — add, edit, remove ✓
+- Events list shows participant's linked events with correct slugs ✓
+- Delete → confirm modal → redirect to `/kuenstlerinnen` ✓
+- New participant appears in event detail participant dropdown immediately ✓
+- Participants listing uses `entity_media` profile image ✓
+- Team listing uses `entity_media` profile image ✓
+- Caption/credit on event promo and gallery images unaffected — `MediaModel::update()` fix confirmed working ✓
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
