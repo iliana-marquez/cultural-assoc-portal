@@ -115,12 +115,12 @@ class ParticipantModel extends BaseModel
     /**
      * Add a participant.
      */
-    public function add(array $data): int|false
+    public function add(array $data): bool
     {
-        $ok = $this->execute(
+        return $this->execute(
             "INSERT INTO {$this->table}
-             (type, title, first_name, last_name, category_id, field, bio, image, image_credit)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             (type, title, first_name, last_name, category_id, field)
+             VALUES (?, ?, ?, ?, ?, ?)",
             [
                 $data['type']         ?? null,
                 $data['title']        ?? null,
@@ -129,34 +129,19 @@ class ParticipantModel extends BaseModel
                 $data['category_id']  ?? null,
                 $data['field']        ?? null,
                 $data['bio']          ?? null,
-                $data['image']        ?? null,
-                $data['image_credit'] ?? null,
             ]
         );
-
-        return $ok ? $this->lastInsertId() : false;
     }
 
     /**
-     * Update a single field — used by the entity-edit-row AJAX save.
-     */
-    public function updateField(int $id, string $field, mixed $value): bool
-    {
-        return $this->execute(
-            "UPDATE {$this->table} SET {$field} = ? WHERE id = ?",
-            [$value, $id]
-        );
-    }
-
-    /**
-     * Update a participant — full row update.
+     * Update a participant.
      */
     public function update(int $id, array $data): bool
     {
         return $this->execute(
             "UPDATE {$this->table}
              SET type = ?, title = ?, first_name = ?, last_name = ?,
-                 category_id = ?, field = ?, bio = ?, image = ?, image_credit = ?
+                 category_id = ?, field = ?
              WHERE id = ?",
             [
                 $data['type']         ?? null,
@@ -166,8 +151,7 @@ class ParticipantModel extends BaseModel
                 $data['category_id']  ?? null,
                 $data['field']        ?? null,
                 $data['bio']          ?? null,
-                $data['image']        ?? null,
-                $data['image_credit'] ?? null,
+
                 $id,
             ]
         );
