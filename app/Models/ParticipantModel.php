@@ -115,26 +115,39 @@ class ParticipantModel extends BaseModel
     /**
      * Add a participant.
      */
-    public function add(array $data): bool
+    public function add(array $data): int|false
+    {
+        $ok = $this->execute(
+            "INSERT INTO {$this->table}
+             (type, title, first_name, last_name, category_id, field, bio)
+             VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                $data['type']        ?? null,
+                $data['title']       ?? null,
+                $data['first_name']  ?? null,
+                $data['last_name']   ?? null,
+                $data['category_id'] ?? null,
+                $data['field']       ?? null,
+                $data['bio']         ?? null,
+            ]
+        );
+
+        return $ok ? $this->lastInsertId() : false;
+    }
+
+    /**
+     * Update a single field — used by the entity-edit-row AJAX save.
+     */
+    public function updateField(int $id, string $field, mixed $value): bool
     {
         return $this->execute(
-            "INSERT INTO {$this->table}
-             (type, title, first_name, last_name, category_id, field)
-             VALUES (?, ?, ?, ?, ?, ?)",
-            [
-                $data['type']         ?? null,
-                $data['title']        ?? null,
-                $data['first_name']   ?? null,
-                $data['last_name']    ?? null,
-                $data['category_id']  ?? null,
-                $data['field']        ?? null,
-                $data['bio']          ?? null,
-            ]
+            "UPDATE {$this->table} SET {$field} = ? WHERE id = ?",
+            [$value, $id]
         );
     }
 
     /**
-     * Update a participant.
+     * Update a participant — full row update.
      */
     public function update(int $id, array $data): bool
     {
@@ -150,8 +163,6 @@ class ParticipantModel extends BaseModel
                 $data['last_name']    ?? null,
                 $data['category_id']  ?? null,
                 $data['field']        ?? null,
-                $data['bio']          ?? null,
-
                 $id,
             ]
         );
