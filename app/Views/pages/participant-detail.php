@@ -67,6 +67,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <div class="media-promo-content">
                             <?php
                             $entity     = $participant;
+                            $entityType = 'participant';
                             $profileImg = $participant->profileImg ?? null;
                             include __DIR__ . '/../components/profile-img.php';
                             ?>
