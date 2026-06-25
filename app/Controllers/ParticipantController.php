@@ -75,12 +75,8 @@ class ParticipantController extends BaseController
 
         $participant->displayName = ParticipantModel::displayName($participant);
         $participant->slug        = $slug;
-        $participant->urls        = $this->urlModel->getForEntity('participant', $participant->id);
-
-        // Profile image — stored in entity_media (stage='profile'), URL also
-        // synced to the direct image column for use in listings/cards.
-        $profileMedia             = $this->mediaModel->getForEntity('participant', $participant->id, 'profile');
-        $participant->profileImg  = $profileMedia[0] ?? null;
+        $participant->urls       = $this->urlModel->getForEntity('participant', $participant->id);
+        $participant->profileImg = $this->mediaModel->getProfile('participant', $participant->id);
 
         // Events this participant appeared in
         $participant->events = $this->eventModel->getForParticipant($participant->id);
@@ -93,7 +89,7 @@ class ParticipantController extends BaseController
             $this->org,
             $participant->displayName . ' | ' . $this->org->name,
             $participant->field ?? '',
-            $participant->media[0]->media_url ?? $this->org->logo_url ?? ''
+            $participant->profileImg?->media_url ?? $this->org->logo_url ?? ''
         );
 
         $this->render('pages/participant-detail', [
@@ -107,10 +103,20 @@ class ParticipantController extends BaseController
     public function add(array $params = []): void
     {
         $this->requireLogin();
-        $success = $this->participantModel->add($_POST);
-        $success
-            ? $this->jsonSuccess(['id' => $this->participantModel->lastInsertId()])
-            : $this->jsonError('Failed to add participant');
+
+        $id = $this->participantModel->add([
+            'first_name' => 'Neue:r Künstler:in',
+        ]);
+
+        if (!$id) {
+            $this->jsonError('Failed to create participant');
+            return;
+        }
+
+        $participant = $this->participantModel->getById($id);
+        $slug        = ParticipantModel::generateSlug($participant);
+
+        $this->jsonSuccess(['slug' => $slug]);
     }
 
     public function save(array $params = []): void
@@ -185,10 +191,9 @@ class ParticipantController extends BaseController
 
         $participant->displayName = ParticipantModel::displayName($participant);
         $participant->slug        = ParticipantModel::generateSlug($participant);
-        $profileMedia             = $this->mediaModel->getForEntity('participant', $id, 'profile');
-        $entity                   = $participant;
-        $entityType               = 'participant';
-        $profileImg               = $profileMedia[0] ?? null;
+        $entity     = $participant;
+        $entityType = 'participant';
+        $profileImg = $this->mediaModel->getProfile('participant', $id);
         $isLoggedIn               = $this->isLoggedIn();
 
         ob_start();
