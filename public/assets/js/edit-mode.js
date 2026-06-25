@@ -1667,6 +1667,24 @@ document.addEventListener('DOMContentLoaded', function () {
                                             showEntityFeedback(row, 'Verbindungsfehler', 'error');
                                         });
                                 }
+                            } else if (stage === 'profile') {
+                                // Profile image — re-fetch the portrait fragment
+                                // in place so the new image appears immediately.
+                                const content = row.querySelector('.media-promo-content');
+                                if (content) {
+                                    fetch('/' + entityType + 's/' + entityId + '/profile-fragment', {
+                                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                                    })
+                                        .then(res => res.text())
+                                        .then(function (html) {
+                                            content.innerHTML = html;
+                                            initMediaDeleteBtns(row);
+                                            showEntityFeedback(row, 'Hochgeladen ✓', 'success');
+                                        })
+                                        .catch(function () {
+                                            window.location.reload();
+                                        });
+                                }
                             } else {
                                 // Gallery — append new item
                                 const grid = row.querySelector('.media-gallery-grid');
@@ -1747,13 +1765,14 @@ document.addEventListener('DOMContentLoaded', function () {
                                     return;
                                 }
 
-                                // Promo image deletion — fetch the freshly rebuilt
-                                // fragment (single image / carousel / placeholder)
-                                // from the server and swap it in, no reload needed
-                                // for any promo state.
+                                // Promo/profile image deletion — fetch the freshly
+                                // rebuilt fragment from the server and swap it in.
                                 const content = row.querySelector('.media-promo-content');
                                 if (content) {
-                                    fetch('/events/' + entityId + '/promo-fragment', {
+                                    const fragmentUrl = (btn.dataset.stage || stage) === 'profile'
+                                        ? '/' + entityType + 's/' + entityId + '/profile-fragment'
+                                        : '/events/' + entityId + '/promo-fragment';
+                                    fetch(fragmentUrl, {
                                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                                     })
                                         .then(res => res.text())
