@@ -93,7 +93,7 @@ class ParticipantController extends BaseController
             $this->org,
             $participant->displayName . ' | ' . $this->org->name,
             $participant->field ?? '',
-            $participant->image ?? $this->org->logo_url ?? ''
+            $participant->media[0]->media_url ?? $this->org->logo_url ?? ''
         );
 
         $this->render('pages/participant-detail', [
@@ -107,21 +107,10 @@ class ParticipantController extends BaseController
     public function add(array $params = []): void
     {
         $this->requireLogin();
-
-        // Create minimal participant → redirect to detail for inline editing
-        $id = $this->participantModel->add([
-            'first_name' => 'Neue:r Künstler:in',
-        ]);
-
-        if (!$id) {
-            $this->jsonError('Failed to create participant');
-            return;
-        }
-
-        $participant = $this->participantModel->getById($id);
-        $slug        = ParticipantModel::generateSlug($participant);
-
-        $this->jsonSuccess(['slug' => $slug]);
+        $success = $this->participantModel->add($_POST);
+        $success
+            ? $this->jsonSuccess(['id' => $this->participantModel->lastInsertId()])
+            : $this->jsonError('Failed to add participant');
     }
 
     public function save(array $params = []): void
@@ -136,8 +125,6 @@ class ParticipantController extends BaseController
             'last_name',
             'field',
             'bio',
-            'image',
-            'image_credit',
         ];
 
         $field = null;
@@ -183,7 +170,7 @@ class ParticipantController extends BaseController
 
     /**
      * GET /participants/{id}/profile-fragment
-     * Re-renders the profile image partial for in-place refresh after upload.
+     * Re-renders the profile image partial for in-place refresh after upload/delete.
      */
     public function profileFragment(array $params = []): void
     {
@@ -210,27 +197,5 @@ class ParticipantController extends BaseController
 
         header('Content-Type: text/html; charset=utf-8');
         echo $html;
-    }
-
-    /**
-     * POST /participants/{id}/remove-image
-     * Remove profile image URL from image column.
-     */
-    public function removeImage(array $params = []): void
-    {
-        $this->requireLogin();
-        $id = (int) ($params['id'] ?? 0);
-
-        if (!$id) {
-            $this->jsonError('Invalid request');
-            return;
-        }
-
-        $participant = $this->participantModel->getById($id);
-        $current     = $participant ? (array) $participant : [];
-        $current['image'] = null;
-
-        $success = $this->participantModel->update($id, $current);
-        $success ? $this->jsonSuccess() : $this->jsonError('Failed to remove image');
     }
 }
