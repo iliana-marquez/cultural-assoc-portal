@@ -2,25 +2,12 @@
 
 /**
  * components/profile-img.php
- *
- * Renders a single entity profile image with edit overlay.
- * Entity-agnostic — reusable for participants, team members,
- * and any future entity with a single portrait-style image.
- *
- * Follows the same structure as promo-media.php for events.
- * Caller is responsible for wrapping this in a media-edit-row
- * with the correct data-entity-type / data-entity-id / data-stage.
- *
- * Required variables:
- *   $entity      object        must have ->id, ->displayName (or equivalent)
- *   $entityType  string        e.g. 'participant', 'team'
- *   $profileImg  object|null   media row from entity_media (stage='profile')
- *   $isLoggedIn  bool
+ * Entity-agnostic portrait image partial.
+ * Required: $entity, $entityType, $profileImg, $isLoggedIn
  */
 ?>
 
 <?php if (!empty($profileImg)): ?>
-
     <div class="img-placeholder portrait-img" data-media-id="<?= $profileImg->id ?>">
         <img src="<?= htmlspecialchars($profileImg->media_url) ?>"
             alt="<?= htmlspecialchars($entity->displayName ?? '') ?>">
@@ -35,6 +22,7 @@
                 <button class="section-control-btn"
                     data-action="delete-entity-image"
                     data-media-id="<?= $profileImg->id ?>"
+                    data-stage="profile"
                     data-entity-type="<?= htmlspecialchars($entityType) ?>"
                     data-entity-id="<?= $entity->id ?>">
                     <i class="ti ti-trash"></i>
@@ -42,7 +30,6 @@
             </div>
         <?php endif; ?>
     </div>
-
     <?php if (!empty($profileImg->credit)): ?>
         <small class="image-credit">
             <i class="ti ti-camera"></i> <?= htmlspecialchars($profileImg->credit) ?>
@@ -50,7 +37,6 @@
     <?php endif; ?>
 
 <?php else: ?>
-
     <div class="img-placeholder portrait-img media-placeholder">
         <i class="ti ti-user"></i>
         <?php if ($isLoggedIn): ?>
@@ -65,5 +51,4 @@
             </label>
         <?php endif; ?>
     </div>
-
 <?php endif; ?>
