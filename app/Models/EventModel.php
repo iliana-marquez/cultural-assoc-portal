@@ -188,6 +188,40 @@ class EventModel extends BaseModel
     }
 
     /**
+     * Publish an event — sets status to published.
+     */
+    public function publish(int $id): bool
+    {
+        return $this->execute(
+            "UPDATE {$this->table} SET status = 'published' WHERE id = ?",
+            [$id]
+        );
+    }
+
+    /**
+     * Unpublish an event — sets status back to draft.
+     */
+    public function unpublish(int $id): bool
+    {
+        return $this->execute(
+            "UPDATE {$this->table} SET status = 'draft' WHERE id = ?",
+            [$id]
+        );
+    }
+
+    /**
+     * Cancel an event — sets cancelled_at timestamp.
+     * Only applicable to upcoming published events.
+     */
+    public function cancel(int $id): bool
+    {
+        return $this->execute(
+            "UPDATE {$this->table} SET cancelled_at = NOW() WHERE id = ?",
+            [$id]
+        );
+    }
+
+    /**
      * Add an event.
      */
     public function add(array $data): int
@@ -195,8 +229,8 @@ class EventModel extends BaseModel
         $this->execute(
             "INSERT INTO {$this->table}
          (project_id, category_id, title, subtitle, description,
-          date, time, venue_id, review, admission, admission_url)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          date, time, venue_id, review, admission, admission_url, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $data['project_id']    ?? null,
                 $data['category_id']   ?? null,
@@ -209,6 +243,7 @@ class EventModel extends BaseModel
                 $data['review']        ?? null,
                 $data['admission']     ?? null,
                 $data['admission_url'] ?? null,
+                $data['status']         ?? 'draft',
             ]
         );
 
@@ -231,6 +266,7 @@ class EventModel extends BaseModel
             'admission',
             'admission_amount',
             'admission_url',
+            'status',
         ];
 
         if (!in_array($field, $allowed)) return false;

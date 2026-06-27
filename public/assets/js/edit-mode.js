@@ -2147,6 +2147,110 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
+    // ── Publish event ─────────────────────────────────────────
+    document.querySelector('[data-action="publish-event"]')?.addEventListener('click', function (e) {
+        const eventId = e.currentTarget.dataset.eventId;
+        openConfirmModal({
+            title: 'Veranstaltung veröffentlichen',
+            message: 'Diese Veranstaltung wird auf der öffentlichen Website angezeigt. Sicher veröffentlichen?',
+            confirmLabel: 'Veröffentlichen',
+            onConfirm: function () {
+                fetch('/events/' + eventId + '/publish', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Fehler beim Veröffentlichen.');
+                        }
+                    })
+                    .catch(function () { alert('Verbindungsfehler.'); });
+            }
+        });
+    });
+
+    // ── Unpublish event ───────────────────────────────────────
+    document.querySelector('[data-action="unpublish-event"]')?.addEventListener('click', function (e) {
+        const eventId = e.currentTarget.dataset.eventId;
+        openConfirmModal({
+            title: 'Als Entwurf speichern',
+            message: 'Diese Veranstaltung wird von der öffentlichen Website entfernt und als Entwurf gespeichert.',
+            confirmLabel: 'Als Entwurf',
+            onConfirm: function () {
+                fetch('/events/' + eventId + '/unpublish', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Fehler.');
+                        }
+                    })
+                    .catch(function () { alert('Verbindungsfehler.'); });
+            }
+        });
+    });
+
+    // ── Cancel event ──────────────────────────────────────────
+    document.querySelector('[data-action="cancel-event"]')?.addEventListener('click', function (e) {
+        const eventId = e.currentTarget.dataset.eventId;
+        openConfirmModal({
+            title: 'Veranstaltung absagen',
+            message: 'Diese Veranstaltung wird abgesagt und von der öffentlichen Website entfernt. Die Daten bleiben erhalten.',
+            confirmLabel: 'Absagen',
+            onConfirm: function () {
+                fetch('/events/' + eventId + '/cancel', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Fehler beim Absagen.');
+                        }
+                    })
+                    .catch(function () { alert('Verbindungsfehler.'); });
+            }
+        });
+    });
+
+    // ── Delete event ──────────────────────────────────────────
+    document.querySelector('[data-action="delete-event"]')?.addEventListener('click', function (e) {
+        const btn = e.currentTarget;
+        const eventId = btn.dataset.eventId;
+
+        openConfirmModal({
+            title: 'Veranstaltung löschen',
+            message: 'Dieser Entwurf wird dauerhaft gelöscht.',
+            confirmLabel: 'Endgültig löschen',
+            onConfirm: function () {
+                fetch('/events/' + eventId + '/delete', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            window.location.href = '/veranstaltungen';
+                        } else {
+                            alert(json.error || 'Löschen fehlgeschlagen.');
+                        }
+                    })
+                    .catch(function () {
+                        alert('Verbindungsfehler.');
+                    });
+            }
+        });
+    });
+
     // ── New participant ───────────────────────────────────────
     document.querySelector('[data-action="new-participant"]')?.addEventListener('click', function (e) {
         e.preventDefault();

@@ -12,11 +12,27 @@
 ?>
 
 <div class="col-12 col-md-6 col-lg-4">
+    <?php
+    $cardStatus    = $event->status ?? 'published';
+    $cardCancelled = !empty($event->cancelled_at);
+    $cardClass     = '';
+    $cardBadge     = '';
+    if ($isLoggedIn) {
+        if ($cardCancelled) {
+            $cardClass = ' event-card--cancelled';
+            $cardBadge = '<span class="event-status-badge event-status-badge--cancelled">Abgesagt</span>';
+        } elseif ($cardStatus === 'draft') {
+            $cardClass = ' event-card--draft';
+            $cardBadge = '<span class="event-status-badge event-status-badge--draft">Entwurf</span>';
+        }
+    }
+    ?>
     <a href="/veranstaltungen/<?= htmlspecialchars($event->slug) ?>"
-        class="event-card">
+        class="event-card<?= $cardClass ?>">
 
         <!-- Promo image -->
         <div class="img-placeholder event-card-img">
+            <?= $cardBadge ?? '' ?>
             <?php if (!empty($event->promo)): ?>
                 <img src="<?= htmlspecialchars($event->promo->media_url) ?>"
                     alt="<?= htmlspecialchars($event->title) ?>">

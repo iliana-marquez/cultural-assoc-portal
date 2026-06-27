@@ -50,10 +50,16 @@ class EventController extends BaseController
      */
     public function index(array $params = []): void
     {
-        $sections  = $this->pagesModel->getForPage('veranstaltungen');
-        $upcoming  = $this->eventModel->getUpcoming();
-        $past      = $this->eventModel->getPast();
+        $sections   = $this->pagesModel->getForPage('veranstaltungen');
+        $upcoming   = $this->eventModel->getUpcoming();
+        $past       = $this->eventModel->getPast();
         $categories = $this->eventModel->getCategories();
+
+        // Public side — show only published, non-cancelled events
+        if (!$this->isLoggedIn()) {
+            $upcoming = array_filter($upcoming, fn($e) => $e->status === 'published' && empty($e->cancelled_at));
+            $past     = array_filter($past,     fn($e) => $e->status === 'published' && empty($e->cancelled_at));
+        }
 
         // Add slug + promo image to each event
         foreach (array_merge($upcoming, $past) as $event) {
@@ -91,8 +97,16 @@ class EventController extends BaseController
             return;
         }
 
+        // Non-editors cannot view drafts or cancelled events
+        if (!$this->isLoggedIn()) {
+            if ($event->status === 'draft' || !empty($event->cancelled_at)) {
+                $this->renderNotFound();
+                return;
+            }
+        }
+
         $event->slug         = $slug;
-        $event->status       = EventModel::getStatus($event);
+        $event->temporal     = EventModel::getStatus($event);
         $event->participants = $this->participantModel->getForEvent($event->id);
         $event->media        = $this->mediaModel->getForEntity('event', $event->id);
         $event->urls         = $this->urlModel->getForEntity('event', $event->id);
@@ -136,6 +150,11 @@ class EventController extends BaseController
     {
         $sections = $this->pagesModel->getForPage('archiv');
         $events   = $this->eventModel->getArchive();
+
+        // Public side — show only published, non-cancelled events
+        if (!$this->isLoggedIn()) {
+            $events = array_filter($events, fn($e) => $e->status === 'published' && empty($e->cancelled_at));
+        }
 
         foreach ($events as $event) {
             $event->slug  = EventModel::generateSlug($event->title);
@@ -271,9 +290,77 @@ class EventController extends BaseController
     public function delete(array $params = []): void
     {
         $this->requireLogin();
-        $id      = (int) ($params['id'] ?? 0);
+        $id    = (int) ($params['id'] ?? 0);
+        $event = $this->eventModel->getById($id);
+
+        if (!$event) {
+            $this->jsonError('Event not found');
+            return;
+        }
+
+        if ($event->status !== 'draft') {
+            $this->jsonError('Only draft events can be deleted');
+            return;
+        }
+
         $success = $this->eventModel->delete($id);
         $success ? $this->jsonSuccess() : $this->jsonError('Failed to delete event');
+    }
+
+    /**
+     * POST /events/{id}/publish
+     */
+    public function publish(array $params = []): void
+    {
+        $this->requireLogin();
+        $id      = (int) ($params['id'] ?? 0);
+        $success = $this->eventModel->publish($id);
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to publish event');
+    }
+
+    /**
+     * POST /events/{id}/unpublish
+     */
+    public function unpublish(array $params = []): void
+    {
+        $this->requireLogin();
+        $id      = (int) ($params['id'] ?? 0);
+        $success = $this->eventModel->unpublish($id);
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to unpublish event');
+    }
+
+    /**
+     * POST /events/{id}/cancel
+     * Cancel an upcoming published event — sets cancelled_at timestamp.
+     */
+    public function cancel(array $params = []): void
+    {
+        $this->requireLogin();
+        $id    = (int) ($params['id'] ?? 0);
+        $event = $this->eventModel->getById($id);
+
+        if (!$event) {
+            $this->jsonError('Event not found');
+            return;
+        }
+
+        if ($event->status !== 'published') {
+            $this->jsonError('Only published events can be cancelled');
+            return;
+        }
+
+        if (!empty($event->cancelled_at)) {
+            $this->jsonError('Event is already cancelled');
+            return;
+        }
+
+        if (!empty($event->date) && strtotime($event->date) < strtotime('today')) {
+            $this->jsonError('Past events cannot be cancelled');
+            return;
+        }
+
+        $success = $this->eventModel->cancel($id);
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to cancel event');
     }
 
     public function addParticipant(array $params = []): void
