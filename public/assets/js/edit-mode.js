@@ -2196,6 +2196,55 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // ── New team member ───────────────────────────────────────
+    document.querySelector('[data-action="new-team"]')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        fetch('/team/add', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(res => res.json())
+            .then(function (json) {
+                if (json.success && json.slug) {
+                    window.location.href = '/team/' + json.slug;
+                } else {
+                    alert('Fehler beim Erstellen des Teammitglieds.');
+                }
+            })
+            .catch(function () {
+                alert('Verbindungsfehler.');
+            });
+    });
+
+    // ── Delete team member ────────────────────────────────────
+    document.querySelector('[data-action="delete-team"]')?.addEventListener('click', function (e) {
+        const btn = e.currentTarget;
+        const teamId = btn.dataset.teamId;
+
+        openConfirmModal({
+            title: 'Teammitglied löschen',
+            message: 'Dieses Teammitglied wird aus der öffentlichen Ansicht entfernt. Der Datensatz bleibt für historische Zwecke erhalten.',
+            confirmLabel: 'Löschen',
+            onConfirm: function () {
+                fetch('/team/' + teamId + '/delete', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            window.location.href = '/team';
+                        } else {
+                            alert('Löschen fehlgeschlagen.');
+                        }
+                    })
+                    .catch(function () {
+                        alert('Verbindungsfehler.');
+                    });
+            }
+        });
+    });
+
     // ── Section CTA buttons (free sections) ───────────────────
     // Reuses the SHARED attach-entity-modal shell — exactly the
     // same component already powering the Links picker — rather
