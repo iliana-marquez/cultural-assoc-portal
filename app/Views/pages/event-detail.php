@@ -61,7 +61,8 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         data-entity-type="event"
                         data-entity-id="<?= $event->id ?>"
                         data-entity-slug="<?= htmlspecialchars($event->slug) ?>"
-                        data-stage="promo">
+                        data-stage="promo"
+                        data-fragment-url="/events/<?= $event->id ?>/promo-fragment">
 
                         <?php if ($isLoggedIn): ?>
                             <div class="edit-row-header">
