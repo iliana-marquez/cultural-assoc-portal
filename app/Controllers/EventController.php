@@ -58,7 +58,7 @@ class EventController extends BaseController
         // Add slug + promo image to each event
         foreach (array_merge($upcoming, $past) as $event) {
             $event->slug  = EventModel::generateSlug($event->title);
-            $event->promo = $this->mediaModel->getPromo('event', $event->id);
+            $event->promo = $this->mediaModel->getFirstForEntity('event', $event->id, 'promo');
         }
 
         $seo = $this->buildSeo(
@@ -139,7 +139,7 @@ class EventController extends BaseController
 
         foreach ($events as $event) {
             $event->slug  = EventModel::generateSlug($event->title);
-            $event->promo = $this->mediaModel->getPromo('event', $event->id);
+            $event->promo = $this->mediaModel->getFirstForEntity('event', $event->id, 'promo');
         }
 
         $seo = $this->buildSeo(

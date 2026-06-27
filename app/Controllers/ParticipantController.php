@@ -46,7 +46,7 @@ class ParticipantController extends BaseController
         foreach ($participants as $participant) {
             $participant->displayName = ParticipantModel::displayName($participant);
             $participant->slug        = ParticipantModel::generateSlug($participant);
-            $participant->profileImg  = $this->mediaModel->getProfile('participant', $participant->id);
+            $participant->profileImg  = $this->mediaModel->getFirstForEntity('participant', $participant->id, 'profile');
         }
 
         $seo = $this->buildSeo(
@@ -76,7 +76,7 @@ class ParticipantController extends BaseController
         $participant->displayName = ParticipantModel::displayName($participant);
         $participant->slug        = $slug;
         $participant->urls       = $this->urlModel->getForEntity('participant', $participant->id);
-        $participant->profileImg = $this->mediaModel->getProfile('participant', $participant->id);
+        $participant->profileImg = $this->mediaModel->getFirstForEntity('participant', $participant->id, 'profile');
 
         // Events this participant appeared in
         $participant->events = $this->eventModel->getForParticipant($participant->id);
@@ -193,7 +193,7 @@ class ParticipantController extends BaseController
         $participant->slug        = ParticipantModel::generateSlug($participant);
         $entity     = $participant;
         $entityType = 'participant';
-        $profileImg = $this->mediaModel->getProfile('participant', $id);
+        $profileImg = $this->mediaModel->getFirstForEntity('participant', $id, 'profile');
         $isLoggedIn               = $this->isLoggedIn();
 
         ob_start();

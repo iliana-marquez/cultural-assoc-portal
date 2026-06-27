@@ -1645,14 +1645,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     .then(res => res.json())
                     .then(function (json) {
                         if (json.success) {
-                            if (stage === 'promo') {
-                                // Always re-fetch the freshly rendered fragment
-                                // rather than hand-building HTML — this correctly
-                                // handles going from 0→1 images, 1→2 (upgrading
-                                // to a carousel), and any image count beyond that.
+                            const fragmentUrl = row.dataset.fragmentUrl;
+                            if (fragmentUrl) {
+                                // Promo / profile — re-fetch the declared fragment
+                                // and swap content in place. The row owns the URL
+                                // via data-fragment-url — JS never branches on stage.
                                 const content = row.querySelector('.media-promo-content');
                                 if (content) {
-                                    fetch('/events/' + entityId + '/promo-fragment', {
+                                    fetch(fragmentUrl, {
                                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                                     })
                                         .then(res => res.text())
@@ -1667,32 +1667,19 @@ document.addEventListener('DOMContentLoaded', function () {
                                             showEntityFeedback(row, 'Verbindungsfehler', 'error');
                                         });
                                 }
-                            } else if (stage === 'profile') {
-                                // Profile image — re-fetch the portrait fragment
-                                // in place so the new image appears immediately.
-                                const content = row.querySelector('.media-promo-content');
-                                if (content) {
-                                    fetch('/' + entityType + 's/' + entityId + '/profile-fragment', {
-                                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                                    })
-                                        .then(res => res.text())
-                                        .then(function (html) {
-                                            content.innerHTML = html;
-                                            initMediaDeleteBtns(row);
-                                            showEntityFeedback(row, 'Hochgeladen ✓', 'success');
-                                        })
-                                        .catch(function () {
-                                            window.location.reload();
-                                        });
-                                }
                             } else {
-                                // Gallery — append new item
+                                // Gallery — no fragment endpoint; append new item
+                                // directly and wire its delete button.
                                 const grid = row.querySelector('.media-gallery-grid');
                                 if (grid) {
+                                    grid.querySelector('.col-12 .text-muted')?.closest('.col-12')?.remove();
                                     const col = document.createElement('div');
                                     col.className = 'col-6 col-md-4 col-lg-3 gallery-item';
                                     col.dataset.mediaId = json.id;
                                     col.innerHTML =
+                                        '<label class="gallery-item-checkbox">' +
+                                        '<input type="checkbox" class="gallery-checkbox" value="' + json.id + '" data-caption="" data-credit="">' +
+                                        '</label>' +
                                         '<div class="img-placeholder event-gallery-img">' +
                                         '<img src="' + json.media_url + '" class="zoomable">' +
                                         '<div class="image-edit-overlay">' +
@@ -1765,23 +1752,18 @@ document.addEventListener('DOMContentLoaded', function () {
                                     return;
                                 }
 
-                                // Promo/profile image deletion — fetch the freshly
-                                // rebuilt fragment from the server and swap it in.
+                                // Promo / profile — re-fetch the declared fragment
+                                // and swap content in place. Row owns the URL via
+                                // data-fragment-url — no stage logic needed here.
+                                const fragmentUrl = row.dataset.fragmentUrl;
                                 const content = row.querySelector('.media-promo-content');
-                                if (content) {
-                                    const fragmentUrl = (btn.dataset.stage || stage) === 'profile'
-                                        ? '/' + entityType + 's/' + entityId + '/profile-fragment'
-                                        : '/events/' + entityId + '/promo-fragment';
+                                if (fragmentUrl && content) {
                                     fetch(fragmentUrl, {
                                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                                     })
                                         .then(res => res.text())
                                         .then(function (html) {
                                             content.innerHTML = html;
-                                            // Re-wire delete buttons and any upload
-                                            // input present in the fresh markup
-                                            // (the placeholder's upload button, if
-                                            // the gallery dropped back to zero images).
                                             initMediaDeleteBtns(row);
                                             initUploadInputs(row);
                                             updatePromoCount(row, content);

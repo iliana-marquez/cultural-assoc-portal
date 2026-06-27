@@ -42,7 +42,8 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         data-entity-type="participant"
                         data-entity-id="<?= $participant->id ?>"
                         data-entity-slug="<?= htmlspecialchars($participant->slug) ?>"
-                        data-stage="profile">
+                        data-stage="profile"
+                        data-fragment-url="/participants/<?= $participant->id ?>/profile-fragment">
 
                         <?php if ($isLoggedIn): ?>
                             <div class="edit-row-header">

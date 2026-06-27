@@ -22,7 +22,6 @@
                 <button class="section-control-btn"
                     data-action="delete-entity-image"
                     data-media-id="<?= $profileImg->id ?>"
-                    data-stage="profile"
                     data-entity-type="<?= htmlspecialchars($entityType) ?>"
                     data-entity-id="<?= $entity->id ?>">
                     <i class="ti ti-trash"></i>

@@ -6,13 +6,11 @@
  * Manages media via pivot architecture.
  * Media stored once in media table — linked to any entity via entity_media pivot.
  * One media item can be linked to multiple entities.
- * Update caption/URL once → reflects everywhere it's linked. 
+ * Update caption/URL once → reflects everywhere it's linked.
  *
- * stage values:
- *   'promo'   → promotional material (before event, profile photo)
- *   'gallery' → documentary photos (after event)
- *
- * First promo media item = entity's display image.
+ * stage values are caller-defined — the model passes them through as filters only.
+ * Stage logic (which stage means what) belongs in the controller, not here.
+ *       could be 'promo' | 'gallery' | 'profile' | or scale as more stage tags come along.
  */
 
 class MediaModel extends BaseModel
@@ -46,7 +44,7 @@ class MediaModel extends BaseModel
      *
      * @param string      $entityType  'event' | 'participant' | 'venue' | 'organisation'
      * @param int         $entityId
-     * @param string|null $stage       'promo' | 'gallery' | null (all)
+     * @param string|null $stage       caller-defined stage filter, or null for all
      * @return array
      */
     public function getForEntity(string $entityType, int $entityId, ?string $stage = null): array
@@ -58,7 +56,7 @@ class MediaModel extends BaseModel
 
         $params = [$entityType, $entityId];
 
-        if ($stage) {
+        if ($stage !== null) {
             $sql .= " AND m.stage = ?";
             $params[] = $stage;
         }
@@ -69,46 +67,36 @@ class MediaModel extends BaseModel
     }
 
     /**
-     * Get first promo image for an entity.
-     * Used as display image on listing cards.
+     * Get first media item for an entity, optionally filtered by stage.
+     * Stage is a caller concern — pass any stage string, or null for the
+     * first item regardless of stage.
      *
-     * @param string $entityType
-     * @param int    $entityId
+     * @param string      $entityType
+     * @param int         $entityId
+     * @param string|null $stage  optional filter — any stage value or null
      * @return object|null
      */
-    public function getPromo(string $entityType, int $entityId): ?object
+    public function getFirstForEntity(string $entityType, int $entityId, ?string $stage = null): ?object
     {
-        return $this->fetchOne(
-            "SELECT m.*
-             FROM {$this->table} m
-             INNER JOIN {$this->pivotTable} em ON em.media_id = m.id
-             WHERE em.entity_type = ? AND em.entity_id = ? AND m.stage = 'promo'
-             ORDER BY m.order_index ASC
-             LIMIT 1",
-            [$entityType, $entityId]
-        );
-    }
+        $sql = "SELECT m.*
+                FROM {$this->table} m
+                INNER JOIN {$this->pivotTable} em ON em.media_id = m.id
+                WHERE em.entity_type = ? AND em.entity_id = ?";
 
-    /**
-     * Get the profile image for an entity (stage='profile').
-     * Used by participant and team member listings and detail pages.
-     */
-    public function getProfile(string $entityType, int $entityId): ?object
-    {
-        return $this->fetchOne(
-            "SELECT m.*
-             FROM {$this->table} m
-             INNER JOIN {$this->pivotTable} em ON em.media_id = m.id
-             WHERE em.entity_type = ? AND em.entity_id = ? AND m.stage = 'profile'
-             ORDER BY m.order_index ASC
-             LIMIT 1",
-            [$entityType, $entityId]
-        );
+        $params = [$entityType, $entityId];
+
+        if ($stage !== null) {
+            $sql .= " AND m.stage = ?";
+            $params[] = $stage;
+        }
+
+        $sql .= " ORDER BY m.order_index ASC LIMIT 1";
+
+        return $this->fetchOne($sql, $params);
     }
 
     /**
      * Get random media items across entities.
-     * Used in free sections to display curated media from any entity.
      *
      * @param string|null $entityType  Filter by entity type or null for all
      * @param int         $limit
@@ -137,13 +125,14 @@ class MediaModel extends BaseModel
     /**
      * Add media and link to entity.
      * If media_url already exists — reuses existing record.
+     * Stage must be passed explicitly by the caller — no default.
      *
      * @param string $entityType
      * @param int    $entityId
-     * @param array  $data  media_url, caption, stage, order_index
-     * @return bool
+     * @param array  $data  media_url, caption, credit, stage, order_index
+     * @return int|false  the media id on success, false on failure
      */
-    public function addForEntity(string $entityType, int $entityId, array $data): bool
+    public function addForEntity(string $entityType, int $entityId, array $data): int|false
     {
         // Check if media_url already exists
         $existing = $this->fetchOne(
@@ -161,7 +150,7 @@ class MediaModel extends BaseModel
                     $data['media_url']   ?? null,
                     $data['caption']     ?? null,
                     $data['credit']      ?? null,
-                    $data['stage']       ?? 'promo',
+                    $data['stage']       ?? null,
                     $data['order_index'] ?? 0,
                 ]
             );
@@ -169,11 +158,13 @@ class MediaModel extends BaseModel
         }
 
         // Link to entity via pivot
-        return $this->execute(
+        $this->execute(
             "INSERT IGNORE INTO {$this->pivotTable} (media_id, entity_type, entity_id)
-             VALUES (?, ?, ?)",
+     VALUES (?, ?, ?)",
             [$mediaId, $entityType, $entityId]
         );
+
+        return (int) $mediaId;
     }
 
     /**
@@ -211,8 +202,9 @@ class MediaModel extends BaseModel
     }
 
     /**
-     * Update media item.
-     * Updates once — reflects on all linked entities. 
+     * Update media item — only updates fields present in $data.
+     * Dynamic SET clause prevents partial updates from nulling unrelated fields.
+     * No stage defaults — caller passes stage explicitly if needed.
      *
      * @param int   $mediaId
      * @param array $data
