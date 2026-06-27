@@ -1949,6 +1949,69 @@ This pattern already existed in the codebase as `data-save-url` on entity-edit-r
 - Delete participant → confirm modal → redirect ✓
 - Delete event → confirm modal → redirect ✓
 
+# feat/team-lifecycle
+
+## Overview
+
+Full inline CRUD lifecycle for team members — create, edit, delete, profile image, external links — following the exact same patterns established in `feat/participants-lifecycle`. No new patterns introduced; everything reuses what already works.
+
+## Architecture
+
+- Profile images stored in `entity_media` with `stage='profile'` — `image` and `image_credits` columns dropped from `team` table
+- `profile-img.php` partial reused without modification — entity-agnostic by design
+- `data-fragment-url` on `media-edit-row` — same pattern as events promo and participant profile
+- `TeamModel::updateField()` — single-field saves for entity-edit-rows
+- `TeamController::profileFragment()` — re-renders `profile-img.php` in place after upload/delete
+- Soft delete via `deleted_at` — preserves record for future event/project credit attribution
+- `getAll()` filters `deleted_at IS NULL` — soft-deleted members invisible on public listing
+
+## Soft Delete Rationale
+
+Team members are internal organizational records with potential historical significance. Unlike participants (external contributors), team members may need to be credited for past events and projects. Hard delete would destroy that history. Soft delete keeps the record available for future attribution while removing the member from public display. The delete confirm modal communicates this explicitly.
+
+## DB Changes
+
+```sql
+ALTER TABLE team DROP COLUMN image;
+ALTER TABLE team DROP COLUMN image_credits;
+```
+
+Run on both local and production before deploying.
+
+## Files Changed
+
+- **`TeamModel.php`** — `add()` returns `int|false`; `updateField()` added; `update()` removes image columns; `delete()` soft deletes via `deleted_at`; `getAll()` filters soft-deleted
+- **`TeamController.php`** — full implementation of `add()`, `save()`, `delete()`, `profileFragment()`; `index()` and `show()` use `getFirstForEntity()` for profile image; SEO uses `profileImg?->media_url`
+- **`team.php`** — uses `$member->profileImg->media_url` via entity_media
+- **`team-detail.php`** — full inline edit UI; `media-edit-row` with `data-fragment-url`; all fields as entity-edit-rows; `entity-urls.php`; soft delete button
+- **`routes.php`** — `GET /team/{id}/profile-fragment` added; static before dynamic
+- **`edit-mode.js`** — `new-team` and `delete-team` handlers added
+- **`edit-bar.php`** — `+ Neues Teammitglied` button added
+
+## Bugs & Fixes
+
+- **`image` and `image_credits` columns** — dropped from `team` table; all references removed from model and views; `entity_media` is the single source of truth
+- **`TeamModel::add()` returned `bool`** — same issue as `ParticipantModel` before fix; changed to `int|false` for slug generation and redirect
+
+## Testing
+
+- Create via edit bar → redirect to `/team/{slug}`
+- All edit rows save correctly one field at a time
+- Slug updates in browser URL when name fields change
+- Profile image upload → appears in detail page and listing card
+- Profile image credit edit → saves and displays
+- Profile image delete → placeholder shown immediately
+- Links add/edit/remove
+- Soft delete → confirm modal → redirect to `/team`
+- Soft-deleted member no longer appears in listing
+- Soft-deleted member record still exists in DB with `deleted_at` set
+- Team listing shows profile images from entity_media
+
+## Deferred
+
+- Event and project credit attribution for team members
+- Team listing storytelling — filtering, sorting, visual design
+- Rich text in biography and motto
 <!--
 
 ## ROADMAP/KNOWN ISSUES
