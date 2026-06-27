@@ -3,20 +3,24 @@
 /**
  * TeamController
  *
- * Handles team listing and detail pages.
- * Free intro/closing sections from pages table via PagesModel.
- * Team data from team table via TeamModel.
- * Member URLs from urls table via UrlModel.
+ * GET /team               → team listing
+ * GET /team/{slug}        → team member detail
+ * GET /team/{id}/profile-fragment → re-renders profile-img partial
+ * POST /team/add          → create team member
+ * POST /team/{id}/save    → update single field
+ * POST /team/{id}/delete  → soft delete
  */
 
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../Models/TeamModel.php';
+require_once __DIR__ . '/../Models/MediaModel.php';
 require_once __DIR__ . '/../Models/PagesModel.php';
 require_once __DIR__ . '/../Models/UrlModel.php';
 
 class TeamController extends BaseController
 {
     private TeamModel  $teamModel;
+    private MediaModel $mediaModel;
     private PagesModel $pagesModel;
     private UrlModel   $urlModel;
 
@@ -24,26 +28,21 @@ class TeamController extends BaseController
     {
         parent::__construct();
         $this->teamModel  = new TeamModel();
+        $this->mediaModel = new MediaModel();
         $this->pagesModel = new PagesModel();
         $this->urlModel   = new UrlModel();
     }
 
-    /**
-     * GET /team
-     * Team listing page.
-     * Free intro sections + team member cards.
-     */
+    // ── GET ──────────────────────────────────────────────────
+
     public function index(array $params = []): void
     {
         $sections = $this->pagesModel->getForPage('team');
         $members  = $this->teamModel->getAll();
 
-        // Add slug to each member for card links
         foreach ($members as $member) {
-            $member->slug = TeamModel::generateSlug(
-                $member->first_name,
-                $member->last_name
-            );
+            $member->slug       = TeamModel::generateSlug($member->first_name, $member->last_name);
+            $member->profileImg = $this->mediaModel->getFirstForEntity('team', $member->id, 'profile');
         }
 
         $seo = $this->buildSeo(
@@ -60,10 +59,6 @@ class TeamController extends BaseController
         ]);
     }
 
-    /**
-     * GET /team/{slug}
-     * Team member detail page.
-     */
     public function show(array $params = []): void
     {
         $slug   = $params['slug'] ?? '';
@@ -74,56 +69,123 @@ class TeamController extends BaseController
             return;
         }
 
-        $member->slug = $slug;
-        $urls = $this->urlModel->getForEntity('team', $member->id);
+        $member->slug       = $slug;
+        $member->displayName = TeamModel::displayName($member);
+        $member->profileImg = $this->mediaModel->getFirstForEntity('team', $member->id, 'profile');
+        $member->urls       = $this->urlModel->getForEntity('team', $member->id);
 
         $seo = $this->buildSeo(
             $this->org,
-            TeamModel::displayName($member) . ' | ' . $this->org->name,
+            $member->displayName . ' | ' . $this->org->name,
             $member->biography
                 ? substr(strip_tags($member->biography), 0, 160)
                 : ($member->motto ?? ''),
-            $member->image ?? $this->org->logo_url ?? '',
-            'website',
-            SchemaBuilder::build('person', $member)
+            $member->profileImg?->media_url ?? $this->org->logo_url ?? ''
         );
 
         $this->render('pages/team-detail', [
             'member'  => $member,
-            'urls'    => $urls,
             'seo'     => $seo,
         ]);
     }
 
-    // Add to TeamController:
+    // ── POST — CRUD ──────────────────────────────────────────
 
-    /**
-     * POST /team/add
-     * Add new team member.
-     */
     public function add(array $params = []): void
     {
         $this->requireLogin();
-        // validate + insert via TeamModel
+
+        $id = $this->teamModel->add([
+            'first_name' => 'Neues Teammitglied',
+            'last_name'  => '',
+            'role'       => '',
+        ]);
+
+        if (!$id) {
+            $this->jsonError('Failed to create team member');
+            return;
+        }
+
+        $member = $this->teamModel->getById($id);
+        $slug   = TeamModel::generateSlug($member->first_name, $member->last_name);
+
+        $this->jsonSuccess(['slug' => $slug]);
     }
 
-    /**
-     * POST /team/{id}/save
-     * Update team member.
-     */
     public function save(array $params = []): void
     {
         $this->requireLogin();
-        // validate + update via TeamModel
+        $id = (int) ($params['id'] ?? 0);
+
+        $allowed = ['title', 'first_name', 'last_name', 'role', 'profession', 'motto', 'biography'];
+
+        $field = null;
+        $value = null;
+        foreach ($allowed as $f) {
+            if (isset($_POST[$f])) {
+                $field = $f;
+                $value = trim($_POST[$f]);
+                break;
+            }
+        }
+
+        if (!$field) {
+            $this->jsonError('No valid field');
+            return;
+        }
+
+        $success = $this->teamModel->updateField($id, $field, $value);
+
+        if (!$success) {
+            $this->jsonError('Failed to save');
+            return;
+        }
+
+        if (in_array($field, ['first_name', 'last_name', 'title'], true)) {
+            $member = $this->teamModel->getById($id);
+            $slug   = TeamModel::generateSlug($member->first_name, $member->last_name);
+            $this->jsonSuccess(['slug' => $slug]);
+            return;
+        }
+
+        $this->jsonSuccess();
     }
 
-    /**
-     * POST /team/{id}/delete
-     * Delete team member.
-     */
     public function delete(array $params = []): void
     {
         $this->requireLogin();
-        // hard delete — team member is an entity, consider soft delete
+        $id      = (int) ($params['id'] ?? 0);
+        $success = $this->teamModel->delete($id);
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to delete team member');
+    }
+
+    /**
+     * GET /team/{id}/profile-fragment
+     * Re-renders the profile image partial for in-place refresh after upload/delete.
+     */
+    public function profileFragment(array $params = []): void
+    {
+        $id     = (int) ($params['id'] ?? 0);
+        $member = $this->teamModel->getById($id);
+
+        if (!$member) {
+            http_response_code(404);
+            echo '';
+            return;
+        }
+
+        $member->displayName = TeamModel::displayName($member);
+        $member->slug        = TeamModel::generateSlug($member->first_name, $member->last_name);
+        $entity              = $member;
+        $entityType          = 'team';
+        $profileImg          = $this->mediaModel->getFirstForEntity('team', $id, 'profile');
+        $isLoggedIn          = $this->isLoggedIn();
+
+        ob_start();
+        include __DIR__ . '/../Views/components/profile-img.php';
+        $html = ob_get_clean();
+
+        header('Content-Type: text/html; charset=utf-8');
+        echo $html;
     }
 }
