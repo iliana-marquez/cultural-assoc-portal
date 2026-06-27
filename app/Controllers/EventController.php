@@ -282,7 +282,17 @@ class EventController extends BaseController
         $eventId       = (int) ($params['id'] ?? 0);
         $participantId = (int) ($_POST['participant_id'] ?? 0);
         $success       = $this->eventModel->addParticipant($eventId, $participantId);
-        $success ? $this->jsonSuccess() : $this->jsonError('Failed to add participant');
+
+        if (!$success) {
+            $this->jsonError('Failed to add participant');
+            return;
+        }
+
+        $participant = $this->participantModel->getById($participantId);
+        $slug        = $participant ? ParticipantModel::generateSlug($participant) : '';
+        $field       = $participant->field ?? '';
+
+        $this->jsonSuccess(['slug' => $slug, 'field' => $field]);
     }
 
     public function removeParticipant(array $params = []): void

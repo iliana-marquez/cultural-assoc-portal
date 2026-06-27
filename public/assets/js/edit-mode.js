@@ -1078,7 +1078,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             '<button class="entity-remove-btn border-0" data-action="remove-participant"' +
                             ' data-event-id="' + eventId + '" data-participant-id="' + participantId + '">' +
                             '<i class="ti ti-trash"></i></button>' +
-                            '<a href="#">' + selectedText + '</a>';
+                            '<a href="/kuenstlerinnen/' + (json.slug || '#') + '">' +
+                            selectedText +
+                            (json.field ? ' · <span class="participant-field">' + json.field + '</span>' : '') +
+                            '</a>';
                         list.appendChild(item);
                         list.querySelector('.text-muted')?.remove();
                         bindRemoveParticipant(item.querySelector('[data-action="remove-participant"]'), row);
