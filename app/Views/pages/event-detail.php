@@ -50,6 +50,53 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
 
 <section class="segment light-segment container">
     <div class="container-fluid">
+        <?php if ($isLoggedIn): ?>
+            <?php
+            $isCancelled = !empty($event->cancelled_at);
+            $isDraft     = ($event->status ?? 'draft') === 'draft';
+            $isUpcoming  = !empty($event->date) && strtotime($event->date) >= strtotime('today');
+            ?>
+            <div class="event-status-bar">
+                <?php if ($isCancelled): ?>
+                    <span class="event-status-chip event-status-chip--cancelled">
+                        Diese Veranstaltung wurde abgesagt.
+                    </span>
+                <?php elseif ($isDraft): ?>
+                    <span class="event-status-chip event-status-chip--draft">
+                        Diese Veranstaltung ist ein Entwurf:
+                    </span>
+                    <button class="btn-section btn-section--primary"
+                        data-action="publish-event"
+                        data-event-id="<?= $event->id ?>">
+                        Veröffentlichen
+                    </button>
+                    <button class="btn-section btn-section--danger"
+                        data-action="delete-event"
+                        data-event-id="<?= $event->id ?>"
+                        data-event-slug="<?= htmlspecialchars($event->slug) ?>">
+                        <i class="ti ti-trash"></i> Löschen
+                    </button>
+                <?php else: ?>
+                    <span class="event-status-chip event-status-chip--published">
+                        Diese Veranstaltung ist veröffentlicht:
+                    </span>
+                    <button class="btn-section"
+                        data-action="unpublish-event"
+                        data-event-id="<?= $event->id ?>">
+                        Als Entwurf
+                    </button>
+                    <?php if ($isUpcoming): ?>
+                        <button class="btn-section btn-section--danger"
+                            data-action="cancel-event"
+                            data-event-id="<?= $event->id ?>">
+                            Absagen
+                        </button>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
+
 
         <!-- Row 1: Promo image | Event details -->
         <div class="row g-5 align-items-start">
@@ -61,8 +108,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         data-entity-type="event"
                         data-entity-id="<?= $event->id ?>"
                         data-entity-slug="<?= htmlspecialchars($event->slug) ?>"
-                        data-stage="promo"
-                        data-fragment-url="/events/<?= $event->id ?>/promo-fragment">
+                        data-stage="promo">
 
                         <?php if ($isLoggedIn): ?>
                             <div class="edit-row-header">
@@ -238,8 +284,9 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <?php if (!empty($event->admission)): ?>
                             <div class="event-admission">
                                 <?php
-                                $admissionUrl    = htmlspecialchars($event->admission_url    ?? '#');
-                                $admissionAmount = htmlspecialchars($event->admission_amount ?? '');
+                                $admissionUrl      = htmlspecialchars($event->admission_url    ?? '#');
+                                $admissionAmount   = htmlspecialchars($event->admission_amount ?? '');
+                                $isUpcomingEvent   = !empty($event->date) && strtotime($event->date) >= strtotime('today');
                                 match ($event->admission) {
                                     'free' => print(
                                         '<span class="event-admission-label">'
@@ -259,9 +306,10 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                         . '<span class="event-admission-label">'
                                         . '<i class="ti ti-user-edit"></i> Anmeldung erforderlich'
                                         . '</span>'
-                                        . '<a href="' . $admissionUrl . '" class="btn-section">'
-                                        . 'Jetzt anmelden'
-                                        . '</a></div>'
+                                        . ($isUpcomingEvent && $event->admission_url
+                                            ? '<a href="' . $admissionUrl . '" class="btn-section">Jetzt anmelden</a>'
+                                            : '')
+                                        . '</div>'
                                     ),
                                     'ticket' => print(
                                         '<div class="admission-action">'
@@ -269,14 +317,17 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                         . '<i class="ti ti-ticket"></i> Tickets'
                                         . ($admissionAmount ? ': ' . $admissionAmount : '')
                                         . '</span>'
-                                        . '<a href="' . $admissionUrl . '" target="_blank" class="btn-section">'
-                                        . 'Tickets kaufen'
-                                        . '</a></div>'
+                                        . ($isUpcomingEvent && $event->admission_url
+                                            ? '<a href="' . $admissionUrl . '" target="_blank" class="btn-section">Tickets kaufen</a>'
+                                            : '')
+                                        . '</div>'
                                     ),
                                     'external' => print(
-                                        '<a href="' . $admissionUrl . '" target="_blank" class="btn-section">'
+                                        $isUpcomingEvent && $event->admission_url
+                                        ? '<a href="' . $admissionUrl . '" target="_blank" class="btn-section">'
                                         . '<i class="ti ti-external-link"></i> Mehr Informationen'
                                         . '</a>'
+                                        : ''
                                     ),
                                     default => null,
                                 }; ?>
@@ -509,20 +560,12 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
         </div>
     <?php endif; ?>
 
-    <!-- Back + Delete -->
+    <!-- Back -->
     <div class="row mt-4">
-        <div class="col-12 d-flex gap-3 align-items-center justify-content-between">
+        <div class="col-12">
             <a href="/veranstaltungen" class="nav-icon-ux">
                 <i class="ti ti-arrow-left"></i> Veranstaltungen
             </a>
-            <?php if ($isLoggedIn): ?>
-                <button class="btn-section"
-                    data-action="delete-event"
-                    data-event-id="<?= $event->id ?>"
-                    data-event-slug="<?= htmlspecialchars($event->slug) ?>">
-                    <i class="ti ti-trash"></i> Veranstaltung löschen
-                </button>
-            <?php endif; ?>
         </div>
     </div>
 
