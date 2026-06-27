@@ -414,6 +414,61 @@ body.is-editing .edit-bar__indicator i {
 .participants-edit-row .add-participant-wrap { display: none; }
 .participants-edit-row.editing .add-participant-wrap { display: flex; }
 
+/* ── Event status bar ──────────────────── */
+.event-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    margin-bottom: 1.5rem;
+    border-radius: 4px;
+}
+
+.event-status-chip--draft     { color:black; }
+.event-status-chip--published { color: #15803d; }
+.event-status-chip--cancelled { color: #b91c1c; }
+
+.event-status-bar .btn-section {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0;
+    gap: .5rem;
+}
+
+.event-status-bar .btn-section i {
+    font-size: 1.1rem; 
+    line-height: 1;
+}
+
+/* ── Event card status ─────────────────── */
+.event-card--draft {
+    filter: grayscale(1);
+    opacity: 0.75;
+}
+
+.event-card--cancelled {
+    filter: grayscale(1);
+    opacity: 0.5;
+}
+
+.event-status-badge {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    z-index: 1;
+}
+
+.event-status-badge--draft     { background: #fef3c7; color: #92400e; }
+.event-status-badge--cancelled { background: #fee2e2; color: #991b1b; }
+
 /* ── Media edit row ──────────────────────────────────────────── */
 .media-edit-row {
     border: 2px solid var(--edit-inactive);
