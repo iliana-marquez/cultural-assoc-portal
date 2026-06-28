@@ -108,6 +108,7 @@ class EventController extends BaseController
         $event->slug         = $slug;
         $event->temporal     = EventModel::getStatus($event);
         $event->participants = $this->participantModel->getForEvent($event->id);
+        $event->venue        = !empty($event->venue_id) ? $this->venueModel->getById($event->venue_id) : null;
         $event->media        = $this->mediaModel->getForEntity('event', $event->id);
         $event->urls         = $this->urlModel->getForEntity('event', $event->id);
 
