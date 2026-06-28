@@ -70,13 +70,13 @@
 
                 <!-- Credit -->
                 <div class="contact-block contact-credit">
-                    <small>
-                        Websitegestaltung<br>
-                        Christina Mayer (2025)<br>
-                        <a href="https://ilianamarquez.com" target="_blank" rel="noopener noreferrer">
-                            Iliana Márquez
-                        </a> (2026)
-                    </small>
+
+                    <h3>Websitegestaltung</h3>
+                    <a href="https://ilianamarquez.com" target="_blank" rel="noopener noreferrer">
+                        Iliana Márquez
+                        <small>(2026)</small>
+                    </a>
+
                 </div>
 
             </div>
@@ -86,30 +86,54 @@
                 <div class="contact-form-wrap">
                     <h3>Nachricht senden</h3>
 
-                    <div class="contact-form">
+                    <div class="contact-form" data-action="contact-form">
+                        <input type="hidden" id="csrf-contact" name="csrf_contact" value="<?= htmlspecialchars($csrf_contact ?? '') ?>">
 
                         <div class="form-group">
                             <label for="contact-name">Name</label>
                             <input type="text" id="contact-name" name="name"
-                                placeholder="Ihr Name" required>
+                                placeholder="Ihr Name"
+                                required minlength="2" maxlength="200"
+                                autocomplete="name">
+                            <span class="field-error" id="error-name"></span>
                         </div>
 
                         <div class="form-group">
                             <label for="contact-email">E-Mail</label>
                             <input type="email" id="contact-email" name="email"
-                                placeholder="ihre@email.com" required>
+                                placeholder="ihre@email.com"
+                                required maxlength="200"
+                                autocomplete="email">
+                            <span class="field-error" id="error-email"></span>
                         </div>
 
                         <div class="form-group">
                             <label for="contact-message">Nachricht</label>
                             <textarea id="contact-message" name="message"
                                 rows="6"
-                                placeholder="Ihre Nachricht..." required></textarea>
+                                placeholder="Ihre Nachricht..."
+                                required minlength="10" maxlength="5000"></textarea>
+                            <span class="field-error" id="error-message"></span>
                         </div>
 
-                        <button type="submit" class="btn-section">
+                        <div>
+                            <label class="contact-terms">
+                                <input type="checkbox" id="contact-terms" required>
+                                <span>
+                                    Ich bin damit einverstanden, dass meine Daten für den
+                                    angegebenen Zweck verwendet werden.
+                                    <a href="/datenschutz" target="_blank" rel="noopener noreferrer">Datenschutz</a>
+                                </span>
+
+                            </label>
+                            <span class="field-error" id="error-terms"></span>
+                        </div>
+
+                        <button type="button" class="btn-section" id="contact-submit">
                             Senden
                         </button>
+
+                        <p class="contact-feedback" id="contact-feedback" style="display:none;"></p>
 
                     </div>
                 </div>
