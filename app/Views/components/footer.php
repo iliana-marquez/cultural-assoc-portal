@@ -36,9 +36,9 @@
     </nav>
 
     <nav class="footer-links small" aria-label="Footer Navigation">
-        <a href="#">Datenschutzerklärung</a>
+        <a href="/datenschutz">Datenschutzerklärung</a>
         <span class="divider">|</span>
-        <a href="#">Impressum</a>
+        <a href="/impressum">Impressum</a>
         <span class="divider">|</span>
         <a href="/kontakt">Kontakt</a>
     </nav>

@@ -119,11 +119,12 @@
                         <div>
                             <label class="contact-terms">
                                 <input type="checkbox" id="contact-terms" required>
-                                <span>
-                                    Ich bin damit einverstanden, dass meine Daten für den
-                                    angegebenen Zweck verwendet werden.
-                                    <a href="/datenschutz" target="_blank" rel="noopener noreferrer">Datenschutz</a>
-                                </span>
+                                <a href="/datenschutz" target="_blank" rel="noopener noreferrer">
+                                    <span>
+                                        Ich bin damit einverstanden, dass meine Daten für den
+                                        angegebenen Zweck verwendet werden (Datenschutzerklärung).
+                                    </span>
+                                </a>
 
                             </label>
                             <span class="field-error" id="error-terms"></span>
