@@ -1009,6 +1009,274 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // ── Venue edit row ────────────────────────────────────────
+    document.querySelectorAll('.venue-edit-row').forEach(function (row) {
+        const pencilBtn = row.querySelector('.venue-pencil-btn');
+        const cancelBtn = row.querySelector('.venue-cancel-btn');
+        const changeBtn = row.querySelector('[data-action="open-venue-modal"]');
+        const removeBtn = row.querySelector('[data-action="remove-venue"]');
+        const eventId = row.dataset.entityId;
+        const feedback = row.querySelector('.entity-feedback');
+
+        function showFeedback(msg, type) {
+            if (!feedback) return;
+            feedback.textContent = msg;
+            feedback.className = 'entity-feedback entity-feedback--' + type;
+            setTimeout(function () { feedback.textContent = ''; }, 3000);
+        }
+
+        pencilBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.add('editing');
+            document.body.classList.add('is-editing');
+        });
+
+        cancelBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.remove('editing');
+            document.body.classList.remove('is-editing');
+        });
+
+        function saveVenue(venueId) {
+            const data = new FormData();
+            data.append('venue_id', venueId);
+            fetch('/events/' + eventId + '/save', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        showFeedback('Gespeichert ✓', 'success');
+                        window.location.reload();
+                    } else {
+                        showFeedback('Fehler', 'error');
+                    }
+                })
+                .catch(function () { showFeedback('Verbindungsfehler', 'error'); });
+        }
+
+        changeBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            openVenueModal('search', function (venue) {
+                saveVenue(venue.id);
+            });
+        });
+
+        removeBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            openConfirmModal({
+                title: 'Ort entfernen',
+                message: 'Diesen Veranstaltungsort wirklich entfernen?',
+                confirmLabel: 'Entfernen',
+                onConfirm: function () {
+                    saveVenue('');
+                }
+            });
+        });
+
+        row.querySelector('[data-action="edit-venue"]')?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            openVenueModal('edit', {
+                id: btn.dataset.venueId,
+                name: btn.dataset.venueName,
+                street: btn.dataset.venueStreet,
+                postcode: btn.dataset.venuePostcode,
+                city: btn.dataset.venueCity,
+                country: btn.dataset.venueCountry,
+                map_url: btn.dataset.venueMapUrl,
+                website_url: btn.dataset.venueWebsiteUrl,
+            });
+        });
+    });
+
+    // ── Venue modal ───────────────────────────────────────────
+    function openVenueModal(mode, payload) {
+        const modal = document.getElementById('venueModal');
+        const title = document.getElementById('venueModalTitle');
+        const tabs = document.getElementById('venueModalTabs');
+        const nameInput = document.getElementById('venueModalName');
+        const addBtn = document.getElementById('venueModalAdd');
+        const saveBtn = document.getElementById('venueModalSave');
+        if (!modal) return;
+
+        // Hide all panels
+        modal.querySelectorAll('.venue-modal-panel').forEach(p => p.style.display = 'none');
+
+        if (mode === 'edit') {
+            // Edit mode — pre-filled form, no tabs
+            const venue = payload;
+            tabs.style.display = 'none';
+            title.textContent = 'Venue bearbeiten';
+
+            document.getElementById('venueModalEditId').value = venue.id || '';
+            document.getElementById('venueModalEditName').value = venue.name || '';
+            document.getElementById('venueModalEditStreet').value = venue.street || '';
+            document.getElementById('venueModalEditPostcode').value = venue.postcode || '';
+            document.getElementById('venueModalEditCity').value = venue.city || '';
+            document.getElementById('venueModalEditCountry').value = venue.country || '';
+            document.getElementById('venueModalEditMapUrl').value = venue.map_url || '';
+            document.getElementById('venueModalEditWebsiteUrl').value = venue.website_url || '';
+
+            modal.querySelector('[data-panel="venue-edit"]').style.display = 'block';
+
+            saveBtn.onclick = function () {
+                const venueId = document.getElementById('venueModalEditId').value;
+                const fields = {
+                    name: document.getElementById('venueModalEditName').value.trim(),
+                    street: document.getElementById('venueModalEditStreet').value.trim(),
+                    postcode: document.getElementById('venueModalEditPostcode').value.trim(),
+                    city: document.getElementById('venueModalEditCity').value.trim(),
+                    country: document.getElementById('venueModalEditCountry').value.trim(),
+                    map_url: document.getElementById('venueModalEditMapUrl').value.trim(),
+                    website_url: document.getElementById('venueModalEditWebsiteUrl').value.trim(),
+                };
+
+                // Save each field sequentially
+                const saves = Object.entries(fields).map(function ([field, value]) {
+                    const data = new FormData();
+                    data.append(field, value);
+                    return fetch('/venues/' + venueId + '/save', {
+                        method: 'POST',
+                        body: data,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    }).then(r => r.json());
+                });
+
+                Promise.all(saves).then(function () {
+                    closeVenueModal();
+                    window.location.reload();
+                }).catch(function () { alert('Verbindungsfehler.'); });
+            };
+
+        } else {
+            // Search mode — search + neue venue tabs
+            tabs.style.display = 'flex';
+            title.textContent = 'Veranstaltungsort';
+
+            // Reset search tab
+            const searchInput = document.getElementById('venueModalSearch');
+            const results = document.getElementById('venueModalResults');
+            searchInput.value = '';
+            results.innerHTML = '';
+            nameInput.value = '';
+            document.getElementById('venueModalStreet').value = '';
+            document.getElementById('venueModalPostcode').value = '';
+            document.getElementById('venueModalCity').value = '';
+            document.getElementById('venueModalCountry').value = 'Österreich';
+            document.getElementById('venueModalMapUrl').value = '';
+            document.getElementById('venueModalWebsiteUrl').value = '';
+            addBtn.disabled = true;
+
+            // Activate search tab
+            modal.querySelectorAll('.ows-modal-tab').forEach(t => t.classList.remove('ows-modal-tab--active'));
+            modal.querySelector('[data-tab="venue-search"]').classList.add('ows-modal-tab--active');
+            modal.querySelector('[data-panel="venue-search"]').style.display = 'block';
+
+            const onSelect = payload;
+
+            fetchVenues('');
+
+            function fetchVenues(query) {
+                fetch('/venues/search?q=' + encodeURIComponent(query), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        results.innerHTML = '';
+                        if (!json.success || !json.venues.length) {
+                            results.innerHTML = '<p class="text-muted p-2">Keine Venues gefunden.</p>';
+                            return;
+                        }
+                        json.venues.forEach(function (venue) {
+                            const item = document.createElement('div');
+                            item.className = 'attach-entity-modal-result-item';
+                            item.innerHTML = '<strong>' + venue.name + '</strong>'
+                                + (venue.address ? '<small class="d-block text-muted">' + venue.address + '</small>' : '');
+                            item.addEventListener('click', function () {
+                                closeVenueModal();
+                                onSelect(venue);
+                            });
+                            results.appendChild(item);
+                        });
+                    });
+            }
+
+            searchInput.oninput = function () { fetchVenues(searchInput.value.trim()); };
+
+            // Tab switching
+            modal.querySelectorAll('.ows-modal-tab').forEach(function (tab) {
+                tab.onclick = function () {
+                    modal.querySelectorAll('.ows-modal-tab').forEach(t => t.classList.remove('ows-modal-tab--active'));
+                    tab.classList.add('ows-modal-tab--active');
+                    modal.querySelectorAll('.venue-modal-panel').forEach(p => p.style.display = 'none');
+                    modal.querySelector('[data-panel="' + tab.dataset.tab + '"]').style.display = 'block';
+                };
+            });
+
+            nameInput.oninput = function () {
+                addBtn.disabled = !nameInput.value.trim();
+            };
+
+            addBtn.onclick = function () {
+                const data = new FormData();
+                data.append('name', nameInput.value.trim());
+                data.append('street', document.getElementById('venueModalStreet').value.trim());
+                data.append('postcode', document.getElementById('venueModalPostcode').value.trim());
+                data.append('city', document.getElementById('venueModalCity').value.trim());
+                data.append('country', document.getElementById('venueModalCountry').value.trim());
+                data.append('map_url', document.getElementById('venueModalMapUrl').value.trim());
+                data.append('website_url', document.getElementById('venueModalWebsiteUrl').value.trim());
+
+                fetch('/venues/add', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            closeVenueModal();
+                            onSelect(json);
+                        }
+                    })
+                    .catch(function () { alert('Verbindungsfehler.'); });
+            };
+        }
+
+        modal.style.display = 'flex';
+        modal.querySelector('.venue-modal-close').onclick = closeVenueModal;
+        modal.onclick = function (e) { if (e.target === modal) closeVenueModal(); };
+    }
+
+    function closeVenueModal() {
+        const modal = document.getElementById('venueModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    // ── Venue URL test links ──────────────────────────────────
+    function bindVenueTestLink(inputId, linkId) {
+        const input = document.getElementById(inputId);
+        const link = document.getElementById(linkId);
+        if (!input || !link) return;
+        input.addEventListener('input', function () {
+            const val = input.value.trim();
+            if (val && val.startsWith('http')) {
+                link.href = val;
+                link.style.display = 'inline-flex';
+            } else {
+                link.style.display = 'none';
+            }
+        });
+    }
+
+    bindVenueTestLink('venueModalMapUrl', 'venueModalMapUrlTest');
+    bindVenueTestLink('venueModalWebsiteUrl', 'venueModalWebsiteUrlTest');
+    bindVenueTestLink('venueModalEditMapUrl', 'venueModalEditMapUrlTest');
+    bindVenueTestLink('venueModalEditWebsiteUrl', 'venueModalEditWebsiteUrlTest');
+
     // ── Participants edit row ─────────────────────────────────
     document.querySelectorAll('.participants-edit-row').forEach(function (row) {
         const editBtn = row.querySelector('.entity-edit-btn');
