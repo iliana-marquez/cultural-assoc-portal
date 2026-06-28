@@ -175,30 +175,12 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <?= $editRow('Datum (YYYY-MM-DD)', 'date', $event->date ?? '', $saveUrl) ?>
                         <?= $editRow('Uhrzeit (HH:MM)', 'time', substr($event->time ?? '', 0, 5), $saveUrl) ?>
 
-                        <!-- Venue selector -->
-                        <div class="entity-select-row" data-save-url="<?= $saveUrl ?>">
-                            <div class="edit-row-header">
-                                <label class="edit-row-label">Veranstaltungsort</label>
-                                <div class="edit-row-actions">
-                                    <span class="entity-feedback"></span>
-                                    <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
-                                    <button class="entity-save-btn"><i class="ti ti-check"></i></button>
-                                    <button class="entity-cancel-btn"><i class="ti ti-x"></i></button>
-                                </div>
-                            </div>
-                            <p class="entity-select-display m-2">
-                                <?= !empty($event->venue_name) ? htmlspecialchars($event->venue_name) : '—' ?>
-                            </p>
-                            <select class="entity-field entity-select" data-field="venue_id">
-                                <option value="">— kein Ort —</option>
-                                <?php foreach ($venues as $venue): ?>
-                                    <option value="<?= $venue->id ?>"
-                                        <?= $event->venue_id == $venue->id ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($venue->name) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                        <!-- Venue -->
+                        <?php
+                        $entityType = 'event';
+                        $entityId   = $event->id;
+                        include __DIR__ . '/../components/entity-venues.php';
+                        ?>
 
                         <!-- Admission type selector -->
                         <div class="entity-select-row" data-save-url="<?= $saveUrl ?>">
@@ -264,13 +246,31 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                 </span>
                             <?php endif; ?>
                             <?php if (!empty($event->venue_name)): ?>
+                                <?php
+                                $venueMapUrl = $event->venue->map_url     ?? null;
+                                $venueWebUrl = $event->venue->website_url ?? null;
+                                ?>
                                 <span>
                                     <i class="ti ti-map-pin"></i>
-                                    <?= htmlspecialchars($event->venue_name) ?>
+                                    <?php if ($venueWebUrl): ?>
+                                        <a href="<?= htmlspecialchars($venueWebUrl) ?>" target="_blank" rel="noopener noreferrer">
+                                            <?= htmlspecialchars($event->venue_name) ?>
+                                        </a>
+                                    <?php else: ?>
+                                        <?= htmlspecialchars($event->venue_name) ?>
+                                    <?php endif; ?>
                                     <?php if (!empty($event->venue_street)): ?>
-                                        · <?= htmlspecialchars($event->venue_street) ?>,
-                                        <?= htmlspecialchars($event->venue_postcode) ?>
-                                        <?= htmlspecialchars($event->venue_city) ?>
+                                        <?php if ($venueMapUrl): ?>
+                                            · <a href="<?= htmlspecialchars($venueMapUrl) ?>" target="_blank" rel="noopener noreferrer">
+                                                <?= htmlspecialchars($event->venue_street) ?>,
+                                                <?= htmlspecialchars($event->venue_postcode) ?>
+                                                <?= htmlspecialchars($event->venue_city) ?>
+                                            </a>
+                                        <?php else: ?>
+                                            · <?= htmlspecialchars($event->venue_street) ?>,
+                                            <?= htmlspecialchars($event->venue_postcode) ?>
+                                            <?= htmlspecialchars($event->venue_city) ?>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </span>
                             <?php endif; ?>
