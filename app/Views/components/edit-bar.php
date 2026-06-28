@@ -49,6 +49,13 @@
         </a>
         <span class="edit-bar__exit">|</span>
 
+        <a href="/newsletter/subscribers"
+            class="edit-bar__exit" title="Exit edit mode">
+            <i class="ti ti-users-group"></i>
+            Abonnenten
+        </a>
+        <span class="edit-bar__exit">|</span>
+
         <a href="/logout" class="edit-bar__exit nav-icon-ux">
             Exit Edit Mode
             <i class="ti ti-logout"></i>
