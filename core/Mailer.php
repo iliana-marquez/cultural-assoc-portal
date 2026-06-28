@@ -34,7 +34,8 @@ class Mailer
         string $to,
         string $subject,
         string $body,
-        ?string $fromName = null
+        ?string $fromName = null,
+        ?string $replyTo  = null
     ): bool {
 
         $mail = new PHPMailer(true);
@@ -57,6 +58,11 @@ class Mailer
 
             // Recipient 
             $mail->addAddress($to);
+
+            // Reply-to — set to sender's email for contact form
+            if ($replyTo) {
+                $mail->addReplyTo($replyTo);
+            }
 
             // Content
             $mail->isHTML(true);
