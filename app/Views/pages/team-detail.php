@@ -33,6 +33,41 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
 
 <section class="segment light-segment">
     <div class="container">
+
+        <?php if ($isLoggedIn): ?>
+            <?php
+            $isDraft     = ($member->status ?? 'draft') === 'draft';
+            $isPublished = ($member->status ?? '') === 'published';
+            ?>
+            <div class="event-status-bar">
+                <?php if ($isDraft): ?>
+                    <span class="event-status-chip event-status-chip--draft">
+                        Dieses Teammitglied ist ein Entwurf:
+                    </span>
+                    <button class="btn-section btn-section--primary"
+                        data-action="publish-team"
+                        data-team-id="<?= $member->id ?>">
+                        Veröffentlichen
+                    </button>
+                    <button class="btn-section btn-section--danger"
+                        data-action="delete-team"
+                        data-team-id="<?= $member->id ?>">
+                        <i class="ti ti-trash"></i> Löschen
+                    </button>
+                <?php elseif ($isPublished): ?>
+                    <span class="event-status-chip event-status-chip--published">
+                        Dieses Teammitglied ist veröffentlicht:
+                    </span>
+                    <button class="btn-section"
+                        data-action="unpublish-team"
+                        data-team-id="<?= $member->id ?>">
+                        Als Entwurf setzen
+                    </button>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
+
         <div class="row align-items-start g-5">
 
             <!-- Profile image -->
@@ -134,13 +169,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                 <a href="/team" class="nav-icon-ux">
                     <i class="ti ti-arrow-left"></i> Team
                 </a>
-                <?php if ($isLoggedIn): ?>
-                    <button class="btn-section"
-                        data-action="delete-team"
-                        data-team-id="<?= $member->id ?>">
-                        <i class="ti ti-trash"></i> Teammitglied löschen
-                    </button>
-                <?php endif; ?>
+
             </div>
         </div>
 

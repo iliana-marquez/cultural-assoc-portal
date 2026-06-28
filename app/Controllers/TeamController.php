@@ -69,6 +69,12 @@ class TeamController extends BaseController
             return;
         }
 
+        // Non-editors cannot view draft profiles
+        if (!$this->isLoggedIn() && ($member->status ?? 'draft') === 'draft') {
+            $this->renderNotFound();
+            return;
+        }
+
         $member->slug       = $slug;
         $member->displayName = TeamModel::displayName($member);
         $member->profileImg = $this->mediaModel->getFirstForEntity('team', $member->id, 'profile');
@@ -154,9 +160,43 @@ class TeamController extends BaseController
     public function delete(array $params = []): void
     {
         $this->requireLogin();
-        $id      = (int) ($params['id'] ?? 0);
+        $id     = (int) ($params['id'] ?? 0);
+        $member = $this->teamModel->getById($id);
+
+        if (!$member) {
+            $this->jsonError('Team member not found');
+            return;
+        }
+
+        if (($member->status ?? 'draft') !== 'draft') {
+            $this->jsonError('Only draft profiles can be deleted');
+            return;
+        }
+
         $success = $this->teamModel->delete($id);
         $success ? $this->jsonSuccess() : $this->jsonError('Failed to delete team member');
+    }
+
+    /**
+     * POST /team/{id}/publish
+     */
+    public function publish(array $params = []): void
+    {
+        $this->requireLogin();
+        $id      = (int) ($params['id'] ?? 0);
+        $success = $this->teamModel->publish($id);
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to publish team member');
+    }
+
+    /**
+     * POST /team/{id}/unpublish
+     */
+    public function unpublish(array $params = []): void
+    {
+        $this->requireLogin();
+        $id      = (int) ($params['id'] ?? 0);
+        $success = $this->teamModel->unpublish($id);
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to unpublish team member');
     }
 
     /**

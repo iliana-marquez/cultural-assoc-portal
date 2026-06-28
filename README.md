@@ -2149,6 +2149,130 @@ Regression
 - Venue lifecycle for projects
 - Venue listing / management page for bulk editing
 - Venue search on public event listing / archive
+
+# feat/team-participant-status-lifecycle
+
+## Overview
+
+Adds draft/published status lifecycle to participant and team member profiles — same pattern as `feat/event-status-lifecycle`. New profiles start as drafts, invisible to the public until explicitly published. Editor sees all profiles with greyscale + chip for drafts.
+
+## Architecture
+
+### Status model
+
+- `status VARCHAR(20) NOT NULL` added to both `participants` and `team` tables
+- Values: `'draft'` or `'published'` only — no enum, no DB default, app always passes explicitly
+- No `cancelled_at` — not applicable to people entities
+- Public display condition: `status = 'published'` — enforced in view via `continue`, not in model or controller
+
+### Visibility pattern — view owns filtering
+
+Model fetches all. View skips draft cards for public with `continue`. Controller guards `show()` only — 404 for direct URL access of draft profiles. Same principle established for linked events on participant detail.
+
+### Status bar
+
+Same UX pattern as events — top of detail page, conditional actions:
+
+```
+Diese:r Künstler:in ist ein Entwurf:      [Veröffentlichen]  [Löschen]
+Diese:r Künstler:in ist veröffentlicht:   [Als Entwurf setzen]
+
+Dieses Teammitglied ist ein Entwurf:      [Veröffentlichen]  [Löschen]
+Dieses Teammitglied ist veröffentlicht:   [Als Entwurf setzen]
+```
+
+### Delete guard
+
+`delete()` in both controllers checks `status === 'draft'` before allowing hard delete. Published profiles blocked — must unpublish first.
+
+### Empty state fix
+
+`empty($participants)` and `empty($members)` checked the raw unfiltered array — always non-empty even when all drafts. Fixed by computing `$visibleParticipants` / `$visibleMembers` filtered arrays first, then checking those for the empty state message.
+
+### CSS naming refactor
+
+Status bar classes renamed from `event-status-*` to `entity-status-*` — universal across events, participants and team. Update `edit-mode.css`, `event-detail.php`, `participant-detail.php`, `team-detail.php`.
+
+## DB Migration
+
+```sql
+ALTER TABLE participants ADD COLUMN status VARCHAR(20) NOT NULL AFTER last_name;
+ALTER TABLE team ADD COLUMN status VARCHAR(20) NOT NULL AFTER last_name;
+UPDATE participants SET status = 'draft';
+UPDATE team SET status = 'draft';
+```
+
+Run on both local and Hostinger before deploying.
+
+## Files Changed
+
+- **`ParticipantModel.php`** — `status` in `add()` INSERT; `'status'` in `updateField()` allowed list; `publish()` and `unpublish()` methods
+- **`TeamModel.php`** — same as ParticipantModel
+- **`ParticipantController.php`** — 404 guard in `show()` for drafts on public; `delete()` guarded to draft only; `publish()` and `unpublish()` endpoints
+- **`TeamController.php`** — same as ParticipantController
+- **`participant-detail.php`** — status bar with conditional actions; delete button moved from bottom to status bar
+- **`team-detail.php`** — status bar with conditional actions; delete button moved from bottom to status bar
+- **`participants.php`** — `continue` for drafts on public; greyscale + chip in edit mode; `$visibleParticipants` for correct empty state
+- **`team.php`** — same as participants.php
+- **`routes.php`** — `POST /participants/{id}/publish`, `/unpublish`; `POST /team/{id}/publish`, `/unpublish`
+- **`edit-mode.js`** — `publish-participant`, `unpublish-participant`, `publish-team`, `unpublish-team` handlers with confirm modals
+
+## Bugs & Fixes
+
+- **Empty state not showing** — `empty($participants)` and `empty($members)` checked raw arrays which are never empty even when all entries are drafts. Fixed with `$visibleParticipants` / `$visibleMembers` computed before the empty check.
+- **CSS class naming** — `event-status-bar` and related classes were event-specific in name but used across all entities. Renamed to `entity-status-*` for consistency. Pending CSS update.
+
+## Testing
+
+**DB**
+
+- `participants.status` column exists, all rows `'draft'`
+- `team.status` column exists, all rows `'draft'`
+
+**Participant listing**
+
+- Public: only published shown; all draft → empty state message shown
+- Edit mode: all shown, drafts greyscale with Entwurf chip
+
+**Participant detail**
+
+- Draft: status bar shows Veröffentlichen + Löschen
+- Published: status bar shows Als Entwurf setzen
+- Publish confirm modal fires
+- Unpublish confirm modal fires
+- Draft URL returns 404 on public side
+- Delete only available for drafts
+
+**Team listing**
+
+- Public: only published shown; all draft → empty state message shown
+- Edit mode: all shown, drafts greyscale with Entwurf chip
+
+**Team detail**
+
+- Draft: status bar shows Veröffentlichen + Löschen
+- Published: status bar shows Als Entwurf setzen
+- Publish confirm modal fires
+- Unpublish confirm modal fires
+- Draft URL returns 404 on public side
+- Delete only available for drafts
+
+**New entity flow**
+
+- New participant → draft detail page → publish when ready
+- New team member → draft detail page → publish when ready
+
+**Regression**
+
+- Profile image upload/delete still works
+- Links add/remove still works
+- Event links on participant detail still correct
+
+## Deferred
+
+- `feat/participant-visibility-by-event-status` — participant with only cancelled/draft events optionally hidden from public listing
+- CSS rename `event-status-*` → `entity-status-*` — pending edit-mode.css update
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES

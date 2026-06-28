@@ -17,14 +17,29 @@
 
 <section class="segment light-segment">
     <div class="container">
-        <?php if (empty($members)): ?>
-            <p>Inhalt folgt in Kürze.</p>
+        <!-- Message when empty -->
+        <?php
+        $visibleMembers = $isLoggedIn
+            ? $members
+            : array_filter($members, fn($m) => ($m->status ?? 'draft') === 'published');
+        ?>
+        <?php if (empty($visibleMembers)): ?>
+            <p>Derzeit keine Teammitglieder verfügbar.</p>
         <?php else: ?>
+
             <div class="row g-4">
                 <?php foreach ($members as $member): ?>
+                    <?php
+                    $mStatus  = $member->status ?? 'draft';
+                    if (!$isLoggedIn && $mStatus !== 'published') continue;
+                    $mIsDraft = $isLoggedIn && $mStatus === 'draft';
+                    ?>
                     <div class="col-12 col-md-6 col-lg-4">
-                        <a href="/team/<?= htmlspecialchars($member->slug) ?>" class="team-card">
-                            <div class="img-placeholder portrait-img">
+                        <a href="/team/<?= htmlspecialchars($member->slug) ?>" class="team-card<?= $mIsDraft ? ' event-card--draft' : '' ?>">
+                            <div class="img-placeholder portrait-img" style="position:relative;">
+                                <?php if ($mIsDraft): ?>
+                                    <span class="event-status-badge event-status-badge--draft">Entwurf</span>
+                                <?php endif; ?>
                                 <?php if (!empty($member->profileImg)): ?>
                                     <img src="<?= htmlspecialchars($member->profileImg->media_url) ?>"
                                         alt="<?= htmlspecialchars(TeamModel::displayName($member)) ?>">
