@@ -25,12 +25,13 @@
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../Models/PagesModel.php';
 require_once __DIR__ . '/../Models/UrlModel.php';
-require_once __DIR__ . '/../../core/RichTextFormatter.php';
+require_once __DIR__ . '/../Models/TeamModel.php';
 
 class PageController extends BaseController
 {
     private PagesModel $pagesModel;
     private UrlModel   $urlModel;
+    private TeamModel  $teamModel;
 
     // Page titles for SEO — headless default, overridden by DB content
     private array $pageTitles = [
@@ -47,9 +48,52 @@ class PageController extends BaseController
         parent::__construct();
         $this->pagesModel = new PagesModel();
         $this->urlModel   = new UrlModel();
+        $this->teamModel  = new TeamModel();
     }
 
     // ── GET — display page ───────────────────────────────────
+
+    /**
+     * GET /datenschutz
+     */
+    public function datenschutz(array $params = []): void
+    {
+        $sections  = $this->pagesModel->getForPage('datenschutz');
+        $president = $this->teamModel->getPresident();
+
+        $seo = $this->buildSeo(
+            $this->org,
+            'Datenschutzerklärung | ' . $this->org->name
+        );
+
+        $this->render('pages/datenschutz', [
+            'sections'  => $sections,
+            'president' => $president,
+            'seo'       => $seo,
+            'pageKey'   => 'datenschutz',
+        ]);
+    }
+
+    /**
+     * GET /impressum
+     */
+    public function impressum(array $params = []): void
+    {
+        $sections  = $this->pagesModel->getForPage('impressum');
+        $president = $this->teamModel->getPresident();
+
+        $seo = $this->buildSeo(
+            $this->org,
+            'Impressum | ' . $this->org->name
+        );
+
+        $this->render('pages/impressum', [
+            'sections'  => $sections,
+            'president' => $president,
+            'seo'       => $seo,
+            'pageKey'   => 'impressum',
+        ]);
+    }
 
     /**
      * Show any free-section page.
@@ -144,15 +188,9 @@ class PageController extends BaseController
             'bg_image'
         ];
 
-        $richText = ['title', 'subtitle', 'text'];
-
         foreach ($updatable as $field) {
             if (isset($_POST[$field])) {
-                $value = $_POST[$field];
-                if (in_array($field, $richText, true)) {
-                    $value = RichTextFormatter::htmlToMarker($value);
-                }
-                $current[$field] = $value;
+                $current[$field] = $_POST[$field];
             }
         }
 
