@@ -54,6 +54,7 @@
         <?php require __DIR__ . '/../components/modals/input-modal.php'; ?>
         <?php require __DIR__ . '/../components/modals/attach-entity-modal.php'; ?>
         <?php require __DIR__ . '/../components/modals/confirm-modal.php'; ?>
+        <?php require __DIR__ . '/../components/modals/venue-modal.php'; ?>
     <?php endif; ?>
 
     <!-- Main content (Mask) -->
