@@ -166,15 +166,17 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                     <li>
                                         <a href="/veranstaltungen/<?= htmlspecialchars($event->slug) ?>">
                                             <?= htmlspecialchars($event->title) ?>
+                                            <?php if ($isLoggedIn && $isDraft): ?>
+                                                <span class="badge bg-secondary ms-1">Entwurf</span>
+                                            <?php endif; ?>
+
+                                            <?php if ($isLoggedIn && $isCancelled): ?>
+                                                <span class="badge bg-danger ms-1">Abgesagt</span>
+                                            <?php endif; ?>
                                             <?php if (!empty($event->date)): ?>
                                                 <small><?= date('d.m.Y', strtotime($event->date)) ?></small>
                                             <?php endif; ?>
-                                            <?php if ($isLoggedIn && $isDraft): ?>
-                                                <small class="text-muted">(Entwurf)</small>
-                                            <?php endif; ?>
-                                            <?php if ($isLoggedIn && $isCancelled): ?>
-                                                <small class="text-muted">(Abgesagt)</small>
-                                            <?php endif; ?>
+
                                         </a>
                                     </li>
                                 <?php endforeach; ?>
