@@ -3,11 +3,11 @@
 /**
  * NewsletterController
  *
- * POST /newsletter/subscribe       → add subscriber, send confirmation email
- * GET  /newsletter/confirm/{token} → confirm subscription
+ * POST /newsletter/subscribe           → add subscriber, send confirmation email
+ * GET  /newsletter/confirm/{token}     → confirm subscription
  * GET  /newsletter/unsubscribe/{token} → one-click unsubscribe
- * GET  /newsletter/export          → CSV export (editor only)
- * GET  /newsletter/subscribers     → subscriber list view (editor only)
+ * GET  /newsletter/export              → CSV export (editor only)
+ * GET  /newsletter/subscribers         → subscriber list view (editor only)
  *
  * Security:
  *   - strip_tags + filter_var on email
@@ -100,9 +100,9 @@ class NewsletterController extends BaseController
         // Regenerate CSRF
         $_SESSION['csrf_newsletter'] = bin2hex(random_bytes(32));
 
-        $orgName     = $this->org->name ?? 'KLA';
-        $protocol    = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $confirmUrl  = $protocol . '://' . $_SERVER['HTTP_HOST'] . '/newsletter/confirm/' . $confirmToken;
+        $orgName    = $this->org->name ?? 'KLA';
+        $protocol   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $confirmUrl = $protocol . '://' . $_SERVER['HTTP_HOST'] . '/newsletter/confirm/' . $confirmToken;
 
         $body = Mailer::renderView('emails/newsletter-confirm', [
             'orgName'    => $orgName,
@@ -164,11 +164,15 @@ class NewsletterController extends BaseController
 
     /**
      * GET /newsletter/subscribers
-     * Editor only — subscriber list.
+     * Editor only — subscriber list. Returns 404 for non-editors.
      */
     public function subscribers(array $params = []): void
     {
-        $this->requireLogin();
+        if (!$this->isLoggedIn()) {
+            $this->renderNotFound();
+            return;
+        }
+
         $subscribers = $this->newsletterModel->getAll();
 
         $this->render('pages/newsletter-subscribers', [
@@ -179,11 +183,14 @@ class NewsletterController extends BaseController
 
     /**
      * GET /newsletter/export
-     * Editor only — CSV download.
+     * Editor only — CSV download. Returns 404 for non-editors.
      */
     public function export(array $params = []): void
     {
-        $this->requireLogin();
+        if (!$this->isLoggedIn()) {
+            $this->renderNotFound();
+            return;
+        }
         $subscribers = $this->newsletterModel->getAllForExport();
 
         header('Content-Type: text/csv; charset=utf-8');
