@@ -728,6 +728,13 @@ body.is-editing .edit-bar__indicator i {
     overflow-y: auto;
 }
 
+.venue-modal .ows-modal-card {
+    max-width: 80vw;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+
 .ows-modal-tabs {
     display: flex;
     gap: 0.5rem;
@@ -831,19 +838,22 @@ body.is-editing .edit-bar__indicator i {
     padding: 0 1rem;
 }
 
-/* ── Links (entity_urls) row ─────────────────────────────────── */
-.links-edit-row {
+/* ── Links (entity_urls) + Venue (entity_venues) rows ───────────────────────── */
+.links-edit-row,
+.venue-edit-row {
     border: 2px solid var(--edit-inactive);
     border-radius: 4px;
     overflow: hidden;
     margin-bottom: 0.75rem;
 }
 
-.links-edit-row.editing {
+.links-edit-row.editing,
+.venue-edit-row.editing {
     border: 2px solid var(--edit-active);
 }
 
-.links-edit-row.editing .edit-row-header {
+.links-edit-row.editing .edit-row-header,
+.venue-edit-row.editing .edit-row-header {
     background: var(--edit-active);
     color: #fff;
 }
@@ -871,3 +881,22 @@ body.is-editing .edit-bar__indicator i {
     align-items: center;
     gap: 0.5rem;
 }
+
+/* Venue-specific */
+/* venue item edit/trash — hidden until editing */
+.venue-edit-row .venue-item .entity-edit-btn,
+.venue-edit-row .venue-item .entity-remove-btn { display: none; }
+
+.venue-edit-row.editing .venue-item .entity-edit-btn,
+.venue-edit-row.editing .venue-item .entity-remove-btn { display: inline-flex; }
+
+/* venue-change-wrap — hidden until editing */
+.venue-edit-row .venue-change-wrap { display: none; }
+.venue-edit-row.editing .venue-change-wrap { display: flex; }
+
+/* header buttons — pencil/cancel toggle */
+.venue-pencil-btn { display: inline-flex; }
+.venue-edit-row.editing .venue-pencil-btn { display: none; }
+
+.venue-cancel-btn { display: none; }
+.venue-edit-row.editing .venue-cancel-btn { display: inline-flex; }
