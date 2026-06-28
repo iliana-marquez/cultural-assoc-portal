@@ -929,7 +929,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         document.body.classList.remove('is-editing');
                         showEntityFeedback(row, 'Gespeichert ✓', 'success');
                         if (json.slug) {
-                            history.replaceState(null, '', '/veranstaltungen/' + json.slug);
+                            // Derive base path from current URL — works for
+                            // /veranstaltungen/, /kuenstlerinnen/, /team/ etc.
+                            const parts = window.location.pathname.split('/').filter(Boolean);
+                            const base = parts.length >= 1 ? '/' + parts[0] + '/' : '/';
+                            history.replaceState(null, '', base + json.slug);
                         }
                     } else {
                         showEntityFeedback(row, 'Fehler', 'error');
