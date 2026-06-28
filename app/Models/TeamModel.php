@@ -61,8 +61,8 @@ class TeamModel extends BaseModel
     {
         $ok = $this->execute(
             "INSERT INTO {$this->table}
-             (first_name, last_name, title, role, profession, motto, biography)
-             VALUES (?, ?, ?, ?, ?, ?, ?)",
+             (first_name, last_name, title, role, profession, motto, biography, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $data['first_name'] ?? null,
                 $data['last_name']  ?? null,
@@ -71,6 +71,7 @@ class TeamModel extends BaseModel
                 $data['profession'] ?? null,
                 $data['motto']      ?? null,
                 $data['biography']  ?? null,
+                $data['status']     ?? 'draft',
             ]
         );
 
@@ -82,7 +83,7 @@ class TeamModel extends BaseModel
      */
     public function updateField(int $id, string $field, mixed $value): bool
     {
-        $allowed = ['first_name', 'last_name', 'title', 'role', 'profession', 'motto', 'biography'];
+        $allowed = ['first_name', 'last_name', 'title', 'role', 'profession', 'motto', 'biography', 'status'];
 
         if (!in_array($field, $allowed)) return false;
 
@@ -112,6 +113,28 @@ class TeamModel extends BaseModel
                 $data['biography']  ?? null,
                 $id,
             ]
+        );
+    }
+
+    /**
+     * Publish a team member.
+     */
+    public function publish(int $id): bool
+    {
+        return $this->execute(
+            "UPDATE {$this->table} SET status = 'published' WHERE id = ?",
+            [$id]
+        );
+    }
+
+    /**
+     * Unpublish a team member — sets status back to draft.
+     */
+    public function unpublish(int $id): bool
+    {
+        return $this->execute(
+            "UPDATE {$this->table} SET status = 'draft' WHERE id = ?",
+            [$id]
         );
     }
 
