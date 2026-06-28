@@ -157,11 +157,23 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                             <h3>Veranstaltungen</h3>
                             <ul class="participant-events-list">
                                 <?php foreach ($participant->events as $event): ?>
+                                    <?php
+                                    $isCancelled = !empty($event->cancelled_at);
+                                    $isDraft     = ($event->status ?? '') === 'draft';
+                                    // Public: skip cancelled and draft
+                                    if (!$isLoggedIn && ($isCancelled || $isDraft)) continue;
+                                    ?>
                                     <li>
                                         <a href="/veranstaltungen/<?= htmlspecialchars($event->slug) ?>">
                                             <?= htmlspecialchars($event->title) ?>
                                             <?php if (!empty($event->date)): ?>
                                                 <small><?= date('d.m.Y', strtotime($event->date)) ?></small>
+                                            <?php endif; ?>
+                                            <?php if ($isLoggedIn && $isDraft): ?>
+                                                <small class="text-muted">(Entwurf)</small>
+                                            <?php endif; ?>
+                                            <?php if ($isLoggedIn && $isCancelled): ?>
+                                                <small class="text-muted">(Abgesagt)</small>
                                             <?php endif; ?>
                                         </a>
                                     </li>
