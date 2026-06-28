@@ -68,7 +68,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     <button class="btn-section btn-section--primary"
                         data-action="publish-event"
                         data-event-id="<?= $event->id ?>">
-                        Veröffentlichen
+                        <i class="ti ti-upload"></i> Veröffentlichen
                     </button>
                     <button class="btn-section btn-section--danger"
                         data-action="delete-event"
@@ -83,7 +83,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     <button class="btn-section"
                         data-action="unpublish-event"
                         data-event-id="<?= $event->id ?>">
-                        Als Entwurf
+                        <i class="ti ti-arrow-back-up"></i> Als Entwurf zurücksetzen
                     </button>
                     <?php if ($isUpcoming): ?>
                         <button class="btn-section btn-section--danger"
