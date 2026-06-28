@@ -2012,6 +2012,143 @@ Run on both local and production before deploying.
 - Event and project credit attribution for team members
 - Team listing storytelling — filtering, sorting, visual design
 - Rich text in biography and motto
+
+# feat/venues-lifecycle
+
+## Overview
+
+Adds full venue management to the event detail page — search, create, edit, delete, and link map/website URLs — without a separate admin page. The editor manages venues entirely from context, inline with the event they're working on. The `entity-venues.php` partial is reusable for any future entity that needs a venue.
+
+## Architecture
+
+### Data model
+
+- `map_url VARCHAR(255) NULL` and `website_url VARCHAR(255) NULL` added directly to `venues` table
+- No `entity_urls` dependency for venues — two bounded URL types don't warrant the full pivot system
+- Hard delete protected by `VenueModel::isLinked()` — blocks deletion if venue is attached to events
+
+### `entity-venues.php` component
+
+- Follows exact `entity-urls.php` edit-row pattern — CSS drives state via `.editing` class
+- Edit button carries all venue data as `data-*` attributes — modal pre-fills without an extra fetch
+- Trash button removes venue from event via `/events/{id}/save` with empty `venue_id`
+- `Ort ändern` / `Ort hinzufügen` opens venue modal in search mode
+- Public display: name links to `website_url`, address links to `map_url` when present
+
+### Venue modal — two modes
+
+- **Edit mode** — `openVenueModal('edit', venueData)` — pre-filled form, no tabs, saves field by field via `Promise.all` to `/venues/{id}/save`
+- **Search mode** — `openVenueModal('search', onSelect)` — search tab loads all venues on open, filters as editor types; neue venue tab creates and assigns in one step
+- Test links appear inline below map and website inputs as soon as a valid URL is typed
+
+### CSS
+
+- `.venue-edit-row` shares border/header rules with `.links-edit-row` — combined selector
+- Venue-specific rules: `venue-pencil-btn`, `venue-cancel-btn`, `venue-item` edit/trash, `venue-change-wrap`
+- Modal sizing via `.venue-modal .ows-modal-card { max-width: 80vw; max-height: 90vh }` — wider than other modals due to more fields
+
+## DB Migration
+
+```sql
+ALTER TABLE venues ADD COLUMN map_url VARCHAR(255) NULL AFTER country;
+ALTER TABLE venues ADD COLUMN website_url VARCHAR(255) NULL AFTER map_url;
+```
+
+Run on both local and Hostinger before deploying.
+
+## Files Changed
+
+- **`VenueModel.php`** — `add()` returns `int`; `updateField()` added; `search()` and `isLinked()` added; `map_url` and `website_url` in `add()` and `update()`
+- **`VenueController.php`** — `search()`, `add()`, `save()` via `updateField()`, `delete()` with link guard; `map_url` and `website_url` in JSON responses
+- **`venue-modal.php`** — two-mode modal: edit panel (pre-filled, no tabs) and search/new panels; test links on all URL inputs
+- **`entity-venues.php`** — new reusable partial; edit-row pattern; edit/trash/change buttons; public URL linking
+- **`main.php`** — venue-modal.php included site-wide
+- **`event-detail.php`** — inline venue block replaced with `entity-venues.php` include; `$event->venue` object used for URL display
+- **`EventController.php`** — `$event->venue` fetched via `getById()` in `show()`; aligned with existing property assignment style
+- **`routes.php`** — `GET /venues/search`, `POST /venues/add`, `/venues/{id}/save`, `/venues/{id}/delete`
+- **`edit-mode.js`** — `venue-edit-row` handler; `openVenueModal(mode, payload)`; `closeVenueModal()`; `bindVenueTestLink()` for four URL inputs; removed `:not(.venue-edit-row)` guard
+
+## Bugs & Fixes
+
+- **`$event->venue` null on public display** — `EventController::show()` was missing the `getById()` fetch for the venue object; `map_url` and `website_url` were never available to the template, so address and name never became links
+- **Venue modal full-width** — backdrop was missing scoping class; fixed by reusing `attach-entity-modal` class which already has the correct `max-width` and `max-height` rules; editor later overrode with wider `venue-modal` rule for the larger form
+- **`:not(.venue-edit-row)` on entity-select-row** — added defensively but unnecessary since `venue-edit-row` never uses `entity-select-row` class; removed
+
+## Testing
+
+Venue display — public side
+
+- Event with venue — name and address show correctly as plain text
+- Event with venue + website_url — venue name is a clickable link to website
+- Event with venue + map_url — address is a clickable link to map
+- Both URLs present — name links to website, address links to map
+- Links open in new tab
+- Event without venue — no venue section shown
+
+Venue edit row — edit mode
+
+- Pencil activates edit mode — border changes, cancel appears, pencil hides
+- Cancel closes edit mode — display restored
+- Edit and trash buttons on venue item hidden when not editing
+- Edit and trash buttons visible when editing
+- Ort ändern / Ort hinzufügen button hidden when not editing, visible when editing
+
+Venue modal — search mode (Ort ändern)
+
+- Opens on search tab with all venues listed
+- Typing filters results
+- Selecting a venue saves venue_id to event → page reloads with correct venue
+- Switching to Neue Venue tab shows creation form
+- Hinzufügen disabled until name is filled
+- Creating new venue → saves to DB → assigned to event → page reloads
+- Clicking backdrop closes modal
+- Clicking × closes modal
+
+Venue modal — edit mode (pencil on venue item)
+
+- Opens pre-filled with current venue data — name, street, postcode, city, country, map_url, website_url
+- No tabs shown — only edit form
+- Editing name and saving → venue name updates on reload
+- Adding map_url → address becomes link on reload
+- Adding website_url → name becomes link on reload
+- Clearing a field saves null correctly
+- Speichern closes modal and reloads page
+
+Venue remove
+
+- Trash button shows confirm modal
+- Confirming removes venue from event → page reloads with — kein Ort —
+- Cancelling confirm modal does nothing
+
+Venue creation — new venue
+
+- Name required — submit blocked without it
+- All fields optional except name
+- Country defaults to Österreich
+- New venue appears in search results on subsequent opens
+- New venue appears in DB with correct fields
+
+Venue Webiste and Map Urls
+
+- On both edit, or add new venue forms, the given URLs can be tested for accuracy before submitting
+
+Venue delete protection
+
+- Venue linked to events → delete blocked, error message shown
+- Venue with no event links → deletes successfully from DB
+
+Regression
+
+- Existing venue data displays correctly after deploy
+- Event detail page loads without errors
+- Admission, participants, links sections unaffected
+- Public event listing unaffected
+
+## Deferred
+
+- Venue lifecycle for projects
+- Venue listing / management page for bulk editing
+- Venue search on public event listing / archive
 <!--
 
 ## ROADMAP/KNOWN ISSUES
