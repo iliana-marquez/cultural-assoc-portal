@@ -18,17 +18,30 @@
 
 <section class="segment light-segment">
     <div class="container">
-
-        <?php if (empty($participants)): ?>
-            <p>Inhalt folgt in Kürze.</p>
+        <!-- Message when empty -->
+        <?php
+        $visibleParticipants = $isLoggedIn
+            ? $participants
+            : array_filter($participants, fn($p) => ($p->status ?? 'draft') === 'published');
+        ?>
+        <?php if (empty($visibleParticipants)): ?>
+            <p>Derzeit keine Künstler:innen verfügbar.</p>
         <?php else: ?>
             <div class="row g-4">
                 <?php foreach ($participants as $participant): ?>
+                    <?php
+                    $pStatus  = $participant->status ?? 'draft';
+                    if (!$isLoggedIn && $pStatus !== 'published') continue;
+                    $pIsDraft = $isLoggedIn && $pStatus === 'draft';
+                    ?>
                     <div class="col-12 col-md-6 col-lg-4">
                         <a href="/kuenstlerinnen/<?= htmlspecialchars($participant->slug) ?>"
-                            class="team-card">
+                            class="team-card<?= $pIsDraft ? ' event-card--draft' : '' ?>">
 
-                            <div class="img-placeholder portrait-img">
+                            <div class="img-placeholder portrait-img" style="position:relative;">
+                                <?php if ($pIsDraft): ?>
+                                    <span class="event-status-badge event-status-badge--draft">Entwurf</span>
+                                <?php endif; ?>
                                 <?php if (!empty($participant->profileImg)): ?>
                                     <img src="<?= htmlspecialchars($participant->profileImg->media_url) ?>"
                                         alt="<?= htmlspecialchars($participant->displayName) ?>">
