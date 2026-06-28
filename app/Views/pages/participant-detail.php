@@ -32,6 +32,41 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
 
 <section class="segment light-segment">
     <div class="container">
+
+        <?php if ($isLoggedIn): ?>
+            <?php
+            $isDraft     = ($participant->status ?? 'draft') === 'draft';
+            $isPublished = ($participant->status ?? '') === 'published';
+            ?>
+            <div class="event-status-bar">
+                <?php if ($isDraft): ?>
+                    <span class="event-status-chip event-status-chip--draft">
+                        Diese:r Künstler:in ist ein Entwurf:
+                    </span>
+                    <button class="btn-section btn-section--primary"
+                        data-action="publish-participant"
+                        data-participant-id="<?= $participant->id ?>">
+                        Veröffentlichen
+                    </button>
+                    <button class="btn-section btn-section--danger"
+                        data-action="delete-participant"
+                        data-participant-id="<?= $participant->id ?>">
+                        <i class="ti ti-trash"></i> Löschen
+                    </button>
+                <?php elseif ($isPublished): ?>
+                    <span class="event-status-chip event-status-chip--published">
+                        Diese:r Künstler:in ist veröffentlicht:
+                    </span>
+                    <button class="btn-section"
+                        data-action="unpublish-participant"
+                        data-participant-id="<?= $participant->id ?>">
+                        Als Entwurf setzen
+                    </button>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
+
         <div class="row align-items-start g-5">
 
             <!-- Image -->
@@ -166,6 +201,10 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                     <li>
                                         <a href="/veranstaltungen/<?= htmlspecialchars($event->slug) ?>">
                                             <?= htmlspecialchars($event->title) ?>
+                                            <?php if (!empty($event->date)): ?>
+                                                <small><?= date('d.m.Y', strtotime($event->date)) ?></small>
+                                            <?php endif; ?>
+
                                             <?php if ($isLoggedIn && $isDraft): ?>
                                                 <span class="badge bg-secondary ms-1">Entwurf</span>
                                             <?php endif; ?>
@@ -173,10 +212,6 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                             <?php if ($isLoggedIn && $isCancelled): ?>
                                                 <span class="badge bg-danger ms-1">Abgesagt</span>
                                             <?php endif; ?>
-                                            <?php if (!empty($event->date)): ?>
-                                                <small><?= date('d.m.Y', strtotime($event->date)) ?></small>
-                                            <?php endif; ?>
-
                                         </a>
                                     </li>
                                 <?php endforeach; ?>
@@ -195,13 +230,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                 <a href="/kuenstlerinnen" class="nav-icon-ux">
                     <i class="ti ti-arrow-left"></i> Künstler:innen
                 </a>
-                <?php if ($isLoggedIn): ?>
-                    <button class="btn-section"
-                        data-action="delete-participant"
-                        data-participant-id="<?= $participant->id ?>">
-                        <i class="ti ti-trash"></i> Künstler:in löschen
-                    </button>
-                <?php endif; ?>
+
             </div>
         </div>
 
