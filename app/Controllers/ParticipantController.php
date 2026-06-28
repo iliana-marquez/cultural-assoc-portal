@@ -73,12 +73,20 @@ class ParticipantController extends BaseController
             return;
         }
 
+        // Non-editors cannot view draft profiles
+        if (!$this->isLoggedIn() && ($participant->status ?? 'draft') === 'draft') {
+            $this->renderNotFound();
+            return;
+        }
+
         $participant->displayName = ParticipantModel::displayName($participant);
         $participant->slug        = $slug;
         $participant->urls       = $this->urlModel->getForEntity('participant', $participant->id);
         $participant->profileImg = $this->mediaModel->getFirstForEntity('participant', $participant->id, 'profile');
 
-        // Events this participant appeared in
+        $isLoggedIn = $this->isLoggedIn();
+
+        // Events this participant appeared in — all returned, view filters by context
         $participant->events = $this->eventModel->getForParticipant($participant->id);
 
         foreach ($participant->events as $event) {
@@ -169,9 +177,43 @@ class ParticipantController extends BaseController
     public function delete(array $params = []): void
     {
         $this->requireLogin();
-        $id      = (int) ($params['id'] ?? 0);
+        $id          = (int) ($params['id'] ?? 0);
+        $participant = $this->participantModel->getById($id);
+
+        if (!$participant) {
+            $this->jsonError('Participant not found');
+            return;
+        }
+
+        if (($participant->status ?? 'draft') !== 'draft') {
+            $this->jsonError('Only draft profiles can be deleted');
+            return;
+        }
+
         $success = $this->participantModel->delete($id);
         $success ? $this->jsonSuccess() : $this->jsonError('Failed to delete participant');
+    }
+
+    /**
+     * POST /participants/{id}/publish
+     */
+    public function publish(array $params = []): void
+    {
+        $this->requireLogin();
+        $id      = (int) ($params['id'] ?? 0);
+        $success = $this->participantModel->publish($id);
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to publish participant');
+    }
+
+    /**
+     * POST /participants/{id}/unpublish
+     */
+    public function unpublish(array $params = []): void
+    {
+        $this->requireLogin();
+        $id      = (int) ($params['id'] ?? 0);
+        $success = $this->participantModel->unpublish($id);
+        $success ? $this->jsonSuccess() : $this->jsonError('Failed to unpublish participant');
     }
 
     /**
