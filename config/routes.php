@@ -65,6 +65,7 @@ $router->post('/events/{id}/participant/remove', 'EventController', 'removeParti
 // ── Participants CRUD → ParticipantController ──────────────────
 $router->get('/kuenstlerinnen',               'ParticipantController', 'index');
 $router->get('/kuenstlerinnen/{slug}',        'ParticipantController', 'show');
+$router->get('/participants/{id}/profile-fragment',   'ParticipantController', 'profileFragment');
 $router->post('/participants/add',            'ParticipantController', 'add');
 $router->post('/participants/{id}/save',      'ParticipantController', 'save');
 $router->post('/participants/{id}/delete',    'ParticipantController', 'delete');
@@ -89,6 +90,7 @@ $router->get('/venues/search',        'VenueController', 'search');
 $router->post('/venues/add',          'VenueController', 'add');
 $router->post('/venues/{id}/save',    'VenueController', 'save');
 $router->post('/venues/{id}/delete',  'VenueController', 'delete');
+
 // ── URLs CRUD → UrlController ────────────────────────────────
 $router->get('/urls/fragment',        'UrlController', 'fragment');
 $router->get('/urls/section-cta-fragment', 'UrlController', 'sectionCtaFragment');
