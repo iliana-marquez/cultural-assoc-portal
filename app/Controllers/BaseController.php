@@ -47,6 +47,12 @@ class BaseController
         $data['config']     = $this->config;
         $data['org']        = $this->org;
 
+        // Newsletter CSRF token — generated once per session, available in footer strip
+        $this->startSession();
+        if (empty($_SESSION['csrf_newsletter'])) {
+            $_SESSION['csrf_newsletter'] = bin2hex(random_bytes(32));
+        }
+
         extract($data);
 
         ob_start();

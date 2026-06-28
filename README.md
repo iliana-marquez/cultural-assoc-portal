@@ -2466,6 +2466,149 @@ This ensures the `LIKE '%präsident%'` query always finds the correct record.
 - All fragment routes present
 - Other PageController routes unaffected
 
+# feat/newsletter-register-strip
+
+## Overview
+
+Fully owned newsletter subscription system — double opt-in, one-click unsubscribe, DSGVO compliant. No third-party services. Subscriber strip lives in the footer on every page. Editor manages subscribers via `/newsletter/subscribers` and exports CSV for manual sending.
+
+## Architecture
+
+### DB
+
+```sql
+CREATE TABLE newsletter_subscribers (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    email        VARCHAR(200) NOT NULL UNIQUE,
+    confirmed    TINYINT(1) DEFAULT 0,
+    token        VARCHAR(64) NULL,
+    token_expiry DATETIME NULL,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    confirmed_at TIMESTAMP NULL
+);
+```
+
+### Subscribe flow
+
+1. Visitor submits email → CSRF, rate limit, format, DNS checks
+2. Token generated via `bin2hex(random_bytes(32))` — 24h expiry
+3. Stored as `confirmed = 0` with token
+4. Confirmation email sent via `Mailer::renderView('emails/newsletter-confirm')`
+5. Visitor clicks link → `confirm()` sets `confirmed = 1`, clears token
+6. CSRF token regenerated after successful submission
+
+### Unsubscribe flow
+
+1. Unsubscribe link in every newsletter email contains token
+2. Token set manually in DB before sending (MVP — manual send)
+3. `deleteByToken()` checks token exists and hasn't expired
+4. Hard delete — row removed entirely from DB
+
+### Security stack
+
+- CSRF token — generated in `BaseController::render()`, available site-wide
+- `filter_input(INPUT_POST, ...)` — safe POST access
+- `strip_tags()` + `filter_var(FILTER_VALIDATE_EMAIL)` — input sanitization
+- `checkdnsrr()` — email domain DNS verification
+- `RateLimiter::check('newsletter', 3, 600)` — 3 per 10 min per session
+- `hash_equals()` — timing-safe CSRF comparison
+- `bin2hex(random_bytes(32))` — cryptographically secure tokens
+
+### newsletter-strip.php component
+
+- Placed in `app/Views/components/`
+- Required in `footer.php` between copyright and social links
+- `id="newsletter"` anchor — CTA buttons can link to `#newsletter`
+- DSGVO terms linked to `/datenschutz`
+
+### Editor tools
+
+- `/newsletter/subscribers` — confirmed subscriber list, login required
+- `/newsletter/export` — CSV download, login required
+
+## Files Changed
+
+- **`NewsletterModel.php`** — full subscriber management
+- **`NewsletterController.php`** — subscribe, confirm, unsubscribe, subscribers, export
+- **`newsletter-confirm.php`** — confirmation email at `app/Views/emails/`
+- **`newsletter-result.php`** — confirm/unsubscribe result page at `app/Views/pages/`
+- **`newsletter-subscribers.php`** — editor subscriber list at `app/Views/pages/`
+- **`newsletter-strip.php`** — signup component at `app/Views/components/`
+- **`footer.php`** — newsletter strip included between copyright and socials
+- **`BaseController.php`** — `csrf_newsletter` token generated in `render()`
+- **`app.js`** — newsletter subscribe handler
+- **`routes.php`** — all newsletter routes
+- **`edit-bar.php`** — Abonnenten link added for direct editor access to subscriber list
+
+## Bugs Fixed
+
+- **False unsubscribe success** — `deleteByToken()` returned `true` on successful query even with 0 deleted rows. Fixed by fetching subscriber first, checking expiry, then deleting.
+- **ERR_SSL_PROTOCOL_ERROR on localhost** — confirmation URL hardcoded `https://`. Fixed with `$_SERVER['HTTPS']` protocol detection.
+
+## Demo Flow (for editor presentation)
+
+1. Visit site footer → enter email → click Anmelden
+2. Check inbox → click confirmation link → success page
+3. Run SQL to set demo unsubscribe token:
+
+```sql
+UPDATE newsletter_subscribers
+SET token = 'demo-unsubscribe-token',
+    token_expiry = DATE_ADD(NOW(), INTERVAL 24 HOUR)
+WHERE email = 'subscriber@email.com';
+```
+
+4. Add temp route + `testSend()` to `NewsletterController` (see demo instructions)
+5. Visit `/newsletter/test-send` → newsletter email sent with unsubscribe link
+6. Click unsubscribe → success page → row deleted from DB
+7. Visit `/newsletter/subscribers` as editor → empty list confirmed
+8. Clean up: remove `testSend()`, route, and `newsletter-test.php` template
+
+## Testing
+
+**Subscribe**
+
+- Valid email → confirmation email received
+- Invalid email format → error shown
+- Non-existent domain → DNS error shown
+- Empty submit → button disabled, no request fired
+- 4th submission within 10 min → rate limit error
+- Already confirmed email → silent success, no duplicate
+- Unconfirmed email resubmitted → new confirmation sent
+
+**Confirm**
+
+- Valid token → confirmed = 1, token cleared in DB
+- Expired token → invalid link message shown
+- Already used token → invalid link message shown
+
+**Unsubscribe**
+
+- Valid token → row deleted from DB, success message
+- Expired token → invalid/used message shown
+- Already deleted → invalid/used message shown
+
+**Editor**
+
+- `/newsletter/subscribers` returns 404 for non-editors — does not reveal existence
+- `/newsletter/export` returns 404 for non-editors
+- Both accessible when logged in as editor
+
+**Regression**
+
+- Contact form CSRF unaffected
+- OTP login unaffected
+- Footer renders correctly on all pages
+- All fragment routes present
+
+## Deferred
+
+- `feat/newsletter-in-free-section` — newsletter strip as free section CTA variant
+- `feat/newsletter-on-event-publish` — notify subscribers on event publish
+- `feat/newsletter-on-event-cancel` — notify subscribers on event cancel
+- `feat/newsletter-on-free-section-type-news-publish` — notify subscribers on news publish
+- `feat/newsletter-composer` — in-app composer for sending to all confirmed subscribers
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES

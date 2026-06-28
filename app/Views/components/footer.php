@@ -23,6 +23,10 @@
 
     <p class="">&copy; 2026 <?= htmlspecialchars($org->name ?? 'Organisation') ?></p>
 
+    <!-- Newsletter-Strip -->
+    <?php require __DIR__ . '/../components/newsletter-strip.php'; ?>
+
+    <!-- Social Links -->
     <nav class="nav-socials justify-content-center margin-top" aria-label="Socials Navigation">
         <?php foreach ($org->urls as $url): ?>
             <?php if ($url->type_label === 'Website') continue; ?>
