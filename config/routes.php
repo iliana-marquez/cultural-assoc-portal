@@ -33,6 +33,8 @@ $router->get('/alsergrund',          'PageController', 'show');
 $router->get('/partner',             'PageController', 'show');
 $router->get('/sponsoren',           'PageController', 'show');
 $router->get('/mitglied-werden',     'PageController', 'show');
+$router->get('/datenschutz',         'PageController', 'datenschutz');
+$router->get('/impressum',           'PageController', 'impressum');
 
 // ── Section CRUD → PageController ────────────────────────────
 $router->post('/page/section/add',              'PageController', 'addSection');
@@ -68,8 +70,9 @@ $router->post('/events/{id}/participant/remove', 'EventController', 'removeParti
 
 
 // ── Participants CRUD → ParticipantController ──────────────────
-$router->get('/kuenstlerinnen',               'ParticipantController', 'index');
-$router->get('/kuenstlerinnen/{slug}',        'ParticipantController', 'show');
+$router->get('/kuenstlerinnen',                          'ParticipantController', 'index');
+$router->get('/participants/{id}/profile-fragment',      'ParticipantController', 'profileFragment');
+$router->get('/kuenstlerinnen/{slug}',                   'ParticipantController', 'show');
 $router->post('/participants/add',               'ParticipantController', 'add');
 $router->post('/participants/{id}/publish',    'ParticipantController', 'publish');
 $router->post('/participants/{id}/unpublish',  'ParticipantController', 'unpublish');

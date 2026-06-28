@@ -162,6 +162,22 @@ class TeamModel extends BaseModel
     }
 
     /**
+     * Get the president/chair from team — first member whose role contains 'präsident'.
+     * Case-insensitive. Returns null if none found.
+     */
+    public function getPresident(): ?object
+    {
+        return $this->fetchOne(
+            "SELECT * FROM {$this->table}
+             WHERE deleted_at IS NULL
+             AND status = 'published'
+             AND LOWER(role) LIKE '%pr%sident%'
+             ORDER BY id ASC
+             LIMIT 1"
+        );
+    }
+
+    /**
      * Get full display name with optional title.
      */
     public static function displayName(object $member): string
