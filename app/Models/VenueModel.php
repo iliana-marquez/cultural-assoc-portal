@@ -49,19 +49,48 @@ class VenueModel extends BaseModel
     /**
      * Add a new venue.
      */
-    public function add(array $data): bool
+    public function add(array $data): int
     {
-        return $this->execute(
-            "INSERT INTO {$this->table} (name, street, postcode, city, country)
-             VALUES (?, ?, ?, ?, ?)",
+        $this->execute(
+            "INSERT INTO {$this->table} (name, street, postcode, city, country, map_url, website_url)
+             VALUES (?, ?, ?, ?, ?, ?, ?)",
             [
-                $data['name']     ?? null,
-                $data['street']   ?? null,
-                $data['postcode'] ?? null,
-                $data['city']     ?? null,
-                $data['country']  ?? null,
+                $data['name']        ?? null,
+                $data['street']      ?? null,
+                $data['postcode']    ?? null,
+                $data['city']        ?? null,
+                $data['country']     ?? null,
+                $data['map_url']     ?? null,
+                $data['website_url'] ?? null,
             ]
         );
+        return $this->lastInsertId();
+    }
+
+    /**
+     * Search venues by name — for modal search panel.
+     */
+    public function search(string $query): array
+    {
+        return $this->fetchAll(
+            "SELECT * FROM {$this->table}
+             WHERE name LIKE ? OR city LIKE ?
+             ORDER BY name ASC",
+            ['%' . $query . '%', '%' . $query . '%']
+        );
+    }
+
+    /**
+     * Check if venue is linked to any events.
+     * Used before hard delete to prevent orphaning event records.
+     */
+    public function isLinked(int $id): bool
+    {
+        $result = $this->fetchOne(
+            "SELECT COUNT(*) as count FROM events WHERE venue_id = ?",
+            [$id]
+        );
+        return ($result->count ?? 0) > 0;
     }
 
     /**
@@ -71,14 +100,17 @@ class VenueModel extends BaseModel
     {
         return $this->execute(
             "UPDATE {$this->table}
-             SET name = ?, street = ?, postcode = ?, city = ?, country = ?
+             SET name = ?, street = ?, postcode = ?, city = ?, country = ?,
+                 map_url = ?, website_url = ?
              WHERE id = ?",
             [
-                $data['name']     ?? null,
-                $data['street']   ?? null,
-                $data['postcode'] ?? null,
-                $data['city']     ?? null,
-                $data['country']  ?? null,
+                $data['name']        ?? null,
+                $data['street']      ?? null,
+                $data['postcode']    ?? null,
+                $data['city']        ?? null,
+                $data['country']     ?? null,
+                $data['map_url']     ?? null,
+                $data['website_url'] ?? null,
                 $id,
             ]
         );

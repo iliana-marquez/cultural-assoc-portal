@@ -83,6 +83,12 @@ $router->post('/media/upload-section', 'MediaController', 'uploadSection');
 $router->post('/media/{id}/meta',     'MediaController', 'updateMeta');
 $router->post('/media/batch-meta',    'MediaController', 'batchMeta');
 
+
+// ── Venues CRUD → VenueController ────────────────────────────
+$router->get('/venues/search',        'VenueController', 'search');
+$router->post('/venues/add',          'VenueController', 'add');
+$router->post('/venues/{id}/save',    'VenueController', 'save');
+$router->post('/venues/{id}/delete',  'VenueController', 'delete');
 // ── URLs CRUD → UrlController ────────────────────────────────
 $router->get('/urls/fragment',        'UrlController', 'fragment');
 $router->get('/urls/section-cta-fragment', 'UrlController', 'sectionCtaFragment');
