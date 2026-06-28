@@ -111,3 +111,10 @@ $router->post('/urls/{id}/attach',    'UrlController', 'attach');
 $router->post('/urls/{id}/unlink',    'UrlController', 'unlink');
 $router->post('/urls/{id}/delete',    'UrlController', 'delete');
 $router->post('/urls/{id}/save',      'UrlController', 'save');
+
+// ── Newsletter ────────────────────────────────────────────────
+$router->post('/newsletter/subscribe',          'NewsletterController', 'subscribe');
+$router->get('/newsletter/confirm/{token}',     'NewsletterController', 'confirm');
+$router->get('/newsletter/unsubscribe/{token}', 'NewsletterController', 'unsubscribe');
+$router->get('/newsletter/subscribers',         'NewsletterController', 'subscribers');
+$router->get('/newsletter/export',              'NewsletterController', 'export');
