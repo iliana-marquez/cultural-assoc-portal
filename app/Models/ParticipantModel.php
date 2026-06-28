@@ -119,8 +119,8 @@ class ParticipantModel extends BaseModel
     {
         $ok = $this->execute(
             "INSERT INTO {$this->table}
-             (type, title, first_name, last_name, category_id, field, bio)
-             VALUES (?, ?, ?, ?, ?, ?, ?)",
+             (type, title, first_name, last_name, category_id, field, bio, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $data['type']        ?? null,
                 $data['title']       ?? null,
@@ -129,6 +129,7 @@ class ParticipantModel extends BaseModel
                 $data['category_id'] ?? null,
                 $data['field']       ?? null,
                 $data['bio']         ?? null,
+                $data['status']      ?? 'draft',
             ]
         );
 
@@ -140,9 +141,34 @@ class ParticipantModel extends BaseModel
      */
     public function updateField(int $id, string $field, mixed $value): bool
     {
+        $allowed = ['type', 'title', 'first_name', 'last_name', 'category_id', 'field', 'bio', 'status'];
+        if (!in_array($field, $allowed)) return false;
+
         return $this->execute(
             "UPDATE {$this->table} SET {$field} = ? WHERE id = ?",
-            [$value, $id]
+            [$value ?: null, $id]
+        );
+    }
+
+    /**
+     * Publish a participant.
+     */
+    public function publish(int $id): bool
+    {
+        return $this->execute(
+            "UPDATE {$this->table} SET status = 'published' WHERE id = ?",
+            [$id]
+        );
+    }
+
+    /**
+     * Unpublish a participant — sets status back to draft.
+     */
+    public function unpublish(int $id): bool
+    {
+        return $this->execute(
+            "UPDATE {$this->table} SET status = 'draft' WHERE id = ?",
+            [$id]
         );
     }
 
