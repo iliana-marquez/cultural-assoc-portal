@@ -240,8 +240,65 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ── Edit mode ─────────────────────────────────────────────
-    // document.body.classList.add('is-editing')    ← when edit form opens
-    // document.body.classList.remove('is-editing') ← on save or cancel
 
+    // ── Newsletter subscribe ──────────────────────────────────
+    const newsletterForm = document.querySelector('[data-action="newsletter-subscribe"]');
+    if (newsletterForm) {
+        const emailInput = document.getElementById('newsletter-email');
+        const submitBtn = document.getElementById('newsletter-submit');
+        const feedback = document.getElementById('newsletter-feedback');
+        const csrfInput = document.getElementById('csrf-newsletter');
+
+        function isValidEmail(val) {
+            return /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(val);
+        }
+
+        function showFeedback(message, type) {
+            feedback.textContent = message;
+            feedback.className = 'newsletter-strip__feedback newsletter-strip__feedback--' + type;
+            feedback.style.display = 'block';
+        }
+
+        emailInput?.addEventListener('input', function () {
+            if (submitBtn) submitBtn.disabled = !isValidEmail(emailInput.value.trim());
+        });
+
+        if (submitBtn) submitBtn.disabled = true;
+
+        submitBtn?.addEventListener('click', function () {
+            const email = emailInput?.value.trim() ?? '';
+            if (!isValidEmail(email)) return;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '...';
+
+            const data = new FormData();
+            data.append('email', email);
+            data.append('csrf_newsletter', csrfInput?.value ?? '');
+
+            fetch('/newsletter/subscribe', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        showFeedback(json.message ?? 'Bitte E-Mails prüfen!', 'success');
+                        emailInput.value = '';
+                        submitBtn.disabled = true;
+                    } else {
+                        showFeedback(json.error ?? 'Fehler. Bitte erneut versuchen.', 'error');
+                        submitBtn.disabled = false;
+                    }
+                })
+                .catch(function () {
+                    showFeedback('Verbindungsfehler.', 'error');
+                    submitBtn.disabled = false;
+                })
+                .finally(function () {
+                    submitBtn.textContent = 'Anmelden';
+                });
+        });
+    }
 });
