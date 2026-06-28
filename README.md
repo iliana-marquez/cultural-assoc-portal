@@ -2273,6 +2273,101 @@ Run on both local and Hostinger before deploying.
 - `feat/participant-visibility-by-event-status` — participant with only cancelled/draft events optionally hidden from public listing
 - CSS rename `event-status-*` → `entity-status-*` — pending edit-mode.css update
 
+# feat/contact-form
+
+## Overview
+
+Wires the contact form on `/kontakt` — validates, sanitizes and sends visitor messages to the organisation's inbox via PHPMailer. Full security stack: CSRF protection, rate limiting, injection detection, DNS verification. Per-field inline validation with DSGVO consent checkbox.
+
+## Architecture
+
+### Security stack (server-side)
+
+1. `$this->startSession()` — explicit session start in both `index()` and `send()`
+2. CSRF token — generated in `index()`, stored in `$_SESSION['csrf_contact']`, validated in `send()` via `hash_equals()`, regenerated after successful send
+3. Rate limiting — `RateLimiter::check('contact', 3, 600)` — 3 submissions per 10 minutes per session, window expires naturally (not reset on success)
+4. `filter_input(INPUT_POST, ...)` — safe POST access
+5. `strip_tags()` — HTML/script tag removal on all text inputs
+6. Length limits — name 2-200, email ≤200, message 10-5000 chars
+7. `filter_var(FILTER_VALIDATE_EMAIL)` — email format validation
+8. `checkdnsrr()` — MX/A record lookup on email domain
+
+### Client-side validation (app.js)
+
+- Per-field validation functions: `validateName()`, `validateEmail()`, `validateMessage()`, `validateTerms()`
+- `touched` object tracks which fields the user has interacted with
+- Errors shown on `blur` — never on page load or first keystroke
+- Injection detection: `/<|>|javascript:|on\w+\s*=/i`
+- Send button gated on name/email/message validity — terms shown as error on click
+- On submit: all errors shown regardless of touched state
+- Fields and touched state reset after successful send
+
+### Email
+
+- Sent to `$org->email` from organisation_info
+- Reply-to set to sender's email — editor replies directly from inbox
+- Subject: `Nachricht von {name} über die Website`
+- Body rendered via `Mailer::renderView('emails/contact-notification')` — template at `app/Views/emails/contact-notification.php`
+- `Mailer::send()` extended with optional `replyTo` parameter
+
+### DSGVO
+
+- Checkbox required before send — linked to `/datenschutz`
+- Error shown on submit attempt if unchecked
+- Not included in button gate — avoids hidden blocker UX
+
+## Critical Bug Fixed
+
+`$_SESSION['csrf_contact']` was always `NONE` in `send()` because `BaseController::startSession()` is only called via `isLoggedIn()` — never triggered on public POST endpoints. CSRF check always failed, mailer never reached. Fixed by calling `$this->startSession()` explicitly in both `index()` and `send()`.
+
+## Files Changed
+
+- **`ContactController.php`** — `index()` generates CSRF token; `send()` full security stack + Mailer call
+- **`Mailer.php`** — `replyTo` parameter added to `send()`
+- **`contact.php`** — CSRF hidden input with `name` attribute, per-field error spans, DSGVO checkbox, `data-action="contact-form"` on form wrapper, button `type="button"`
+- **`contact-notification.php`** — new email template at `app/Views/emails/`
+- **`app.js`** — contact form handler with touched tracking, per-field blur validation, injection detection, fetch POST with CSRF token
+- **`routes.php`** — `POST /kontakt` → `ContactController::send()`
+
+## Testing
+
+**Validation — client side**
+
+- Page load — no errors shown on any field
+- Name: leave empty → error shown; type 1 char → error; type 2+ → clears
+- Email: invalid format → error shown; valid → clears
+- Message: less than 10 chars → error; 10+ → clears
+- Injection attempt (`<script>`) → error shown
+- Send button disabled until name, email, message all valid
+- Terms unchecked on submit → error shown under checkbox
+- Terms checked → error clears
+
+**Validation — server side**
+
+- POST with empty fields → 400 + error message
+- POST with invalid email → 400 + error message
+- POST with non-existent email domain → 400 + DNS error
+- POST with message > 5000 chars → 400 + error message
+- POST without CSRF token → 400 + Ungültige Anfrage
+- POST with wrong CSRF token → 400 + Ungültige Anfrage
+- 4th submission within 10 minutes → rate limit error
+
+**Successful send**
+
+- All fields valid + terms checked → success message shown inline
+- Fields cleared after success
+- Email arrives in org inbox
+- Reply-to is sender's email
+- Subject: `Nachricht von {name} über die Website`
+- Email body clean and readable
+- No page reload at any point
+
+**Regression**
+
+- OTP login email still sends correctly
+- GET /kontakt still renders correctly
+- All fragment routes still present in routes.php
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES

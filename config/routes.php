@@ -20,7 +20,10 @@ $router->get('/' . $adminPath,             'AuthController', 'showLogin');
 $router->post('/' . $adminPath,            'AuthController', 'sendOtp');
 $router->get('/' . $adminPath . '/verify', 'AuthController', 'showVerify');
 $router->post('/' . $adminPath . '/verify', 'AuthController', 'verifyOtp');
+
+// -- Contact -------------------------------------------------
 $router->get('/kontakt',                    'ContactController', 'index');
+$router->post('/kontakt',                   'ContactController', 'send');
 $router->get('/logout',                    'AuthController', 'logout');
 
 // ── Free Pages (non entity-specific) → PageController ───────
@@ -67,7 +70,6 @@ $router->post('/events/{id}/participant/remove', 'EventController', 'removeParti
 // ── Participants CRUD → ParticipantController ──────────────────
 $router->get('/kuenstlerinnen',               'ParticipantController', 'index');
 $router->get('/kuenstlerinnen/{slug}',        'ParticipantController', 'show');
-$router->get('/participants/{id}/profile-fragment',   'ParticipantController', 'profileFragment');
 $router->post('/participants/add',               'ParticipantController', 'add');
 $router->post('/participants/{id}/publish',    'ParticipantController', 'publish');
 $router->post('/participants/{id}/unpublish',  'ParticipantController', 'unpublish');
