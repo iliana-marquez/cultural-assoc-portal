@@ -2368,6 +2368,104 @@ Wires the contact form on `/kontakt` — validates, sanitizes and sends visitor 
 - GET /kontakt still renders correctly
 - All fragment routes still present in routes.php
 
+# feat/datenschutz-impressum-pages
+
+## Overview
+
+Adds legally required `/datenschutz` and `/impressum` pages. Org contact data is pulled dynamically from `organisation_info`. The president's name and role are fetched automatically from the `team` table — so the pages update whenever team leadership changes, with no manual intervention. Free sections below the org block allow editors to add full legal text via edit mode.
+
+## Architecture
+
+### President query — `TeamModel::getPresident()`
+
+Queries the first published team member whose `role` contains `präsident` (case-insensitive via `LOWER()`). Returns `null` if none found — views fall back to `Information folgt in Kürze.`
+
+```sql
+SELECT * FROM team
+WHERE deleted_at IS NULL
+AND status = 'published'
+AND LOWER(role) LIKE '%pr%sident%'
+ORDER BY id ASC
+LIMIT 1
+```
+
+The `%pr%sident%` pattern covers `Präsident`, `Präsidentin`, `Vizepräsident`, `Vizepräsidentin` while tolerating the `ä` → missing umlaut edge case.
+
+### Page structure
+
+```
+[dark segment]   — org name, president role + name, address, email (+ phone, ZVR on impressum)
+[light segments] — free sections managed by editor via edit mode
+```
+
+### PageController
+
+Two dedicated methods `datenschutz()` and `impressum()` — both fetch president via `TeamModel::getPresident()` and pass sections + SEO to their respective views. `TeamModel` added as a dependency.
+
+### Icons
+
+Same Tabler icon classes as `contact.php`:
+
+- `ti-map-pin` — address
+- `ti-mail` — email
+- `ti-phone` — phone (impressum only)
+- `ti-file-certificate` — ZVR (impressum only)
+
+## Files Changed
+
+- **`TeamModel.php`** — `getPresident()` added
+- **`PageController.php`** — `TeamModel` dependency; `datenschutz()` and `impressum()` methods
+- **`datenschutz.php`** — new view at `app/Views/pages/`
+- **`impressum.php`** — new view at `app/Views/pages/`
+- **`routes.php`** — `GET /datenschutz` and `GET /impressum` → `PageController`
+
+## Sub-issue — Role Standardisation
+
+**`feat/team-role-standardisation`**
+
+The president query relies on free text `role` field. A typo (`Presidentin`, `Prasident`) silently breaks the display — no error, just falls back to placeholder. Fix: replace free text `role` input on `team-detail.php` with a `<datalist>` or `<select>` offering predefined Austrian association roles:
+
+```
+Präsident / Präsidentin
+Vizepräsident / Vizepräsidentin
+Obmann / Obfrau
+Kassier / Kassiererin
+Schriftführer / Schriftführerin
+Beirat / Beirätin
+```
+
+This ensures the `LIKE '%präsident%'` query always finds the correct record.
+
+## Testing
+
+**`/datenschutz`**
+
+- Page loads without errors
+- Org name, president role + name, address, email display correctly
+- No president in DB → `Information folgt in Kürze.`
+- Free sections render below (empty = no error)
+- Edit mode — add section button visible
+
+**`/impressum`**
+
+- Page loads without errors
+- Org name, president role + name, address, email, phone, ZVR display correctly
+- No president → `Information folgt in Kürze.`
+- Free sections render below
+
+**President query**
+
+- `Präsident` → found
+- `Präsidentin` → found
+- `Vizepräsident` → found
+- No matching role → fallback shown
+
+**Regression**
+
+- `/kontakt` unaffected
+- All fragment routes present
+- Other PageController routes unaffected
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
