@@ -2572,6 +2572,51 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+
+    // ── Publish participant ───────────────────────────────────
+    document.querySelector('[data-action="publish-participant"]')?.addEventListener('click', function (e) {
+        const participantId = e.currentTarget.dataset.participantId;
+        openConfirmModal({
+            title: 'Künstler:in veröffentlichen',
+            message: 'Diese:r Künstler:in wird auf der öffentlichen Website angezeigt. Sicher veröffentlichen?',
+            confirmLabel: 'Veröffentlichen',
+            onConfirm: function () {
+                fetch('/participants/' + participantId + '/publish', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) { window.location.reload(); }
+                        else { alert('Fehler beim Veröffentlichen.'); }
+                    })
+                    .catch(function () { alert('Verbindungsfehler.'); });
+            }
+        });
+    });
+
+    // ── Unpublish participant ─────────────────────────────────
+    document.querySelector('[data-action="unpublish-participant"]')?.addEventListener('click', function (e) {
+        const participantId = e.currentTarget.dataset.participantId;
+        openConfirmModal({
+            title: 'Als Entwurf speichern',
+            message: 'Diese:r Künstler:in wird von der öffentlichen Website entfernt.',
+            confirmLabel: 'Als Entwurf',
+            onConfirm: function () {
+                fetch('/participants/' + participantId + '/unpublish', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) { window.location.reload(); }
+                        else { alert('Fehler.'); }
+                    })
+                    .catch(function () { alert('Verbindungsfehler.'); });
+            }
+        });
+    });
+
     // ── New team member ───────────────────────────────────────
     document.querySelector('[data-action="new-team"]')?.addEventListener('click', function (e) {
         e.preventDefault();
@@ -2617,6 +2662,51 @@ document.addEventListener('DOMContentLoaded', function () {
                     .catch(function () {
                         alert('Verbindungsfehler.');
                     });
+            }
+        });
+    });
+
+
+    // ── Publish team member ───────────────────────────────────
+    document.querySelector('[data-action="publish-team"]')?.addEventListener('click', function (e) {
+        const teamId = e.currentTarget.dataset.teamId;
+        openConfirmModal({
+            title: 'Teammitglied veröffentlichen',
+            message: 'Dieses Teammitglied wird auf der öffentlichen Website angezeigt. Sicher veröffentlichen?',
+            confirmLabel: 'Veröffentlichen',
+            onConfirm: function () {
+                fetch('/team/' + teamId + '/publish', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) { window.location.reload(); }
+                        else { alert('Fehler beim Veröffentlichen.'); }
+                    })
+                    .catch(function () { alert('Verbindungsfehler.'); });
+            }
+        });
+    });
+
+    // ── Unpublish team member ─────────────────────────────────
+    document.querySelector('[data-action="unpublish-team"]')?.addEventListener('click', function (e) {
+        const teamId = e.currentTarget.dataset.teamId;
+        openConfirmModal({
+            title: 'Als Entwurf speichern',
+            message: 'Dieses Teammitglied wird von der öffentlichen Website entfernt.',
+            confirmLabel: 'Als Entwurf',
+            onConfirm: function () {
+                fetch('/team/' + teamId + '/unpublish', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) { window.location.reload(); }
+                        else { alert('Fehler.'); }
+                    })
+                    .catch(function () { alert('Verbindungsfehler.'); });
             }
         });
     });
