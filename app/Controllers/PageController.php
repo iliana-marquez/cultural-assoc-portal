@@ -188,9 +188,17 @@ class PageController extends BaseController
             'bg_image'
         ];
 
+        // Allowed HTML tags for rich text fields — strip dangerous tags, keep formatting
+        $richTextFields = ['title', 'subtitle', 'text'];
+        $allowedTags    = '<span><a><br><div><p><strong><em><ul><li>';
+
         foreach ($updatable as $field) {
             if (isset($_POST[$field])) {
-                $current[$field] = $_POST[$field];
+                $value = $_POST[$field];
+                if (in_array($field, $richTextFields)) {
+                    $value = strip_tags($value, $allowedTags);
+                }
+                $current[$field] = $value;
             }
         }
 
