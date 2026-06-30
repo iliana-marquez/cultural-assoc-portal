@@ -10,6 +10,7 @@
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../Models/OrganisationModel.php';
 require_once __DIR__ . '/../Models/UrlModel.php';
+require_once __DIR__ . '/../Models/TeamModel.php';
 require_once __DIR__ . '/../../core/CloudinaryService.php';
 
 class OrganisationController extends BaseController
@@ -34,15 +35,22 @@ class OrganisationController extends BaseController
 
         $urls = $this->urlModel->getForEntity('organisation', $this->org->id);
 
+        require_once __DIR__ . '/../Models/TeamModel.php';
+        $teamModel       = new TeamModel();
+        $teamMembers     = $teamModel->getAll();
+        $legalRep        = $teamModel->getLegalRepresentative();
+
         $seo = $this->buildSeo(
             $this->org,
             'Organisation — ' . $this->org->name
         );
 
         $this->render('pages/org-edit', [
-            'org'  => $this->org,
-            'urls' => $urls,
-            'seo'  => $seo,
+            'org'         => $this->org,
+            'urls'        => $urls,
+            'teamMembers' => $teamMembers,
+            'legalRep'    => $legalRep,
+            'seo'         => $seo,
         ]);
     }
 
@@ -171,5 +179,33 @@ class OrganisationController extends BaseController
 
         $success = $this->orgModel->updateField($field, '');
         $success ? $this->jsonSuccess() : $this->jsonError('Fehler beim Löschen.');
+    }
+
+    /**
+     * POST /{admin_path}/org/legal-representative
+     * Sets a team member as legal representative (team.order_index = 0).
+     * Lives here rather than TeamController because the UI is on
+     * org-edit.php, which this controller already owns — a pragmatic
+     * exception, not a precedent; pin for v2 architecture review if a
+     * more decoupled, headless-friendly structure is ever built.
+     *
+     * POST params:
+     *   team_id  int
+     */
+    public function setLegalRepresentative(array $params = []): void
+    {
+        $this->requireLogin();
+
+        $teamId = (int) ($_POST['team_id'] ?? 0);
+
+        if (!$teamId) {
+            $this->jsonError('team_id required');
+            return;
+        }
+
+        $teamModel = new TeamModel();
+        $success   = $teamModel->setLegalRepresentative($teamId);
+
+        $success ? $this->jsonSuccess() : $this->jsonError('Fehler beim Speichern.');
     }
 }
