@@ -60,7 +60,7 @@ class PageController extends BaseController
     public function datenschutz(array $params = []): void
     {
         $sections  = $this->pagesModel->getForPage('datenschutz');
-        $president = $this->teamModel->getPresident();
+        $legalRep = $this->teamModel->getLegalRepresentative();
 
         $seo = $this->buildSeo(
             $this->org,
@@ -69,7 +69,7 @@ class PageController extends BaseController
 
         $this->render('pages/datenschutz', [
             'sections'  => $sections,
-            'president' => $president,
+            'legalRep' => $legalRep,
             'seo'       => $seo,
             'pageKey'   => 'datenschutz',
         ]);
@@ -81,7 +81,7 @@ class PageController extends BaseController
     public function impressum(array $params = []): void
     {
         $sections  = $this->pagesModel->getForPage('impressum');
-        $president = $this->teamModel->getPresident();
+        $legalRep = $this->teamModel->getLegalRepresentative();
 
         $seo = $this->buildSeo(
             $this->org,
@@ -90,7 +90,7 @@ class PageController extends BaseController
 
         $this->render('pages/impressum', [
             'sections'  => $sections,
-            'president' => $president,
+            'legalRep' => $legalRep,
             'seo'       => $seo,
             'pageKey'   => 'impressum',
         ]);
