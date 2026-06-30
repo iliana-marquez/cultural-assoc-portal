@@ -426,6 +426,11 @@ body.is-editing .edit-bar__indicator i {
     border: var(--edit-inactive) 2px solid;
 }
 
+.event-status-bar:hover {
+    border: var(--edit-active) 2px solid;
+}
+
+
 .event-status-chip--draft     { color: black; }
 .event-status-chip--published { color: green; }
 .event-status-chip--cancelled { color: red; }

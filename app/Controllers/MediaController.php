@@ -29,10 +29,17 @@ class MediaController extends BaseController
      * POST /media/upload
      * Upload file to Cloudinary → insert into media → link to entity via pivot.
      *
+     * For stage='profile', any existing profile image for this entity is
+     * deleted first (both Cloudinary file and DB record) — profile is a
+     * single-image slot, not a gallery. Without this, old profile images
+     * accumulate silently: getFirstForEntity() always shows the oldest
+     * one, while newer uploads stay orphaned in the DB and Cloudinary,
+     * confusing the editor about which upload is actually "the" photo.
+     *
      * POST params:
      *   entity_type  string  'event' | 'participant' | 'team' | 'organisation' | 'venue'
      *   entity_id    int
-     *   stage        string  'promo' | 'gallery'
+     *   stage        string  'promo' | 'gallery' | 'profile'
      *   caption      string  optional
      *   credit       string  optional — photographer credit
      *   subfolder    string  optional — defaults to entity_type
@@ -60,6 +67,19 @@ class MediaController extends BaseController
         }
 
         try {
+            // Profile is a single-image slot — replace, never accumulate
+            if ($stage === 'profile') {
+                $existing = $this->mediaModel->getFirstForEntity($entityType, $entityId, 'profile');
+                if ($existing) {
+                    $existingPublicId = CloudinaryService::extractPublicId($existing->media_url);
+                    $this->mediaModel->unlinkFromEntity($existing->id, $entityType, $entityId);
+                    $remaining = $this->mediaModel->getById($existing->id);
+                    if (!$remaining && $existingPublicId) {
+                        CloudinaryService::delete($existingPublicId);
+                    }
+                }
+            }
+
             // Use the caller-provided public_id (slug-based naming) when given,
             // otherwise fall back to the generic entity-id-based pattern.
             $publicId = CloudinaryService::generatePublicId(
@@ -98,10 +118,15 @@ class MediaController extends BaseController
      * POST /media/{id}/delete
      * Unlink media from entity → delete from Cloudinary if no more links.
      *
+     * public_id is recovered from the stored media_url via
+     * CloudinaryService::extractPublicId() — no public_id column or
+     * client-supplied value needed, and works retroactively for any
+     * media uploaded before this fix existed. Same approach used for
+     * section images and organisation logos.
+     *
      * POST params:
      *   entity_type  string
      *   entity_id    int
-     *   public_id    string  Cloudinary public_id (optional — for Cloudinary deletion)
      */
     public function delete(array $params = []): void
     {
@@ -110,21 +135,29 @@ class MediaController extends BaseController
         $mediaId    = (int) ($params['id'] ?? 0);
         $entityType = trim($_POST['entity_type'] ?? '');
         $entityId   = (int) ($_POST['entity_id'] ?? 0);
-        $publicId   = trim($_POST['public_id'] ?? '');
 
         if (!$mediaId || !$entityType || !$entityId) {
             $this->jsonError('media_id, entity_type and entity_id are required');
             return;
         }
 
+        // Fetch BEFORE unlinking — the row won't exist afterward if
+        // this was the last link, and we need media_url to recover
+        // the public_id for Cloudinary deletion.
+        $media = $this->mediaModel->getById($mediaId);
+
         // Unlink from entity — deletes media record if no more links
         $this->mediaModel->unlinkFromEntity($mediaId, $entityType, $entityId);
 
-        // Delete from Cloudinary if public_id provided and media record deleted
-        if ($publicId) {
+        // Delete from Cloudinary only if the media record was actually
+        // removed (no more entities reference it)
+        if ($media) {
             $remaining = $this->mediaModel->getById($mediaId);
             if (!$remaining) {
-                CloudinaryService::delete($publicId);
+                $publicId = CloudinaryService::extractPublicId($media->media_url);
+                if ($publicId) {
+                    CloudinaryService::delete($publicId);
+                }
             }
         }
 
