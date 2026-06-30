@@ -22,7 +22,7 @@ class TeamModel extends BaseModel
         return $this->fetchAll(
             "SELECT * FROM {$this->table}
              WHERE deleted_at IS NULL
-             ORDER BY last_name ASC"
+             ORDER BY order_index ASC"
         );
     }
 
@@ -59,10 +59,15 @@ class TeamModel extends BaseModel
      */
     public function add(array $data): int|false
     {
+        // New members are appended to the end of the draggable order —
+        // never claim order_index 0, which is reserved for whoever the
+        // editor designates as legal representative via org-edit.
+        $orderIndex = $data['order_index'] ?? ($this->getMaxOrderIndex() + 1);
+
         $ok = $this->execute(
             "INSERT INTO {$this->table}
-             (first_name, last_name, title, role, profession, motto, biography, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+             (first_name, last_name, title, role, profession, motto, biography, status, order_index)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $data['first_name'] ?? null,
                 $data['last_name']  ?? null,
@@ -72,6 +77,7 @@ class TeamModel extends BaseModel
                 $data['motto']      ?? null,
                 $data['biography']  ?? null,
                 $data['status']     ?? 'draft',
+                $orderIndex,
             ]
         );
 
@@ -83,7 +89,7 @@ class TeamModel extends BaseModel
      */
     public function updateField(int $id, string $field, mixed $value): bool
     {
-        $allowed = ['first_name', 'last_name', 'title', 'role', 'profession', 'motto', 'biography', 'status'];
+        $allowed = ['first_name', 'last_name', 'title', 'role', 'profession', 'motto', 'biography', 'status', 'order_index'];
 
         if (!in_array($field, $allowed)) return false;
 
@@ -162,19 +168,89 @@ class TeamModel extends BaseModel
     }
 
     /**
-     * Get the president/chair from team — first member whose role contains 'präsident'.
-     * Case-insensitive. Returns null if none found.
+     * Get the legal representative — the team member at order_index 0.
+     * Fully editor-controlled via org-edit's select, decoupled from
+     * role text entirely — no longer inferred from "präsident" matching,
+     * which was typo-prone and broke silently on free-text role entries.
+     * Returns null if no published member currently holds position 0.
      */
-    public function getPresident(): ?object
+    public function getLegalRepresentative(): ?object
     {
         return $this->fetchOne(
             "SELECT * FROM {$this->table}
              WHERE deleted_at IS NULL
              AND status = 'published'
-             AND LOWER(role) LIKE '%pr%sident%'
-             ORDER BY id ASC
+             AND order_index = 0
              LIMIT 1"
         );
+    }
+
+    /**
+     * Highest order_index currently in use — for appending new or
+     * demoted members to the end of the draggable sequence.
+     */
+    public function getMaxOrderIndex(): int
+    {
+        $result = $this->fetchOne(
+            "SELECT MAX(order_index) as max_index FROM {$this->table} WHERE deleted_at IS NULL"
+        );
+        return (int) ($result->max_index ?? -1);
+    }
+
+    /**
+     * Set a team member as legal representative (order_index 0).
+     * Whoever previously held position 0 is appended to the end of
+     * the draggable sequence — never deleted, never auto-assigned a
+     * "demoted" position the editor didn't choose. Two separate
+     * updates rather than a swap, since the previous holder's new
+     * position is intentionally "end of list", not the new
+     * representative's old slot.
+     */
+    public function setLegalRepresentative(int $id): bool
+    {
+        $previous = $this->fetchOne(
+            "SELECT * FROM {$this->table}
+         WHERE deleted_at IS NULL AND order_index = 0
+         LIMIT 1"
+        );
+
+        if ($previous && $previous->id === $id) {
+            return true;
+        }
+
+        if ($previous) {
+            $this->execute(
+                "UPDATE {$this->table} SET order_index = ? WHERE id = ?",
+                [$this->getMaxOrderIndex() + 1, $previous->id]
+            );
+        }
+
+        return $this->execute(
+            "UPDATE {$this->table} SET order_index = 0 WHERE id = ?",
+            [$id]
+        );
+    }
+
+    /**
+     * Reorder the draggable team grid (order_index 1+).
+     * Position 0 (legal representative) is never included here — it's
+     * only ever changed via setLegalRepresentative() from org-edit,
+     * never through team-grid drag-and-drop.
+     *
+     * @param array $order  [['id' => int, 'order_index' => int], ...]
+     */
+    public function reorderTeam(array $order): void
+    {
+        foreach ($order as $item) {
+            $id    = (int) ($item['id'] ?? 0);
+            $index = (int) ($item['order_index'] ?? 0);
+            if ($id && $index >= 1) {
+                $this->execute(
+                    "UPDATE {$this->table} SET order_index = ? WHERE id = ?",
+                    [$index, $id]
+                );
+            }
+        }
     }
 
     /**
