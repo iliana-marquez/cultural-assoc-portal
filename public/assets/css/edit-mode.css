@@ -418,16 +418,17 @@ body.is-editing .edit-bar__indicator i {
 .event-status-bar {
     display: flex;
     align-items: center;
-    justify-content: end;
+    justify-content: center;
     gap: 0.75rem;
     padding: 0.75rem 0;
     margin-bottom: 1.5rem;
     border-radius: 4px;
+    border: var(--edit-inactive) 2px solid;
 }
 
-.event-status-chip--draft     { color:black; }
-.event-status-chip--published { color: #15803d; }
-.event-status-chip--cancelled { color: #b91c1c; }
+.event-status-chip--draft     { color: black; }
+.event-status-chip--published { color: green; }
+.event-status-chip--cancelled { color: red; }
 
 .event-status-bar .btn-section {
     display: inline-flex;

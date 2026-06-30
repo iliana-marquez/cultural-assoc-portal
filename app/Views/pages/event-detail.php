@@ -59,17 +59,18 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
             <div class="event-status-bar">
                 <?php if ($isCancelled): ?>
                     <span class="event-status-chip event-status-chip--cancelled">
-                        Diese Veranstaltung wurde abgesagt.
+                        <i class="ti ti-masks-theater-off"></i> Diese Veranstaltung wurde abgesagt.
                     </span>
                 <?php elseif ($isDraft): ?>
-                    <span class="event-status-chip event-status-chip--draft">
-                        Diese Veranstaltung ist ein Entwurf:
-                    </span>
                     <button class="btn-section btn-section--primary"
                         data-action="publish-event"
                         data-event-id="<?= $event->id ?>">
                         <i class="ti ti-upload"></i> Veröffentlichen
                     </button>
+                    <i class="ti ti-arrow-narrow-left"></i>
+                    <span class="event-status-chip event-status-chip--draft">
+                        <strong>ENTWURF <i class="ti ti-mood-off"></i></strong>
+                    </span> <i class="ti ti-arrow-narrow-right"></i>
                     <button class="btn-section btn-section--danger"
                         data-action="delete-event"
                         data-event-id="<?= $event->id ?>"
@@ -77,14 +78,16 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <i class="ti ti-trash"></i> Löschen
                     </button>
                 <?php else: ?>
-                    <span class="event-status-chip event-status-chip--published">
-                        Diese Veranstaltung ist veröffentlicht:
-                    </span>
                     <button class="btn-section"
                         data-action="unpublish-event"
                         data-event-id="<?= $event->id ?>">
                         <i class="ti ti-arrow-back-up"></i> Als Entwurf zurücksetzen
                     </button>
+                    <i class="ti ti-arrow-narrow-left"></i>
+                    <span class="event-status-chip event-status-chip--published">
+                        <strong>VERÖFFENLICHT <i class="ti ti-mood-check"></i></strong>
+                    </span>
+
                     <?php if ($isUpcoming): ?>
                         <button class="btn-section btn-section--danger"
                             data-action="cancel-event"
