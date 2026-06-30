@@ -15,9 +15,7 @@
  *   $isLoggedIn bool
  */
 
-$presidentName = $president
-    ? TeamModel::displayName($president)
-    : null;
+$legalRepName = $legalRep ? TeamModel::displayName($legalRep) : null;
 ?>
 
 <section class="segment dark-segment">
@@ -45,9 +43,11 @@ $presidentName = $president
             <?php endif; ?>
         </address>
 
-        <?php if ($presidentName): ?>
-            <?= htmlspecialchars($president->role) ?>:
-            <?= htmlspecialchars($presidentName) ?><br>
+        <?php if ($legalRepName): ?>
+            <?php if (!empty($legalRep->role)): ?>
+                <?= htmlspecialchars($legalRep->role) ?>:
+            <?php endif; ?>
+            <?= htmlspecialchars($legalRepName) ?><br>
         <?php else: ?>
             <em>Information folgt in Kürze.</em><br>
         <?php endif; ?>
