@@ -48,6 +48,7 @@ $router->get('/team',                       'TeamController', 'index');
 $router->get('/team/{id}/profile-fragment',  'TeamController', 'profileFragment');
 $router->get('/team/{slug}',                 'TeamController', 'show');
 $router->post('/team/add',              'TeamController', 'add');
+$router->post('/team/reorder',          'TeamController', 'reorder');
 $router->post('/team/{id}/publish',    'TeamController', 'publish');
 $router->post('/team/{id}/unpublish',  'TeamController', 'unpublish');
 $router->post('/team/{id}/save', 'TeamController', 'save');
@@ -85,6 +86,8 @@ $router->get('/' . $_ENV['ADMIN_PATH'] . '/org',        'OrganisationController'
 $router->post('/' . $_ENV['ADMIN_PATH'] . '/org/save',  'OrganisationController', 'save');
 $router->post('/' . $_ENV['ADMIN_PATH'] . '/org/logo/upload', 'OrganisationController', 'uploadLogo');
 $router->post('/' . $_ENV['ADMIN_PATH'] . '/org/logo/delete', 'OrganisationController', 'deleteLogo');
+$router->post('/' . $adminPath . '/org/logo/delete', 'OrganisationController', 'deleteLogo');
+$router->post('/' . $adminPath . '/org/legal-representative', 'OrganisationController', 'setLegalRepresentative');
 
 
 // ── Cloudinary service ─────────────────────────────────────────
