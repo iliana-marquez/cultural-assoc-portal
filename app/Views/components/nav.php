@@ -14,8 +14,13 @@
 <header class="site-header light-segment">
     <div class="nav-container">
 
-        <a href="/">
-            <img class="nav-brand" src="https://res.cloudinary.com/dj2lk9daf/image/upload/v1782164126/Logo_KLA_bxe3kv.png" alt="">
+        <a href="/" class="nav-brand-link">
+            <?php if (!empty($org->inline_logo_url)): ?>
+                <img class="nav-brand" src="<?= htmlspecialchars($org->inline_logo_url) ?>"
+                    alt="<?= htmlspecialchars($org->name ?? '') ?>">
+            <?php else: ?>
+                <span class="nav-brand-text"><?= htmlspecialchars($org->name ?? '') ?></span>
+            <?php endif; ?>
         </a>
 
 

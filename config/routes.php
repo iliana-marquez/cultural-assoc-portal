@@ -83,6 +83,8 @@ $router->post('/participants/{id}/delete',    'ParticipantController', 'delete')
 // Organisation
 $router->get('/' . $_ENV['ADMIN_PATH'] . '/org',        'OrganisationController', 'edit');
 $router->post('/' . $_ENV['ADMIN_PATH'] . '/org/save',  'OrganisationController', 'save');
+$router->post('/' . $_ENV['ADMIN_PATH'] . '/org/logo/upload', 'OrganisationController', 'uploadLogo');
+$router->post('/' . $_ENV['ADMIN_PATH'] . '/org/logo/delete', 'OrganisationController', 'deleteLogo');
 
 
 // ── Cloudinary service ─────────────────────────────────────────

@@ -17,9 +17,11 @@
                 fill="#900000" />
         </svg>
     </div> -->
-    <div class="footer-logo margin-top">
-        <img src="<?= htmlspecialchars($org->logo_url ?? '') ?>" alt="<?= htmlspecialchars($org->name ?? 'Organisation') ?> Logo">
-    </div>
+    <?php if (!empty($org->logo_url)): ?>
+        <div class="footer-logo margin-top">
+            <img src="<?= htmlspecialchars($org->logo_url) ?>" alt="<?= htmlspecialchars($org->name ?? 'Organisation') ?> Logo">
+        </div>
+    <?php endif; ?>
 
     <p class="">&copy; 2026 <?= htmlspecialchars($org->name ?? 'Organisation') ?></p>
 

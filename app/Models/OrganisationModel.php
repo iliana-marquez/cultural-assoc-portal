@@ -79,6 +79,7 @@ class OrganisationModel extends BaseModel
             'statutes_url',
             'schema_type',
             'logo_url',
+            'inline_logo_url',
         ];
 
         if (!in_array($field, $allowed)) return false;

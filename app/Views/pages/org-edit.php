@@ -59,6 +59,95 @@ function editRow(string $label, string $field, string $value, string $saveUrl): 
                 <?= editRow('Land',     'country',  $org->country  ?? '', $saveUrl) ?>
             </div>
 
+
+            <!-- Logos -->
+            <div class="col-12">
+                <h3>Logos</h3>
+                <div class="row g-4">
+
+                    <!-- Logo — Hero / Footer -->
+                    <div class="col-12 col-md-6">
+                        <div class="media-edit-row" data-entity-type="organisation" data-entity-id="<?= $org->id ?>" data-stage="logo">
+                            <div class="edit-row-header">
+                                <label class="edit-row-label">Logo (Home-Hero / Footer)</label>
+                                <div class="edit-row-actions">
+                                    <span class="entity-feedback"></span>
+                                    <button class="entity-edit-btn org-logo-pencil-btn"><i class="ti ti-pencil"></i></button>
+                                    <button class="entity-cancel-btn org-logo-cancel-btn" style="display:none;"><i class="ti ti-x"></i></button>
+                                </div>
+                            </div>
+                            <div class="org-logo-item p-2" data-field="logo_url">
+                                <?php if (!empty($org->logo_url)): ?>
+                                    <label class="entity-edit-btn border-0" style="cursor:pointer; display:none;" title="Logo ersetzen">
+                                        <i class="ti ti-pencil"></i>
+                                        <input type="file" accept="image/*" class="d-none"
+                                            data-action="upload-org-logo"
+                                            data-field="logo_url">
+                                    </label>
+                                    <button class="entity-remove-btn border-0" style="display:none;" data-action="delete-org-logo" data-field="logo_url">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                    <img src="<?= htmlspecialchars($org->logo_url) ?>" alt="Logo" style="max-height:80px;">
+                                <?php else: ?>
+                                    <p class="text-muted mb-0">— kein Logo —</p>
+                                <?php endif; ?>
+                            </div>
+                            <?php if (empty($org->logo_url)): ?>
+                                <div class="org-logo-upload-wrap p-2" style="display:none;">
+                                    <label class="entity-edit-btn" style="cursor:pointer;">
+                                        <i class="ti ti-photo-plus"></i> Logo hochladen
+                                        <input type="file" accept="image/*" class="d-none"
+                                            data-action="upload-org-logo"
+                                            data-field="logo_url">
+                                    </label>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Inline logo — Navbar -->
+                    <div class="col-12 col-md-6">
+                        <div class="media-edit-row" data-entity-type="organisation" data-entity-id="<?= $org->id ?>" data-stage="inline-logo">
+                            <div class="edit-row-header">
+                                <label class="edit-row-label">Inline-Logo (Navbar)</label>
+                                <div class="edit-row-actions">
+                                    <span class="entity-feedback"></span>
+                                    <button class="entity-edit-btn org-logo-pencil-btn"><i class="ti ti-pencil"></i></button>
+                                    <button class="entity-cancel-btn org-logo-cancel-btn" style="display:none;"><i class="ti ti-x"></i></button>
+                                </div>
+                            </div>
+                            <div class="org-logo-item p-2" data-field="inline_logo_url">
+                                <?php if (!empty($org->inline_logo_url)): ?>
+                                    <label class="entity-edit-btn border-0" style="cursor:pointer; display:none;" title="Inline-Logo ersetzen">
+                                        <i class="ti ti-pencil"></i>
+                                        <input type="file" accept="image/*" class="d-none"
+                                            data-action="upload-org-logo"
+                                            data-field="inline_logo_url">
+                                    </label>
+                                    <button class="entity-remove-btn border-0" style="display:none;" data-action="delete-org-logo" data-field="inline_logo_url">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                    <img src="<?= htmlspecialchars($org->inline_logo_url) ?>" alt="Inline Logo" style="max-height:50px;">
+                                <?php else: ?>
+                                    <p class="text-muted mb-0">— kein Inline-Logo —</p>
+                                <?php endif; ?>
+                            </div>
+                            <?php if (empty($org->inline_logo_url)): ?>
+                                <div class="org-logo-upload-wrap p-2" style="display:none;">
+                                    <label class="entity-edit-btn" style="cursor:pointer;">
+                                        <i class="ti ti-photo-plus"></i> Inline-Logo hochladen
+                                        <input type="file" accept="image/*" class="d-none"
+                                            data-action="upload-org-logo"
+                                            data-field="inline_logo_url">
+                                    </label>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
             <!-- Descriptions -->
             <div class="col-12">
                 <h3>Beschreibungen</h3>
