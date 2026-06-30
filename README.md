@@ -2609,6 +2609,138 @@ WHERE email = 'subscriber@email.com';
 - `feat/newsletter-on-free-section-type-news-publish` — notify subscribers on news publish
 - `feat/newsletter-composer` — in-app composer for sending to all confirmed subscribers
 
+# feat/org-logos
+
+## Overview
+
+Adds two independently managed logo fields to `organisation_info` — `logo_url` (Hero/Footer) and `inline_logo_url` (Navbar) — with full upload/delete lifecycle through the editor's org page. Both display locations degrade gracefully when no logo is set. Navbar and footer update instantly on upload/delete without a page reload.
+
+## Architecture
+
+### Two logo fields
+
+- `logo_url` — large logo, used in `hero.php` and `footer.php`
+- `inline_logo_url` — small logo, used in `nav.php`
+- Both stored directly on `organisation_info` — no `entity_media` pivot needed, organisation is a singleton
+
+### One logo per field — simple two-state UI
+
+No gallery, no multiple images per field. Either "kein Logo" with an upload button, or one image with edit/delete controls — never both states visible at once.
+
+### Upload/delete via OrganisationController
+
+- `uploadLogo()` — deletes existing file from Cloudinary first (via `extractPublicId()`), then uploads new one, updates the field
+- `deleteLogo()` — deletes from Cloudinary and clears the field
+- Both gated by `requireLogin()`, both accept `field` POST param (`logo_url` | `inline_logo_url`)
+
+### Edit-row pattern — entity-edit-row, not CSS-toggle
+
+Pencil/cancel visibility and item controls are toggled via inline `style.display` set directly by JS — matching the existing `entity-edit-row` pattern used throughout the org-edit page, rather than the CSS-class-toggle pattern used by `media-edit-row` elsewhere. This avoids CSS specificity conflicts with the shared `.entity-edit-btn`/`.entity-cancel-btn` classes used across the whole edit page.
+
+### Instant nav/footer sync
+
+After successful upload or delete, the navbar and footer DOM are updated directly via JS — no `window.location.reload()`. Scoped to the editor's own browser tab during editing.
+
+### Fallback behavior
+
+- **Hero** — `$hasLogo` flag controls whether the logo column renders; content column is `col-md-7` with logo, `col-12` without
+- **Footer** — logo container wrapped in `!empty($org->logo_url)` check, fully hidden when absent
+- **Nav** — `inline_logo_url` shown as `<img>`, falls back to `<span class="nav-brand-text">` with org name when absent
+
+## DB Migration
+
+```sql
+ALTER TABLE organisation_info
+ADD COLUMN inline_logo_url VARCHAR(500) NULL AFTER logo_url;
+```
+
+Run on both local and Hostinger before deploying.
+
+## Critical Bug Fixed
+
+**`CloudinaryService::delete()` signature generation was broken for every media type in the app, not just logos.**
+
+`delete()` used `http_build_query($params, '', '&', PHP_QUERY_RFC3986)` to build the signature string. RFC3986 encoding converts `/` to `%2F` — but `public_id` values always contain `/` (folder structure, e.g. `ows/wkk/organisation/logo-123`). Cloudinary's signature must be computed over the raw, unencoded string. The encoded slashes produced a mismatched signature, so Cloudinary rejected every delete request with `"Invalid Signature"` — silently, since the app only checked `$result['result'] === 'ok'` and treated failure as a soft `false`.
+
+This meant **no Cloudinary file was ever actually deleted** anywhere in the app — event promo images, profile images, gallery images, section images, and now org logos — despite the DB rows being correctly removed and the UI showing success.
+
+**Fix:** `delete()` now builds the signature string the same way `upload()` already did — manual `ksort()` + string concatenation, no URL encoding:
+
+```php
+$params = ['public_id' => $publicId, 'timestamp' => $timestamp];
+ksort($params);
+$paramString = '';
+foreach ($params as $key => $value) {
+    $paramString .= $key . '=' . $value . '&';
+}
+$paramString = rtrim($paramString, '&');
+$signature = sha1($paramString . $apiSecret);
+```
+
+**Impact:** This fix retroactively unblocks Cloudinary deletion across the entire application, not just this feature. Worth a dedicated regression pass across all media-deletion flows.
+
+## Files Changed
+
+- **`OrganisationModel.php`** — `inline_logo_url` added to `updateField()` allowed list
+- **`OrganisationController.php`** — `uploadLogo()`, `deleteLogo()` methods added
+- **`CloudinaryService.php`** — `extractPublicId()` added; `delete()` signature bug fixed
+- **`org-edit.php`** — Logos section with two `media-edit-row` blocks, conditional upload-wrap
+- **`routes.php`** — `POST /{admin}/org/logo/upload`, `POST /{admin}/org/logo/delete`
+- **`edit-mode.js`** — upload/delete handlers, instant nav/footer DOM sync, entity-edit-row-style display toggling
+- **`hero.php`** — conditional logo column, full-width content fallback
+- **`footer.php`** — conditional logo container
+- **`nav.php`** — `inline_logo_url` with org-name-text fallback, hardcoded logo URL removed
+
+## Testing
+
+**Upload**
+
+- Upload logo_url → item updates with edit/delete controls, upload-wrap removed, footer updates instantly
+- Upload inline_logo_url → item updates, navbar updates instantly
+- Re-upload replaces old file — verify old file gone from Cloudinary dashboard
+
+**Delete**
+
+- Delete logo_url → confirm modal → item reverts to "— kein Logo —", upload-wrap reappears, footer logo removed instantly
+- Delete inline_logo_url → same, navbar reverts to org name text instantly
+- Verify in Cloudinary dashboard — file actually gone (regression test for the signature fix)
+
+**Edit-row toggle**
+
+- No logo: only "Logo hochladen" visible, no edit/delete controls
+- With logo: edit (pencil) + delete (trash) visible on the item, no separate upload button
+- Pencil in header toggles editing — controls only appear in edit mode, hidden otherwise
+
+**Hero**
+
+- With logo_url → logo col-md-5, content col-md-7
+- Without logo_url → no logo col, content col-12
+
+**Footer**
+
+- With logo_url → logo displays
+- thout logo_url → no broken image, no empty space
+
+**Nav**
+
+- With inline_logo_url → image displays, links to /
+- Without inline_logo_url → org name text displays, links to /
+
+**Cloudinary deletion — full regression (critical, due to the signature bug fix)**
+
+- Event promo image delete — verify gone from Cloudinary
+- Participant profile image delete — verify gone from Cloudinary
+- Team profile image delete — verify gone from Cloudinary
+- Gallery image delete (single + batch) — verify gone from Cloudinary
+- Section image/bg_image delete — verify gone from Cloudinary
+- Section delete with images — verify gone from Cloudinary
+
+**Regression**
+
+- All other org-edit fields still save correctly
+- Mobile sidebar nav unaffected
+- All critical routes still present: profile-fragment, promo-fragment, kontakt, newsletter
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
