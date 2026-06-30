@@ -26,6 +26,7 @@ require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../Models/PagesModel.php';
 require_once __DIR__ . '/../Models/UrlModel.php';
 require_once __DIR__ . '/../Models/TeamModel.php';
+require_once __DIR__ . '/../../core/CloudinaryService.php';
 
 class PageController extends BaseController
 {
@@ -209,7 +210,10 @@ class PageController extends BaseController
 
     /**
      * POST /page/section/{id}/remove-image
-     * Remove image or bg_image from section JSON.
+     * Remove image or bg_image from section JSON — also deletes from
+     * Cloudinary since section images are stored as bare URLs, not
+     * tracked via entity_media, so this is the only place that can
+     * trigger their deletion.
      */
     public function removeSectionImage(array $params = []): void
     {
@@ -225,6 +229,15 @@ class PageController extends BaseController
 
         $existing = $this->pagesModel->getById($id);
         $current  = json_decode($existing->content ?? '{}', true) ?: [];
+
+        // Delete from Cloudinary if a URL exists for this field
+        if (!empty($current[$field])) {
+            $publicId = CloudinaryService::extractPublicId($current[$field]);
+            if ($publicId) {
+                CloudinaryService::delete($publicId);
+            }
+        }
+
         $current[$field] = null;
 
         $success = $this->pagesModel->updateContent($id, $current);
@@ -261,6 +274,21 @@ class PageController extends BaseController
         // and the gap-closing step needs to know exactly which page
         // and which order_index just became free.
         $section = $this->pagesModel->getById($id);
+
+        // Clean up section images from Cloudinary — same reasoning as
+        // removeSectionImage(): these URLs aren't tracked via entity_media,
+        // so deleting the section row would otherwise leave them orphaned.
+        if ($section) {
+            $content = json_decode($section->content ?? '{}', true) ?: [];
+            foreach (['image', 'bg_image'] as $field) {
+                if (!empty($content[$field])) {
+                    $publicId = CloudinaryService::extractPublicId($content[$field]);
+                    if ($publicId) {
+                        CloudinaryService::delete($publicId);
+                    }
+                }
+            }
+        }
 
         $success = $this->pagesModel->deleteSection($id);
 
