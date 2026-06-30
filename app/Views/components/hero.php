@@ -9,27 +9,24 @@
  *
  * $org available from BaseController::render()
  */
+$hasLogo = !empty($org->logo_url);
 ?>
 
 <section class="segment dark-segment hero">
     <div class="container">
         <div class="row align-items-center g-5">
 
-            <!-- Logo — left -->
-            <div class="col-12 col-md-5 text-center">
-                <?php if (!empty($org->logo_url)): ?>
+            <?php if ($hasLogo): ?>
+                <!-- Logo — left -->
+                <div class="col-12 col-md-5 text-center">
                     <img src="<?= htmlspecialchars($org->logo_url) ?>"
                         alt="<?= htmlspecialchars($org->name ?? '') ?> Logo"
                         class="hero-logo">
-                <?php else: ?>
-                    <div class="hero-logo-placeholder">
-                        <i class="ti ti-building-community"></i>
-                    </div>
-                <?php endif; ?>
-            </div>
+                </div>
+            <?php endif; ?>
 
-            <!-- Content — right -->
-            <div class="col-12 col-md-7">
+            <!-- Content -->
+            <div class="<?= $hasLogo ? 'col-12 col-md-7' : 'col-12' ?>">
                 <div class="section-content">
 
                     <?php if (!empty($org->name)): ?>
