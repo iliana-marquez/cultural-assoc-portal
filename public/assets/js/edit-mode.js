@@ -3000,6 +3000,188 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+
+    // ── Org logo edit rows (Logo + Inline-Logo) ────────────────
+    // Same media-edit-row pattern: pencil toggles .editing on the
+    // row, CSS shows the in-item edit/trash controls and the
+    // upload-wrap only while .editing is active.
+    document.querySelectorAll('[data-stage="logo"], [data-stage="inline-logo"]').forEach(function (row) {
+        const pencilBtn = row.querySelector('.org-logo-pencil-btn');
+        const cancelBtn = row.querySelector('.org-logo-cancel-btn');
+        const feedback = row.querySelector('.entity-feedback');
+        const orgNameForNav = document.querySelector('h1')?.textContent.trim() ?? '';
+
+        function showFeedback(msg, type) {
+            if (!feedback) return;
+            feedback.textContent = msg;
+            feedback.className = 'entity-feedback entity-feedback--' + type;
+            setTimeout(function () { feedback.textContent = ''; }, 3000);
+        }
+
+        pencilBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.add('editing');
+            document.body.classList.add('is-editing');
+            pencilBtn.style.display = 'none';
+            cancelBtn.style.display = 'inline-flex';
+            row.querySelectorAll('.org-logo-item .entity-edit-btn, .org-logo-item .entity-remove-btn')
+                .forEach(function (el) { el.style.display = 'inline-flex'; });
+            row.querySelectorAll('.org-logo-upload-wrap')
+                .forEach(function (el) { el.style.display = 'flex'; });
+        });
+
+        cancelBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            row.classList.remove('editing');
+            document.body.classList.remove('is-editing');
+            pencilBtn.style.display = 'inline-flex';
+            cancelBtn.style.display = 'none';
+            row.querySelectorAll('.org-logo-item .entity-edit-btn, .org-logo-item .entity-remove-btn')
+                .forEach(function (el) { el.style.display = 'none'; });
+            row.querySelectorAll('.org-logo-upload-wrap')
+                .forEach(function (el) { el.style.display = 'none'; });
+        });
+
+        function bindUpload(input) {
+            if (input._uploadInitialized) return;
+            input._uploadInitialized = true;
+            input.addEventListener('change', function () {
+                if (!this.files[0]) return;
+                const field = this.dataset.field;
+                const item = row.querySelector('.org-logo-item[data-field="' + field + '"]');
+
+                const data = new FormData();
+                data.append('image', this.files[0]);
+                data.append('field', field);
+                const adminPath = window.location.pathname.split('/')[1];
+
+                showFeedback('Wird hochgeladen...', 'success');
+
+                fetch('/' + adminPath + '/org/logo/upload', {
+                    method: 'POST',
+                    body: data,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            item.innerHTML =
+                                '<label class="entity-edit-btn border-0" style="cursor:pointer; display:inline-flex;" title="Logo ersetzen">' +
+                                '<i class="ti ti-pencil"></i>' +
+                                '<input type="file" accept="image/*" class="d-none" data-action="upload-org-logo" data-field="' + field + '">' +
+                                '</label>' +
+                                '<button class="entity-remove-btn border-0" style="display:inline-flex;" data-action="delete-org-logo" data-field="' + field + '">' +
+                                '<i class="ti ti-trash"></i></button>' +
+                                '<img src="' + json.url + '" alt="Logo" style="max-height:80px;">';
+                            row.querySelector('.org-logo-upload-wrap')?.remove();
+                            bindAllControls();
+                            showFeedback('Gespeichert ✓', 'success');
+
+                            // Instant navbar update — only inline_logo_url affects the nav
+                            if (field === 'inline_logo_url') {
+                                const navLink = document.querySelector('.nav-brand-link');
+                                if (navLink) {
+                                    navLink.innerHTML = '<img class="nav-brand" src="' + json.url + '" alt="">';
+                                }
+                            }
+
+                            // Instant footer update — logo_url drives the footer logo
+                            if (field === 'logo_url') {
+                                const footerLogo = document.querySelector('.footer-logo');
+                                if (footerLogo) {
+                                    footerLogo.querySelector('img').src = json.url;
+                                } else {
+                                    const footer = document.querySelector('footer');
+                                    const copyright = footer?.querySelector('p');
+                                    if (footer && copyright) {
+                                        const wrap = document.createElement('div');
+                                        wrap.className = 'footer-logo margin-top';
+                                        wrap.innerHTML = '<img src="' + json.url + '" alt="">';
+                                        footer.insertBefore(wrap, copyright);
+                                    }
+                                }
+                            }
+                        } else {
+                            showFeedback(json.error || 'Fehler', 'error');
+                        }
+                    })
+                    .catch(function () {
+                        showFeedback('Verbindungsfehler', 'error');
+                    });
+            });
+        }
+
+        function bindDelete(btn) {
+            if (btn._deleteInitialized) return;
+            btn._deleteInitialized = true;
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const field = btn.dataset.field;
+                const item = row.querySelector('.org-logo-item[data-field="' + field + '"]');
+
+                openConfirmModal({
+                    title: 'Logo löschen',
+                    message: 'Dieses Logo wirklich löschen?',
+                    confirmLabel: 'Löschen',
+                    onConfirm: function () {
+                        const data = new FormData();
+                        data.append('field', field);
+                        const adminPath = window.location.pathname.split('/')[1];
+
+                        fetch('/' + adminPath + '/org/logo/delete', {
+                            method: 'POST',
+                            body: data,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(res => res.json())
+                            .then(function (json) {
+                                if (json.success) {
+                                    item.innerHTML = '<p class="text-muted mb-0">— kein Logo —</p>';
+                                    const label = field === 'logo_url' ? 'Logo hochladen' : 'Inline-Logo hochladen';
+                                    const wrap = document.createElement('div');
+                                    wrap.className = 'org-logo-upload-wrap p-2';
+                                    wrap.style.display = 'flex';
+                                    wrap.innerHTML =
+                                        '<label class="entity-edit-btn" style="cursor:pointer;">' +
+                                        '<i class="ti ti-photo-plus"></i> ' + label +
+                                        '<input type="file" accept="image/*" class="d-none" data-action="upload-org-logo" data-field="' + field + '">' +
+                                        '</label>';
+                                    row.appendChild(wrap);
+                                    bindAllControls();
+                                    showFeedback('Gelöscht ✓', 'success');
+
+                                    // Instant navbar update — revert to org name text
+                                    if (field === 'inline_logo_url') {
+                                        const navLink = document.querySelector('.nav-brand-link');
+                                        if (navLink) {
+                                            navLink.innerHTML = '<span class="nav-brand-text">' + orgNameForNav + '</span>';
+                                        }
+                                    }
+
+                                    // Instant footer removal — logo_url drives the footer logo
+                                    if (field === 'logo_url') {
+                                        document.querySelector('.footer-logo')?.remove();
+                                    }
+                                } else {
+                                    showFeedback(json.error || 'Fehler', 'error');
+                                }
+                            })
+                            .catch(function () {
+                                showFeedback('Verbindungsfehler', 'error');
+                            });
+                    }
+                });
+            });
+        }
+
+        function bindAllControls() {
+            row.querySelectorAll('[data-action="upload-org-logo"]').forEach(bindUpload);
+            row.querySelectorAll('[data-action="delete-org-logo"]').forEach(bindDelete);
+        }
+
+        bindAllControls();
+    });
+
     // ── Warn on page leave ────────────────────────────────────
     window.addEventListener('beforeunload', function (e) {
         if (hasUnsaved) { e.preventDefault(); e.returnValue = ''; }
