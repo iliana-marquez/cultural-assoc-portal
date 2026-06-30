@@ -2741,6 +2741,154 @@ $signature = sha1($paramString . $apiSecret);
 - Mobile sidebar nav unaffected
 - All critical routes still present: profile-fragment, promo-fragment, kontakt, newsletter
 
+# feat/image-deletion
+
+## Overview
+
+Unifies Cloudinary file deletion across the entire app — entity media (event promo, profile, gallery images) and section images (`image`/`bg_image`) — using a single consistent pattern: `CloudinaryService::extractPublicId()` recovers the public_id from the already-stored URL at delete time, no separate `public_id` column or client-supplied value needed. Also fixes profile images to behave as a true single-image slot, replacing rather than accumulating on re-upload.
+
+## Architecture
+
+### public_id recovery, not storage
+
+Every deletion path — `MediaController::delete()`, `PageController::removeSectionImage()`, `PageController::deleteSection()`, `OrganisationController::deleteLogo()`/`uploadLogo()` — calls `CloudinaryService::extractPublicId($url)` on the relevant stored URL, then `CloudinaryService::delete($publicId)`. No DB migration, no trust placed in client-supplied values, works retroactively on any media uploaded before this fix.
+
+### Profile image replace-on-upload
+
+`MediaController::upload()` checks `stage === 'profile'` before uploading. If an existing profile-stage image is found via `getFirstForEntity()`, it's unlinked and — if no longer referenced anywhere — deleted from Cloudinary, before the new upload proceeds. Applies uniformly across participant, team, event, or any future entity using the profile stage.
+
+### Section image cleanup on full section delete
+
+`deleteSection()` now checks both `image` and `bg_image` fields in the section's JSON content before deleting the row, deleting each from Cloudinary if present — same reasoning as `removeSectionImage()`, since these URLs are never tracked via `entity_media`.
+
+## Files Changed
+
+- **`MediaController.php`** — `delete()` uses `extractPublicId($media->media_url)` instead of client-supplied `public_id`; `upload()` replaces existing profile-stage image before linking new one
+- **`PageController.php`** — `removeSectionImage()` and `deleteSection()` re-gained their Cloudinary deletion calls (lost in an earlier rollback); `CloudinaryService` require added
+
+## Dependency
+
+This feature builds directly on the `CloudinaryService::delete()` signature bug discovered and fixed during `feat/org-logos` — `http_build_query(..., PHP_QUERY_RFC3986)` was URL-encoding slashes in `public_id`, breaking every Cloudinary delete signature in the app. That fix is what makes this feature's deletions actually work end to end, rather than silently failing while reporting success.
+
+## Testing
+
+**Entity media — single delete**
+
+- Delete event promo image → file gone from Cloudinary dashboard
+- Delete participant profile image → file gone from Cloudinary dashboard
+- Delete team profile image → file gone from Cloudinary dashboard
+- Delete single gallery image → file gone from Cloudinary dashboard, grid updates correctly
+
+**Entity media — batch delete**
+
+- Select multiple gallery images → batch delete → all files gone from Cloudinary dashboard
+
+**Profile image replace**
+
+- Upload profile photo → upload a second profile photo → first file gone from Cloudinary, only the new one shows, no orphaned DB row for the old one
+- Repeat 3-4 times in a row → confirm only ever one profile image exists at any point
+
+**Section images — individual removal**
+
+- Remove section `image` field → file gone from Cloudinary dashboard, placeholder shown
+- Remove section `bg_image` field → file gone from Cloudinary dashboard, placeholder shown
+
+**Section delete — with images**
+
+- Section with both `image` and `bg_image` set → delete entire section → both files gone from Cloudinary dashboard
+- Section with no images → delete section → no errors, no unnecessary Cloudinary calls
+
+**Edge cases**
+
+- Malformed/non-Cloudinary URL in a field → `extractPublicId()` returns null, no crash, no Cloudinary call attempted
+- Delete media that was already removed (double-click race) → no fatal error, graceful response
+
+**Regression**
+
+- Upload still works correctly for all entity types
+- Caption/credit editing on existing media unaffected
+- Org logo upload/delete still works (shares `CloudinaryService::delete()`)
+- All critical routes still present (profile-fragment, promo-fragment, kontakt, newsletter)
+
+## Deferred
+
+- `feat/media-library-v2` — curated, reusable media catalog with "Aus Mediathek wählen" tab; depends on all image use cases being routed through the unified `entity_media`/`media` system. See user story for details.
+
+# feat/team-roles-and-order
+
+## Overview
+
+Role standardisation and display order management for the team listing. Editors assign predefined roles to team members, designate a legal representative directly from the organisation settings page, and control the visual order of the staff grid via drag-and-drop — all without touching the database or code.
+
+## Architecture
+
+```
+organisation_info (org-edit select)
+      ↓
+TeamModel::setLegalRepresentative()   ← sets order_index = 0
+      ↓
+team.php                              ← index 0 → locked row
+                                      ← index 1+ → draggable grid
+      ↓
+edit-mode.js::team-staff-grid         ← drag reorder → POST /team/reorder
+      ↓
+TeamModel::reorderTeam()              ← bulk order_index update
+
+TeamModel::getLegalRepresentative()   ← published + order_index = 0
+      ↓
+PageController::datenschutz/impressum ← display with fallback
+```
+
+## Bugs
+
+**Duplicate `order_index = 0` when designating a draft member as legal rep**
+`setLegalRepresentative()` originally called `getLegalRepresentative()` internally to find the previous holder. That method filters `status = 'published'`, so a draft member at index 0 was invisible to it — the demotion step was skipped and two members ended up with index 0.
+Fixed by replacing the internal call with a raw status-agnostic query: `WHERE deleted_at IS NULL AND order_index = 0`.
+
+## Files Changed
+
+- **`TeamModel.php`** — `order_index` support; `reorderTeam()`, `setLegalRepresentative()` (status-agnostic internal lookup), `getLegalRepresentative()`, `getMaxOrderIndex()`, `publish()`, `unpublish()`
+- **`TeamController.php`** — `reorder()`, `publish()`, `unpublish()` endpoints
+- **`OrganisationController.php`** — `setLegalRepresentative()` endpoint; lives here because the UI is on org-edit, not team-detail
+- **`team.php`** — legal rep locked row (index 0, not draggable); draggable staff grid (index 1+) with pencil/save/cancel header
+- **`team-detail.php`** — role select with predefined Austrian association roles and Sonstiges free-text fallback; status bar with publish/unpublish/delete
+- **`org-edit.php`** — legal representative select; sets `team.order_index = 0` via `OrganisationController`
+- **`PageController.php`** — `datenschutz()` and `impressum()` use `getLegalRepresentative()` instead of `getPresident()`
+- **`datenschutz.php`** / **`impressum.php`** — display legal rep name and role; fallback to "Information folgt in Kürze" when none is published at index 0
+- **`edit-mode.js`** — team staff grid drag-and-drop handler; role-select live preview and Sonstiges custom input (capture-phase save override); publish/unpublish/delete handlers for team members
+- **`edit-mode.css`** — `.team-staff-edit-row` border and editing states; `.team-staff-card.dragging` and `.drag-over` drag feedback
+- **`routes.php`** — `POST /team/reorder`, `/team/{id}/publish`, `/team/{id}/unpublish`; `POST /{admin}/org/legal-representative`
+
+---
+
+## Testing
+
+```
+- Role select shows predefined options on team-detail
+- Predefined role saves and displays correctly
+- Sonstiges reveals free-text input
+- Custom role saves correctly — not stored as "__custom__"
+- Custom role shown as selected on page reload
+- Legal rep select on org-edit shows all non-deleted members
+- Assigning a published member sets order_index = 0 correctly
+- Assigning a draft member sets order_index = 0 correctly
+- Previous holder demoted to end of list in both cases
+- Only one member holds order_index = 0 at any time
+- Legal rep appears in locked row on /team
+- Legal rep card not draggable
+- Staff grid cards draggable in edit mode (grab cursor)
+- Drag reorder updates DOM immediately
+- Save persists new order after page reload
+- Cancel restores original DOM order without reload
+- New team member gets order_index = MAX + 1, never 0
+- /impressum shows legal rep name and role from index 0
+- /datenschutz shows legal rep name and role from index 0
+- No published member at index 0 → "Information folgt in Kürze"
+- Draft members visible in edit mode (greyscale + Entwurf chip)
+- Draft members hidden from public listing
+- Publish/unpublish/delete work correctly from team-detail status bar
+```
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
