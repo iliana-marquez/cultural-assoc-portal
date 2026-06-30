@@ -906,3 +906,44 @@ body.is-editing .edit-bar__indicator i {
 
 .venue-cancel-btn { display: none; }
 .venue-edit-row.editing .venue-cancel-btn { display: inline-flex; }
+
+/* ── Team staff grid reorder ─────────────────────────────────── */
+.team-staff-edit-row {
+    border: 2px solid var(--edit-inactive);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.team-staff-edit-row.editing {
+    border: 2px solid var(--edit-active);
+}
+
+.team-staff-edit-row.editing .edit-row-header {
+    background: var(--edit-active);
+    color: #fff;
+}
+
+/* Cards become draggable — grab cursor signals it */
+.team-staff-edit-row.editing .team-staff-card {
+    cursor: grab;
+}
+
+.team-staff-card.dragging {
+    opacity: 0.4;
+}
+
+.team-staff-card.drag-over {
+    outline: 3px dashed var(--edit-active);
+    border-radius: 4px;
+}
+
+
+/* ── Team staff grid reorder ─────────────────────────────────── */
+.team-staff-pencil-btn { display: inline-flex; }
+.team-staff-edit-row.editing .team-staff-pencil-btn { display: none; }
+
+.team-staff-save-btn,
+.team-staff-cancel-btn { display: none; }
+.team-staff-edit-row.editing .team-staff-save-btn,
+.team-staff-edit-row.editing .team-staff-cancel-btn { display: inline-flex; }

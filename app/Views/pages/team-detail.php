@@ -29,6 +29,23 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
         <span class="entity-field" data-field="' . htmlspecialchars($field) . '">' . htmlspecialchars($value) . '</span>
     </div>';
 };
+
+// Role suggestions — both gender forms listed as separate options for
+// now (gender-aware role generation pinned for v2). "Sonstiges" reveals
+// a free-text input — see role-select handling in edit-mode.js.
+$roleOptions = [
+    'Präsident',
+    'Präsidentin',
+    'Vizepräsident',
+    'Vizepräsidentin',
+    'Schriftführer',
+    'Schriftführerin',
+    'Schriftführer-Stv.',
+    'Schriftführerin-Stv.',
+    'Finanzreferent',
+    'Finanzreferentin',
+];
+$isCustomRole = !empty($member->role) && !in_array($member->role, $roleOptions, true);
 ?>
 
 <section class="segment light-segment">
@@ -121,7 +138,33 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <?= $editRow('Titel (Mag., Dr., …)', 'title',       $member->title      ?? '', $saveUrl) ?>
                         <?= $editRow('Vorname',              'first_name',  $member->first_name ?? '', $saveUrl) ?>
                         <?= $editRow('Nachname',             'last_name',   $member->last_name  ?? '', $saveUrl) ?>
-                        <?= $editRow('Rolle / Funktion',     'role',        $member->role       ?? '', $saveUrl) ?>
+                        <div class="entity-select-row" data-save-url="<?= htmlspecialchars($saveUrl) ?>">
+                            <div class="edit-row-header">
+                                <label class="edit-row-label">Rolle / Funktion</label>
+                                <div class="edit-row-actions">
+                                    <span class="entity-feedback"></span>
+                                    <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
+                                    <button class="entity-save-btn" style="display:none;"><i class="ti ti-check"></i></button>
+                                    <button class="entity-cancel-btn" style="display:none;"><i class="ti ti-x"></i></button>
+                                </div>
+                            </div>
+                            <p class="entity-select-display m-2">
+                                <?= !empty($member->role) ? htmlspecialchars($member->role) : '—' ?>
+                            </p>
+                            <select class="entity-field entity-select role-select" data-field="role">
+                                <option value="">— keine Angabe —</option>
+                                <?php foreach ($roleOptions as $option): ?>
+                                    <option value="<?= htmlspecialchars($option) ?>" <?= $member->role === $option ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($option) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                                <option value="__custom__" <?= $isCustomRole ? 'selected' : '' ?>>Sonstiges (freier Text)</option>
+                            </select>
+                            <input type="text" class="entity-field role-custom-input" data-field="role"
+                                placeholder="Eigene Rolle eingeben..."
+                                value="<?= $isCustomRole ? htmlspecialchars($member->role) : '' ?>"
+                                style="<?= $isCustomRole ? '' : 'display:none;' ?>">
+                        </div>
                         <?= $editRow('Beruf / Profession',   'profession',  $member->profession ?? '', $saveUrl) ?>
                         <?= $editRow('Motto',                'motto',       $member->motto      ?? '', $saveUrl) ?>
                         <?= $editRow('Biografie',            'biography',   $member->biography  ?? '', $saveUrl) ?>

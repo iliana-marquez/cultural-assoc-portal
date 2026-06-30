@@ -200,6 +200,32 @@ class TeamController extends BaseController
     }
 
     /**
+     * POST /team/reorder
+     * Bulk update order_index for drag-and-drop reordering.
+     * Position 0 (legal representative) is never touched here —
+     * only changed via OrganisationController::setLegalRepresentative()
+     * from org-edit, never through team-grid dragging.
+     *
+     * POST params:
+     *   order  JSON array  [{"id": 5, "order_index": 1}, ...]
+     */
+    public function reorder(array $params = []): void
+    {
+        $this->requireLogin();
+
+        $order = json_decode($_POST['order'] ?? '[]', true);
+
+        if (empty($order)) {
+            $this->jsonError('No order data provided');
+            return;
+        }
+
+        $this->teamModel->reorderTeam($order);
+
+        $this->jsonSuccess();
+    }
+
+    /**
      * GET /team/{id}/profile-fragment
      * Re-renders the profile image partial for in-place refresh after upload/delete.
      */

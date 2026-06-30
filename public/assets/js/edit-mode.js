@@ -3182,6 +3182,202 @@ document.addEventListener('DOMContentLoaded', function () {
         bindAllControls();
     });
 
+
+    // ── Role select — live preview + Sonstiges free-text fallback ──
+    // Purely additive to the existing entity-select-row behaviour
+    // above (unchanged) — this only adds two things specific to the
+    // role field: instant display update on change (not just after
+    // save), and revealing a text input when "Sonstiges" is chosen.
+    document.querySelectorAll('.role-select').forEach(function (select) {
+        const row = select.closest('.entity-select-row');
+        const display = row?.querySelector('.entity-select-display');
+        const customInput = row?.querySelector('.role-custom-input');
+
+        function syncCustomVisibility() {
+            const isCustom = select.value === '__custom__';
+            if (customInput) customInput.style.display = isCustom ? 'block' : 'none';
+        }
+
+        function updatePreview() {
+            if (!display) return;
+            if (select.value === '__custom__') {
+                display.textContent = customInput?.value.trim() || '—';
+            } else {
+                display.textContent = select.options[select.selectedIndex]?.text ?? '—';
+            }
+        }
+
+        syncCustomVisibility();
+
+        select.addEventListener('change', function () {
+            syncCustomVisibility();
+            updatePreview();
+            if (select.value === '__custom__') customInput?.focus();
+        });
+
+        customInput?.addEventListener('input', updatePreview);
+
+        // Override this row's save button to send the custom text
+        // when Sonstiges is active, instead of the literal "__custom__"
+        // sentinel value the <select> itself would otherwise submit.
+        const saveBtn = row?.querySelector('.entity-save-btn');
+        saveBtn?.addEventListener('click', function () {
+            if (select.value === '__custom__' && customInput) {
+                select.value = customInput.value.trim();
+                // Re-insert as a real option so entity-select-row's
+                // own save handler (unchanged) can read select.value
+                // and select.options[selectedIndex].text correctly.
+                const exists = Array.from(select.options).some(function (o) { return o.value === select.value; });
+                if (!exists && select.value) {
+                    const opt = document.createElement('option');
+                    opt.value = select.value;
+                    opt.textContent = select.value;
+                    opt.selected = true;
+                    select.appendChild(opt);
+                }
+            }
+        }, true); // capture phase — runs before entity-select-row's own save listener
+    });
+
+    // ── Team staff grid reorder ───────────────────────────────────
+    // Native HTML5 drag-and-drop. 
+    // order_index 0 (legal rep) lives in its own locked row above —
+    // never appears in .team-staff-grid, never touched here.
+    const staffRow = document.querySelector('.team-staff-edit-row');
+    if (staffRow) {
+        const pencilBtn = staffRow.querySelector('.team-staff-pencil-btn');
+        const saveBtn = staffRow.querySelector('.team-staff-save-btn');
+        const cancelBtn = staffRow.querySelector('.team-staff-cancel-btn');
+        const grid = staffRow.querySelector('.team-staff-grid');
+        const saveUrl = staffRow.dataset.saveUrl;
+        let originalOrder = [];
+        let dragSrc = null;
+
+        function getCards() {
+            return Array.from(grid.querySelectorAll('.team-staff-card'));
+        }
+
+        function snapshotOrder() {
+            originalOrder = getCards().map(function (card) {
+                return card.dataset.memberId;
+            });
+        }
+
+        function restoreOrder() {
+            originalOrder.forEach(function (memberId) {
+                const card = grid.querySelector('.team-staff-card[data-member-id="' + memberId + '"]');
+                if (card) grid.appendChild(card);
+            });
+        }
+
+        function onDragStart(e) {
+            dragSrc = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function onDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            this.classList.add('drag-over');
+        }
+
+        function onDragLeave() {
+            this.classList.remove('drag-over');
+        }
+
+        function onDrop(e) {
+            e.stopPropagation();
+            this.classList.remove('drag-over');
+            if (dragSrc === this) return;
+            const cards = getCards();
+            const srcIdx = cards.indexOf(dragSrc);
+            const tgtIdx = cards.indexOf(this);
+            if (srcIdx < tgtIdx) {
+                grid.insertBefore(dragSrc, this.nextSibling);
+            } else {
+                grid.insertBefore(dragSrc, this);
+            }
+        }
+
+        function onDragEnd() {
+            this.classList.remove('dragging');
+            getCards().forEach(function (card) {
+                card.classList.remove('drag-over');
+            });
+        }
+
+        function enableDrag() {
+            getCards().forEach(function (card) {
+                card.setAttribute('draggable', 'true');
+                card.addEventListener('dragstart', onDragStart);
+                card.addEventListener('dragover', onDragOver);
+                card.addEventListener('dragleave', onDragLeave);
+                card.addEventListener('drop', onDrop);
+                card.addEventListener('dragend', onDragEnd);
+            });
+        }
+
+        function disableDrag() {
+            getCards().forEach(function (card) {
+                card.setAttribute('draggable', 'false');
+                card.removeEventListener('dragstart', onDragStart);
+                card.removeEventListener('dragover', onDragOver);
+                card.removeEventListener('dragleave', onDragLeave);
+                card.removeEventListener('drop', onDrop);
+                card.removeEventListener('dragend', onDragEnd);
+            });
+        }
+
+        pencilBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            snapshotOrder();
+            staffRow.classList.add('editing');
+            document.body.classList.add('is-editing');
+            enableDrag();
+        });
+
+        cancelBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            restoreOrder();
+            disableDrag();
+            staffRow.classList.remove('editing');
+            document.body.classList.remove('is-editing');
+        });
+
+        saveBtn?.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const order = getCards().map(function (card, index) {
+                return { id: parseInt(card.dataset.memberId, 10), order_index: index + 1 };
+            });
+            const data = new FormData();
+            data.append('order', JSON.stringify(order));
+            saveBtn.disabled = true;
+
+            fetch(saveUrl, {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        disableDrag();
+                        staffRow.classList.remove('editing');
+                        document.body.classList.remove('is-editing');
+                        showEntityFeedback(staffRow, 'Gespeichert ✓', 'success');
+                    } else {
+                        showEntityFeedback(staffRow, 'Fehler', 'error');
+                    }
+                    saveBtn.disabled = false;
+                })
+                .catch(function () {
+                    showEntityFeedback(staffRow, 'Verbindungsfehler', 'error');
+                    saveBtn.disabled = false;
+                });
+        });
+    }
+
     // ── Warn on page leave ────────────────────────────────────
     window.addEventListener('beforeunload', function (e) {
         if (hasUnsaved) { e.preventDefault(); e.returnValue = ''; }

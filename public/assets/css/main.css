@@ -749,7 +749,14 @@ form {
     flex-shrink: 0;
 }
 
-/* ── Team cards ─────────────────────────────────────────────── */
+/* ── Team Page ─────────────────────────────────────────────── */
+
+.team-legal-rep-row,
+.team-staff-grid {
+    justify-content: center;
+    padding: 1rem;
+}
+
 .team-card {
     display: block;
     border-radius: 4px;
