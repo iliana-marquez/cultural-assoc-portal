@@ -116,9 +116,14 @@ class CloudinaryService
         $apiSecret = $config['cloudinary_secret'];
         $timestamp = time();
 
-        $params    = ['public_id' => $publicId, 'timestamp' => $timestamp];
+        $params = ['public_id' => $publicId, 'timestamp' => $timestamp];
         ksort($params);
-        $signature = sha1(http_build_query($params, '', '&', PHP_QUERY_RFC3986) . $apiSecret);
+        $paramString = '';
+        foreach ($params as $key => $value) {
+            $paramString .= $key . '=' . $value . '&';
+        }
+        $paramString = rtrim($paramString, '&');
+        $signature = sha1($paramString . $apiSecret);
 
         $postData = $params + [
             'api_key'   => $apiKey,
@@ -141,6 +146,21 @@ class CloudinaryService
         $result = json_decode($response, true);
 
         return ($result['result'] ?? '') === 'ok';
+    }
+
+    /**
+     * Extract Cloudinary public_id from a secure_url.
+     * URL pattern: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}.{ext}
+     *
+     * @param string $url  Cloudinary secure_url
+     * @return string|null public_id, or null if the URL doesn't match
+     */
+    public static function extractPublicId(string $url): ?string
+    {
+        if (preg_match('#/upload/(?:v\d+/)?(.+)\.\w{3,4}$#', $url, $matches)) {
+            return $matches[1];
+        }
+        return null;
     }
 
     /**
