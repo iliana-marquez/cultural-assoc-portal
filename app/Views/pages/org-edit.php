@@ -148,6 +148,37 @@ function editRow(string $label, string $field, string $value, string $saveUrl): 
                 </div>
             </div>
 
+
+            <!-- Legal representative — controls team.order_index 0,
+                 not an organisation_info field. Lives here because the
+                 editor manages this from Vereinsinfo in one place, not
+                 by hunting through individual team profiles. -->
+            <div class="col-12">
+                <h3>Gesetzliche Vertretung</h3>
+                <div class="entity-select-row" data-save-url="/<?= htmlspecialchars($config['admin_path']) ?>/org/legal-representative">
+                    <div class="edit-row-header">
+                        <label class="edit-row-label">Gesetzliche:r Vertreter:in (Datenschutz / Impressum)</label>
+                        <div class="edit-row-actions">
+                            <span class="entity-feedback"></span>
+                            <button class="entity-edit-btn"><i class="ti ti-pencil"></i></button>
+                            <button class="entity-save-btn" style="display:none;"><i class="ti ti-check"></i></button>
+                            <button class="entity-cancel-btn" style="display:none;"><i class="ti ti-x"></i></button>
+                        </div>
+                    </div>
+                    <p class="entity-select-display m-2">
+                        <?= $legalRep ? htmlspecialchars(TeamModel::displayName($legalRep) . (!empty($legalRep->role) ? ' — ' . $legalRep->role : '')) : '— niemand festgelegt —' ?>
+                    </p>
+                    <select class="entity-field entity-select" data-field="team_id">
+                        <option value="">— bitte wählen —</option>
+                        <?php foreach ($teamMembers as $member): ?>
+                            <option value="<?= $member->id ?>" <?= ($legalRep && $legalRep->id === $member->id) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars(TeamModel::displayName($member)) ?><?= !empty($member->role) ? ' — ' . htmlspecialchars($member->role) : '' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
             <!-- Descriptions -->
             <div class="col-12">
                 <h3>Beschreibungen</h3>
