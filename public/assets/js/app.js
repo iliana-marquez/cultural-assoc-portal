@@ -301,4 +301,89 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
         });
     }
+
+    // ── Archive filter ────────────────────────────────────────────
+    // Year chips and category chips filter the archive grid via AJAX.
+    // Only the event grid (#archive-grid) and category chips
+    // (#archive-categories) are swapped — the year timeline is static
+    // PHP and survives every filter call without re-rendering.
+    // URL updates via history.pushState so filtered views are shareable.
+
+    (function () {
+        const timeline = document.querySelector('.archive-timeline');
+        if (!timeline) return; // only runs on /archiv
+
+        let currentYear = timeline.querySelector('.archive-year-chip--active')?.dataset.year ?? null;
+        let currentCategory = null;
+
+        // Initialise category from URL on page load (shareable URL support)
+        const initParams = new URLSearchParams(window.location.search);
+        if (initParams.get('category')) {
+            currentCategory = initParams.get('category');
+        }
+
+        function filter(year, category) {
+            const params = new URLSearchParams({ year });
+            if (category) params.set('category', category);
+
+            // Update browser URL without reload
+            history.pushState({ year, category }, '', '/archiv?' + params.toString());
+
+            // Update active state on year chips
+            timeline.querySelectorAll('.archive-year-chip').forEach(function (chip) {
+                chip.classList.toggle('archive-year-chip--active', chip.dataset.year == year);
+            });
+
+            fetch('/archiv/filter?' + params.toString(), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(function (res) { return res.json(); })
+                .then(function (json) {
+                    if (!json.success) return;
+                    document.getElementById('archive-categories').innerHTML = json.categories;
+                    document.getElementById('archive-grid').innerHTML = json.events;
+                    bindCategoryChips();
+                })
+                .catch(function () {
+                    // Silent fail — grid stays as-is
+                });
+        }
+
+        function bindCategoryChips() {
+            document.querySelectorAll('.archive-category-chip').forEach(function (chip) {
+                chip.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    // Toggle: clicking active category resets to "all"
+                    const cat = chip.dataset.category || null;
+                    currentCategory = (cat === currentCategory) ? null : cat;
+                    filter(currentYear, currentCategory);
+                });
+            });
+        }
+
+        // Year chip clicks
+        timeline.querySelectorAll('.archive-year-chip').forEach(function (chip) {
+            chip.addEventListener('click', function (e) {
+                e.preventDefault();
+                currentYear = chip.dataset.year;
+                currentCategory = null; // reset category on year change
+                filter(currentYear, null);
+            });
+        });
+
+        // Initial category chip binding (PHP-rendered on page load)
+        bindCategoryChips();
+
+        // Browser back/forward — restore filter state from URL
+        window.addEventListener('popstate', function (e) {
+            const state = e.state;
+            if (state && state.year) {
+                currentYear = state.year;
+                currentCategory = state.category || null;
+                filter(currentYear, currentCategory);
+            }
+        });
+
+    })();
+
 });
