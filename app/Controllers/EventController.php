@@ -3,12 +3,13 @@
 /**
  * EventController
  *
- * GET /veranstaltungen          → event listing (upcoming + past)
+ * GET /veranstaltungen          → upcoming events only (all past → /archiv)
  * GET /veranstaltungen/{slug}   → event detail
- * GET /archiv                   → archive listing (pre-2025)
+ * GET /archiv                   → archive listing, filtered by year + category
+ * GET /archiv/filter            → AJAX fragment: events grid + category chips
  * GET /events/{id}/promo-fragment
  * POST /events/add              → add event
- * POST /events/{id}/save        → update event
+ * POST /events/{id}/save        → update event field
  * POST /events/{id}/delete      → delete event
  * POST /events/{id}/participant/add    → add participant to event
  * POST /events/{id}/participant/remove → remove participant from event
@@ -46,40 +47,33 @@ class EventController extends BaseController
 
     /**
      * GET /veranstaltungen
-     * Event listing — upcoming and past sections.
+     * Upcoming events only. All past events live on /archiv.
      */
     public function index(array $params = []): void
     {
-        $sections   = $this->pagesModel->getForPage('veranstaltungen');
-        $upcoming   = $this->eventModel->getUpcoming();
-        $past       = $this->eventModel->getPast();
-        $categories = $this->eventModel->getCategories();
+        $sections = $this->pagesModel->getForPage('veranstaltungen');
+        $upcoming = $this->eventModel->getUpcoming();
 
-        // Public side — show only published, non-cancelled events
         if (!$this->isLoggedIn()) {
             $upcoming = array_filter($upcoming, fn($e) => $e->status === 'published' && empty($e->cancelled_at));
-            $past     = array_filter($past,     fn($e) => $e->status === 'published' && empty($e->cancelled_at));
         }
 
-        // Add slug + promo image to each event
-        foreach (array_merge($upcoming, $past) as $event) {
+        foreach ($upcoming as $event) {
             $event->slug  = EventModel::generateSlug($event->title);
             $event->promo = $this->mediaModel->getFirstForEntity('event', $event->id, 'promo');
         }
 
         $seo = $this->buildSeo(
             $this->org,
-            $this->org->name . ' | Veranstaltungen',
-            'Kulturprogramm von ' . $this->org->name
+            $this->org->name . ' | Programm',
+            'Kommende Veranstaltungen von ' . $this->org->name
         );
 
         $this->render('pages/events', [
-            'sections'   => $sections,
-            'upcoming'   => $upcoming,
-            'past'       => $past,
-            'categories' => $categories,
-            'seo'        => $seo,
-            'pageKey'    => 'veranstaltungen',
+            'sections' => $sections,
+            'upcoming' => $upcoming,
+            'seo'      => $seo,
+            'pageKey'  => 'veranstaltungen',
         ]);
     }
 
@@ -145,21 +139,43 @@ class EventController extends BaseController
 
     /**
      * GET /archiv
-     * Archive listing — events before 2025.
+     * Archive listing — all past events, filtered by year and/or category.
+     * Default year = current year (e.g. 2026), falling back to the most
+     * recent year that actually has events if the current year has none yet.
      */
     public function archive(array $params = []): void
     {
         $sections = $this->pagesModel->getForPage('archiv');
-        $events   = $this->eventModel->getArchive();
+        $years    = $this->eventModel->getArchiveYears();
 
-        // Public side — show only published, non-cancelled events
+        // Determine default year: current year if it has past events,
+        // otherwise the most recent year that does.
+        $availableYears = array_column($years, 'year');
+        $currentYear    = (int) date('Y');
+        $defaultYear    = in_array($currentYear, $availableYears)
+            ? $currentYear
+            : (int) ($availableYears[0] ?? $currentYear);
+
+        $selectedYear     = isset($_GET['year']) ? (int) $_GET['year'] : $defaultYear;
+        $selectedCategory = isset($_GET['category']) ? (int) $_GET['category'] : null;
+
+        // countArchive includes drafts — used to detect unpublished events
+        // for the curation notice. Fetched before the public filter strips them.
+        $events              = $this->eventModel->getArchive($selectedYear, $selectedCategory);
+        $totalEventsInPeriod = $this->eventModel->countArchive($selectedYear, $selectedCategory);
+
+        $categories = $this->eventModel->getArchiveCategoriesByYear($selectedYear);
+
         if (!$this->isLoggedIn()) {
             $events = array_filter($events, fn($e) => $e->status === 'published' && empty($e->cancelled_at));
         }
 
         foreach ($events as $event) {
-            $event->slug  = EventModel::generateSlug($event->title);
-            $event->promo = $this->mediaModel->getFirstForEntity('event', $event->id, 'promo');
+            $event->slug      = EventModel::generateSlug($event->title);
+            // Gallery image preferred in archive — shows what actually happened.
+            // Promo (often a flyer) is the fallback when no gallery exists yet.
+            $event->cardImage = $this->mediaModel->getFirstForEntity('event', $event->id, 'gallery')
+                ?? $this->mediaModel->getFirstForEntity('event', $event->id, 'promo');
         }
 
         $seo = $this->buildSeo(
@@ -169,25 +185,73 @@ class EventController extends BaseController
         );
 
         $this->render('pages/archive', [
-            'sections' => $sections,
-            'events'   => $events,
-            'seo'      => $seo,
-            'pageKey'  => 'archiv',
+            'sections'            => $sections,
+            'events'              => $events,
+            'years'               => $years,
+            'categories'          => $categories,
+            'selectedYear'        => $selectedYear,
+            'selectedCategory'    => $selectedCategory,
+            'totalEventsInPeriod' => $totalEventsInPeriod,
+            'seo'                 => $seo,
+            'pageKey'             => 'archiv',
+        ]);
+    }
+
+    /**
+     * GET /archiv/filter
+     * AJAX endpoint — returns JSON with two HTML fragments:
+     *   events:     the event grid for the selected year/category
+     *   categories: the category chips for the selected year
+     * The year chips themselves are static PHP (never swapped by AJAX).
+     */
+    public function archiveFilter(array $params = []): void
+    {
+        $year       = (int) ($_GET['year'] ?? date('Y'));
+        $categoryId = isset($_GET['category']) ? (int) $_GET['category'] : null;
+        $isLoggedIn = $this->isLoggedIn();
+
+        // countArchive includes drafts — captured before public filter.
+        $events              = $this->eventModel->getArchive($year, $categoryId);
+        $totalEventsInPeriod = $this->eventModel->countArchive($year, $categoryId);
+
+        $categories = $this->eventModel->getArchiveCategoriesByYear($year);
+
+        if (!$isLoggedIn) {
+            $events = array_filter($events, fn($e) => $e->status === 'published' && empty($e->cancelled_at));
+        }
+
+        foreach ($events as $event) {
+            $event->slug      = EventModel::generateSlug($event->title);
+            $event->cardImage = $this->mediaModel->getFirstForEntity('event', $event->id, 'gallery')
+                ?? $this->mediaModel->getFirstForEntity('event', $event->id, 'promo');
+        }
+
+        $selectedCategory = $categoryId;
+
+        ob_start();
+        include __DIR__ . '/../Views/components/archive/events-grid.php';
+        $eventsHtml = ob_get_clean();
+
+        ob_start();
+        include __DIR__ . '/../Views/components/archive/categories.php';
+        $categoriesHtml = ob_get_clean();
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success'    => true,
+            'events'     => $eventsHtml,
+            'categories' => $categoriesHtml,
         ]);
     }
 
     /**
      * GET /events/{id}/promo-fragment
-     * Returns just the rebuilt promo-media HTML (single image / carousel /
-     * empty placeholder) for a given event — used by the JS delete handler
-     * to update the DOM in place after removing a promo image, instead of
-     * reloading the whole page. Reuses the exact same partial as the full
-     * event detail page, so there is only one place that knows how to
-     * render this markup.
+     * Re-renders the promo-media partial for in-place DOM update after
+     * upload/delete — no full page reload needed.
      */
     public function promoFragment(array $params = []): void
     {
-        $id = (int) ($params['id'] ?? 0);
+        $id    = (int) ($params['id'] ?? 0);
         $event = $this->eventModel->getById($id);
 
         if (!$event) {
@@ -232,6 +296,7 @@ class EventController extends BaseController
 
         $this->jsonSuccess(['slug' => $slug]);
     }
+
     /**
      * POST /events/{id}/save
      * Update a single field via entity-edit-row AJAX.

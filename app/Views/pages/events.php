@@ -3,14 +3,13 @@
 /**
  * events.php
  *
- * Event listing — upcoming and past sections.
+ * Upcoming events listing — Kommende Veranstaltungen.
+ * All past events live on /archiv.
  * Free intro sections from pages table above.
  *
  * Variables:
- *   $sections   array  Free sections from PagesModel
- *   $upcoming   array  Upcoming events from EventModel
- *   $past       array  Past events from EventModel
- *   $categories array  Event categories for filtering
+ *   $sections  array  Free sections from PagesModel
+ *   $upcoming  array  Upcoming events from EventModel::getUpcoming()
  */
 ?>
 
@@ -20,28 +19,20 @@
 <section class="segment light-segment">
     <div class="container">
 
-        <!-- Upcoming events -->
+
+
         <?php if (!empty($upcoming)): ?>
-            <h2 class="events-heading">Kommende Veranstaltungen</h2>
+            <!-- <p class="text-center mt-5">Als Erste:r von neuen Veranstaltungen, Künstler:innen und Neuigkeiten mit dem Newsletter erfahren</p>
+            <?php require __DIR__ . '/../components/newsletter-strip.php'; ?> -->
             <div class="row g-4">
                 <?php foreach ($upcoming as $event): ?>
                     <?php require __DIR__ . '/../components/event/event-card.php'; ?>
                 <?php endforeach; ?>
             </div>
-        <?php endif; ?>
+        <?php else: ?>
 
-        <!-- Past events -->
-        <?php if (!empty($past)): ?>
-            <h2 class="events-heading">Vergangene Veranstaltungen</h2>
-            <div class="row g-4">
-                <?php foreach ($past as $event): ?>
-                    <?php require __DIR__ . '/../components/event/event-card.php'; ?>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (empty($upcoming) && empty($past)): ?>
-            <p>Keine Veranstaltungen gefunden.</p>
+            <!-- <p class="text-center">Die nächste Veranstaltung ist bereits in Planung!<br>Melden Sie sich zum Newsletter an und</p> -->
+            <?php require __DIR__ . '/../components/newsletter-strip.php'; ?>
         <?php endif; ?>
 
     </div>

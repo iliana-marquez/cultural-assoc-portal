@@ -5,7 +5,7 @@
  *
  * Manages programme events — current and historical.
  * Status derived at app level from date — no DB column needed.
- * Archive = events before 2025 (or date null).
+ * Archive = events before CURDATE() — fully automatic, no hardcoded year.
  * Media fetched separately via MediaModel (entity_type: 'event').
  * Participants fetched via ParticipantModel::getForEvent().
  * Venue fetched via VenueModel::getById().
@@ -15,11 +15,8 @@ class EventModel extends BaseModel
 {
     private string $table = 'events';
 
-    // Archive threshold — events before this year shown on /archiv
-    private const ARCHIVE_YEAR = 2025;
-
     /**
-     * Get all current events (2025+) ordered by date DESC.
+     * Get all events ordered by date DESC.
      */
     public function getAll(): array
     {
@@ -28,9 +25,7 @@ class EventModel extends BaseModel
              FROM {$this->table} e
              LEFT JOIN event_categories ec ON ec.id = e.category_id
              LEFT JOIN venues v ON v.id = e.venue_id
-             WHERE e.date >= ?
-             ORDER BY e.date DESC",
-            [self::ARCHIVE_YEAR . '-01-01']
+             ORDER BY e.date DESC"
         );
     }
 
@@ -45,12 +40,14 @@ class EventModel extends BaseModel
              LEFT JOIN event_categories ec ON ec.id = e.category_id
              LEFT JOIN venues v ON v.id = e.venue_id
              WHERE e.date >= CURDATE()
-             ORDER BY e.date ASC",
+             ORDER BY e.date ASC"
         );
     }
 
     /**
-     * Get past events (before today, from 2025+).
+     * Get past events (before today) — all of them, no year threshold.
+     * Archive is the single home for all past events; /veranstaltungen
+     * shows only upcoming. The cut is CURDATE(), not a hardcoded year.
      */
     public function getPast(): array
     {
@@ -59,25 +56,110 @@ class EventModel extends BaseModel
              FROM {$this->table} e
              LEFT JOIN event_categories ec ON ec.id = e.category_id
              LEFT JOIN venues v ON v.id = e.venue_id
-             WHERE e.date < CURDATE() AND e.date >= ?
-             ORDER BY e.date DESC",
-            [self::ARCHIVE_YEAR . '-01-01']
+             WHERE e.date < CURDATE()
+             ORDER BY e.date DESC"
         );
     }
 
     /**
-     * Get archive events (pre-2025 or date null).
+     * Get archive events — all events before today.
+     * Optionally filtered by year and/or category.
+     *
+     * @param int|null $year        Filter by calendar year (YEAR(date) = ?)
+     * @param int|null $categoryId  Filter by category_id
      */
-    public function getArchive(): array
+    public function getArchive(?int $year = null, ?int $categoryId = null): array
     {
+        $where  = ['e.date < CURDATE()'];
+        $params = [];
+
+        if ($year) {
+            $where[]  = 'YEAR(e.date) = ?';
+            $params[] = $year;
+        }
+
+        if ($categoryId) {
+            $where[]  = 'e.category_id = ?';
+            $params[] = $categoryId;
+        }
+
+        $whereClause = implode(' AND ', $where);
+
         return $this->fetchAll(
             "SELECT e.*, ec.label as category_label, v.name as venue_name
              FROM {$this->table} e
              LEFT JOIN event_categories ec ON ec.id = e.category_id
              LEFT JOIN venues v ON v.id = e.venue_id
-             WHERE e.date < ? OR e.date IS NULL
+             WHERE {$whereClause}
              ORDER BY e.date DESC",
-            [self::ARCHIVE_YEAR . '-01-01']
+            $params
+        );
+    }
+
+    /**
+     * Count archive events — same filters as getArchive() but returns
+     * only the total count, including drafts. Used to detect whether
+     * unpublished events exist for the curation notice.
+     *
+     * @param int|null $year
+     * @param int|null $categoryId
+     */
+    public function countArchive(?int $year = null, ?int $categoryId = null): int
+    {
+        $where  = ['date < CURDATE()'];
+        $params = [];
+
+        if ($year) {
+            $where[]  = 'YEAR(date) = ?';
+            $params[] = $year;
+        }
+
+        if ($categoryId) {
+            $where[]  = 'category_id = ?';
+            $params[] = $categoryId;
+        }
+
+        $result = $this->fetchOne(
+            "SELECT COUNT(*) as total FROM {$this->table} WHERE " . implode(' AND ', $where),
+            $params
+        );
+
+        return (int) ($result->total ?? 0);
+    }
+
+    /**
+     * Get distinct years that have past events — for the archive timeline nav.
+     * Ordered newest first so the timeline reads right-to-left naturally.
+     */
+    public function getArchiveYears(): array
+    {
+        return $this->fetchAll(
+            "SELECT DISTINCT YEAR(date) as year
+             FROM {$this->table}
+             WHERE date < CURDATE() AND date IS NOT NULL
+             ORDER BY year DESC"
+        );
+    }
+
+    /**
+     * Get categories that have at least one published, non-cancelled past
+     * event in a given year — with event count per category.
+     * Counts only published events so chips reflect what visitors actually see.
+     * Category chips still appear as a teaser even when some events are drafts.
+     */
+    public function getArchiveCategoriesByYear(int $year): array
+    {
+        return $this->fetchAll(
+            "SELECT ec.id, ec.label, COUNT(e.id) as event_count
+             FROM {$this->table} e
+             INNER JOIN event_categories ec ON ec.id = e.category_id
+             WHERE YEAR(e.date) = ?
+               AND e.date < CURDATE()
+               AND e.status = 'published'
+               AND e.cancelled_at IS NULL
+             GROUP BY ec.id, ec.label
+             ORDER BY ec.label ASC",
+            [$year]
         );
     }
 
@@ -228,9 +310,9 @@ class EventModel extends BaseModel
     {
         $this->execute(
             "INSERT INTO {$this->table}
-         (project_id, category_id, title, subtitle, description,
-          date, time, venue_id, review, admission, admission_url, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             (project_id, category_id, title, subtitle, description,
+              date, time, venue_id, review, admission, admission_url, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 $data['project_id']    ?? null,
                 $data['category_id']   ?? null,
@@ -243,12 +325,13 @@ class EventModel extends BaseModel
                 $data['review']        ?? null,
                 $data['admission']     ?? null,
                 $data['admission_url'] ?? null,
-                $data['status']         ?? 'draft',
+                $data['status']        ?? 'draft',
             ]
         );
 
         return $this->lastInsertId();
     }
+
     /**
      * Update a single field — used by entity-edit-row AJAX saves.
      */
@@ -278,7 +361,7 @@ class EventModel extends BaseModel
     }
 
     /**
-     * Update an event.
+     * Update an event — full row update.
      */
     public function update(int $id, array $data): bool
     {
@@ -289,16 +372,16 @@ class EventModel extends BaseModel
                  review = ?, admission = ?, admission_url = ?
              WHERE id = ?",
             [
-                $data['project_id']   ?? null,
-                $data['category_id']  ?? null,
-                $data['title']        ?? null,
-                $data['subtitle']     ?? null,
-                $data['description']  ?? null,
-                $data['date']         ?? null,
-                $data['time']         ?? null,
-                $data['venue_id']     ?? null,
-                $data['review']       ?? null,
-                $data['admission']      ?? null,
+                $data['project_id']    ?? null,
+                $data['category_id']   ?? null,
+                $data['title']         ?? null,
+                $data['subtitle']      ?? null,
+                $data['description']   ?? null,
+                $data['date']          ?? null,
+                $data['time']          ?? null,
+                $data['venue_id']      ?? null,
+                $data['review']        ?? null,
+                $data['admission']     ?? null,
                 $data['admission_url'] ?? null,
                 $id,
             ]
@@ -307,7 +390,7 @@ class EventModel extends BaseModel
 
     /**
      * Delete an event — hard delete.
-     * FK on event_participants is ON DELETE CASCADE — removes pivot rows. 
+     * FK on event_participants is ON DELETE CASCADE — removes pivot rows.
      */
     public function delete(int $id): bool
     {

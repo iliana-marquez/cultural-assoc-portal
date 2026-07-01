@@ -6,8 +6,14 @@
  * Reusable event card component.
  * Used in events listing and archive listing.
  *
+ * Image priority:
+ *   $event->cardImage — set by archive controller (gallery first, promo fallback)
+ *   $event->promo     — set by events controller (promo only)
+ * The card reads whichever is available, preferring cardImage.
+ *
  * Variables (from parent loop):
- *   $event object  Event with slug, promo, category_label, venue_name
+ *   $event       object  Event with slug, cardImage|promo, category_label, venue_name
+ *   $isLoggedIn  bool    From BaseController
  */
 ?>
 
@@ -26,15 +32,19 @@
             $cardBadge = '<span class="event-status-badge event-status-badge--draft">Entwurf</span>';
         }
     }
+
+    // Gallery image takes precedence in archive context (cardImage);
+    // events listing uses promo only. Card renders whichever is set.
+    $cardMedia = $event->cardImage ?? $event->promo ?? null;
     ?>
     <a href="/veranstaltungen/<?= htmlspecialchars($event->slug) ?>"
         class="event-card<?= $cardClass ?>">
 
-        <!-- Promo image -->
+        <!-- Card image -->
         <div class="img-placeholder event-card-img">
             <?= $cardBadge ?? '' ?>
-            <?php if (!empty($event->promo)): ?>
-                <img src="<?= htmlspecialchars($event->promo->media_url) ?>"
+            <?php if (!empty($cardMedia)): ?>
+                <img src="<?= htmlspecialchars($cardMedia->media_url) ?>"
                     alt="<?= htmlspecialchars($event->title) ?>">
             <?php else: ?>
                 <i class="ti ti-music"></i>
