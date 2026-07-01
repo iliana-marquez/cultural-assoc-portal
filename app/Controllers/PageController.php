@@ -186,7 +186,8 @@ class PageController extends BaseController
             'object_fit',
             'align',
             'image',
-            'bg_image'
+            'image_credit',
+            'bg_image',
         ];
 
         // Allowed HTML tags for rich text fields — strip dangerous tags, keep formatting
