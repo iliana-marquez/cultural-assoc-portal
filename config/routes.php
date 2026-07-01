@@ -58,6 +58,7 @@ $router->post('/team/{id}/delete', 'TeamController', 'delete');
 // ── Events CRUD → EventController ──────────────────────────────
 $router->get('/veranstaltungen',              'EventController', 'index');
 $router->get('/veranstaltungen/{slug}',       'EventController', 'show');
+$router->get('/archiv/filter',                'EventController', 'archiveFilter');
 $router->get('/archiv',                       'EventController', 'archive');
 $router->get('/events/{id}/promo-fragment',   'EventController', 'promoFragment');
 $router->post('/events/add',                     'EventController', 'add');
