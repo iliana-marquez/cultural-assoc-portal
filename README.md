@@ -2863,31 +2863,135 @@ Fixed by replacing the internal call with a raw status-agnostic query: `WHERE de
 
 ## Testing
 
-```
 - Role select shows predefined options on team-detail
 - Predefined role saves and displays correctly
 - Sonstiges reveals free-text input
-- Custom role saves correctly — not stored as "__custom__"
+- Custom role saves correctly — not stored as `"__custom__"`
 - Custom role shown as selected on page reload
-- Legal rep select on org-edit shows all non-deleted members
-- Assigning a published member sets order_index = 0 correctly
-- Assigning a draft member sets order_index = 0 correctly
+- Legal rep select on org-edit shows all non-deleted member
+- Assigning a published member sets `order_index = 0` correctly
+- Assigning a draft member sets `order_index = 0` correctly
 - Previous holder demoted to end of list in both cases
-- Only one member holds order_index = 0 at any time
-- Legal rep appears in locked row on /team
+- Only one member holds `order_index = 0` at any time
+- Legal rep appears in locked row on `/team`
 - Legal rep card not draggable
 - Staff grid cards draggable in edit mode (grab cursor)
 - Drag reorder updates DOM immediately
 - Save persists new order after page reload
 - Cancel restores original DOM order without reload
-- New team member gets order_index = MAX + 1, never 0
-- /impressum shows legal rep name and role from index 0
-- /datenschutz shows legal rep name and role from index 0
+- New team member gets `order_index = MAX + 1`, never 0
+- `/impressum` shows legal rep name and role from index 0
+- `/datenschutz` shows legal rep name and role from index 0
 - No published member at index 0 → "Information folgt in Kürze"
 - Draft members visible in edit mode (greyscale + Entwurf chip)
 - Draft members hidden from public listing
-- Publish/unpublish/delete work correctly from team-detail status bar
+- `Publish/unpublish/delete` work correctly from team-detail status bar
+
+# feat/event-storytelling
+
+## Overview
+
+Restructures event display into two distinct experiences: `/veranstaltungen` shows only upcoming events (the live programme), and `/archiv` is a fully interactive time-travel archive of past events. The split is automatic — driven by `CURDATE()`, not a hardcoded year. The archive features a year timeline nav, category chips with event counts, AJAX filtering with shareable URLs, gallery-first card images, and a curation notice that transparently communicates how many events are still being prepared.
+
+---
+
+## Architecture
+
 ```
+CURDATE() — single threshold for all date logic
+      ↓
+/veranstaltungen → EventModel::getUpcoming()   date >= CURDATE()
+/archiv          → EventModel::getArchive()    date < CURDATE(), filtered by year + category
+
+EventController::archive()
+├── getArchiveYears()              → year timeline chips
+├── getArchive($year, $category)   → event grid (all statuses)
+├── countArchive($year, $category) → total count including drafts
+├── getArchiveCategoriesByYear()   → published-only category chips with count
+└── public filter strips drafts    → draft count = total - published sum → curation notice
+
+EventController::archiveFilter()  ← AJAX endpoint
+├── same logic as archive()
+└── returns JSON { events: html, categories: html }
+      ↓
+JS swaps #archive-grid + #archive-categories
+history.pushState → /archiv?year=2024&category=3
+```
+
+---
+
+## Bugs & Fixes
+
+**`ARCHIVE_YEAR` constant hardcoded to 2025**
+Events from 2026 were not appearing in the archive because the threshold was fixed. Replaced with `CURDATE()` everywhere — the cut is always today's date, fully automatic.
+
+**`COUNT(*) OVER()` window function not supported on MySQL 5.7**
+Initial implementation used a window function to get total event count alongside the result set. MySQL 5.7 (MAMP) doesn't support window functions. Fixed by adding a separate `countArchive()` method with a plain `COUNT(*)` query.
+
+**Subquery alias collision**
+Second attempt used a correlated subquery with `e.date` alias inside a subquery that had no `e` alias — silently returning total count of all events (63) instead of the filtered year count. Fixed by extracting `countArchive()` as a completely separate, clean query with no alias dependency.
+
+**Curation notice showing when no drafts exist**
+The `$hasDrafts` comparison used `count($events)` after the public filter against `$totalEventsInPeriod` — but events without categories are invisible to the published chip sum, causing a false positive. Fixed by computing draft count as `$totalEventsInPeriod - array_sum(array_column($categories, 'event_count'))` where `$categories` already holds accurate published counts.
+
+---
+
+## Files Changed
+
+- **`EventModel.php`** — remove `ARCHIVE_YEAR` constant; `getArchive()` accepts year + category params, uses `CURDATE()`; new `getArchiveYears()`; new `getArchiveCategoriesByYear()` (published + non-cancelled only, with count); new `countArchive()` (all statuses, for draft detection); `getPast()` and `getAll()` updated to remove hardcoded year
+- **`EventController.php`** — `index()` upcoming only; `archive()` year/category filter with current-year default, gallery-first image, `totalEventsInPeriod` via `countArchive()`; new `archiveFilter()` AJAX endpoint returning two HTML fragments
+- **`archive.php`** — complete rewrite: year timeline nav, `#archive-categories` and `#archive-grid` swappable containers
+- **`events.php`** — upcoming only; newsletter strip always visible below grid with conditional copy; empty state leads directly into newsletter
+- **`event-card.php`** — `$cardMedia = $event->cardImage ?? $event->promo ?? null` — gallery-first in archive context, promo-only on programme page
+- **`routes.php`** — `GET /archiv/filter` added as static route before `/archiv`
+- **`components/archive/events-grid.php`** _(new)_ — event grid fragment, reused by `archive.php` and `archiveFilter()`
+- **`components/archive/categories.php`** _(new)_ — category chips with published counts; "Alle" only when multiple categories; single category starts active; curation notice inline when draft count > 0
+- **`main.css`** — `.archive-timeline`, `.archive-year-chip`, `.archive-timeline-sep`, `.archive-categories`, `.archive-category-chip`, `.archive-category-count`, `.archive-curation-notice`
+- **`app.js`** — archive filter IIFE: year chip clicks, category chip clicks (toggle behaviour), `history.pushState`, `popstate` handler for browser back/forward, `bindCategoryChips()` called after every AJAX swap
+
+---
+
+## Testing
+
+- `/veranstaltungen` shows only upcoming events — no past section
+- `/veranstaltungen` empty state shows newsletter strip directly
+- `/veranstaltungen` with events shows newsletter strip below grid
+- `/archiv` defaults` to current year (2026) on page load
+- `/archiv` falls ba ck to most recent year with events when current year has none
+- Year chips render for all years with past events, newest left
+- Arrow separators between chips render correctly
+- Active year chip is filled/highlighted
+- Clicking a year chip filters grid via AJAX — no page reload
+- URL updates to `/archiv?year=YYYY` on year click
+- Shareable URL `/archiv?year=2025` loads correct year directly
+- Browser back/forward restores filter state via popstate
+- Category chips appear only when selected year has published events
+- Single category: no "Alle", chip starts active
+- Multiple categories: "Alle (total)" first, starts active
+- Category count reflects published events only
+- Clicking category filters grid to that category
+- Clicking active category resets to "Alle"
+- URL updates to `/archiv?year=2025&category=3` on category click
+- Curation notice appears when draft events exist in selected year
+- Curation notice count is accurate (total - published)
+- Grammatical agreement: 1 → "wird", 2+ → "werden"
+- No curation notice when all events are published
+- No curation notice when year has no categories (no chips rendered)
+- Archive card shows gallery image when available
+- Archive card falls back to promo when no gallery
+- Archive card falls back to music icon when no images
+- Programme card uses promo image only
+- Past events do not appear on `/veranstaltungen`
+- Upcoming events do not appear on `/archiv`
+- Draft events hidden from public archive grid
+- Draft events visible to logged-in editors in archive
+- Edit mode unaffected — create, publish, unpublish, delete still work
+
+---
+
+## Deferred
+
+- `feat/video-embed` — YouTube/Cloudinary video embedding on event detail
 
 <!--
 
