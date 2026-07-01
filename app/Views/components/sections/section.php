@@ -19,13 +19,12 @@
  *   $text        string|null
  *   $cta         object|null { label, url }
  *   $partialsDir string      Absolute path to partials/ — set by render-sections.php
+ *
+ * Background image lives in its own .segment-bg div so that
+ * filter: grayscale() only affects the image, never the text content.
  */
 
 $themeClass = ($theme ?? 'light') === 'dark' ? 'dark-segment' : 'light-segment';
-
-$bgStyle = !empty($bgImage)
-    ? 'style="background-image: url(\'' . htmlspecialchars($bgImage) . '\')"'
-    : '';
 
 $cols = match ($layout ?? '50-50') {
     '75-25'   => ['text' => 'col-12 col-md-8', 'image' => 'col-12 col-md-4'],
@@ -63,9 +62,10 @@ $ctaAlignClass = $hasImage
         data-save-url="/page/section/<?= $section->id ?? '' ?>/save">
     <?php endif; ?>
 
-    <section class="segment <?= $themeClass ?>" <?= $bgStyle ?>>
+    <section class="segment <?= $themeClass ?>">
 
         <?php if (!empty($bgImage)): ?>
+            <div class="segment-bg" style="background-image: url('<?= htmlspecialchars($bgImage) ?>')"></div>
             <div class="segment-overlay"></div>
         <?php endif; ?>
 

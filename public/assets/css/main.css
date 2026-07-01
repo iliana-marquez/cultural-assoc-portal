@@ -495,6 +495,22 @@ footer {
     z-index: 0;
 }
 
+/* ── Section background image layer ─────────────────────────
+   Separate from the segment itself so filter: grayscale() only
+   affects the background image, not the text content above it. */
+.segment-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: grayscale(1);
+    z-index: 0;
+}
+
+/* Ensure overlay and content sit above the bg layer */
+.segment-overlay { z-index: 1; }
+.segment > .container { position: relative; z-index: 2; }
+
 .light-segment .segment-overlay { background: rgba(var(--light-rgb), 0.90); }
 .dark-segment  .segment-overlay { background: rgba(var(--dark-rgb),  0.90); }
 
