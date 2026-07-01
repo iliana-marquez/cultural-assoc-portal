@@ -462,6 +462,60 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         });
+
+        // Credit button — inside image overlay, opens shared input modal.
+        // Updates hidden data-field="image_credit" so saveBlock() picks it up,
+        // and live-updates the visible credit display below the image.
+        block.querySelectorAll('[data-action="edit-section-credit"]').forEach(function (btn) {
+            if (btn._creditInitialized) return;
+            btn._creditInitialized = true;
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                openInputModal({
+                    title: 'Bildcredit',
+                    placeholder: '© Fotografin / Fotograf',
+                    initialValue: btn.dataset.credit || '',
+                    onConfirm: function (value) {
+                        const data = new FormData();
+                        data.append('image_credit', value);
+
+                        fetch('/page/section/' + sectionId + '/save', {
+                            method: 'POST',
+                            body: data,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(res => res.json())
+                            .then(function (json) {
+                                if (!json.success) return;
+
+                                btn.dataset.credit = value;
+
+                                const imageCol = btn.closest('.section-image-col');
+                                let creditDisplay = imageCol?.querySelector('.image-credit');
+                                if (value) {
+                                    if (!creditDisplay) {
+                                        creditDisplay = document.createElement('span');
+                                        creditDisplay.className = 'image-credit small';
+                                        creditDisplay.innerHTML = '<i class="ti ti-camera"></i> <span class="image-credit-text"></span>';
+                                        imageCol?.querySelector('.img-placeholder')?.insertAdjacentElement('afterend', creditDisplay);
+                                    }
+                                    creditDisplay.querySelector('.image-credit-text').textContent = value;
+                                } else {
+                                    creditDisplay?.remove();
+                                }
+
+                                closeInputModal();
+                                showBlockFeedback(block, 'Credit gespeichert ✓', 'success');
+                            })
+                            .catch(function () {
+                                showBlockFeedback(block, 'Verbindungsfehler', 'error');
+                            });
+
+                    }
+                });
+            });
+        });
     }
 
     // ── Rich-text toolbar ───────────────────────────────────────
@@ -721,14 +775,22 @@ document.addEventListener('DOMContentLoaded', function () {
                         updateColumns(block, layout);
 
                     } else {
-                        const segment = block.querySelector('.segment');
-                        segment.style.backgroundImage = 'url(' + json.url + ')';
+                        // BG image — on its own .segment-bg layer so
+                        // filter: grayscale() only affects the image,
+                        // never the text content above it.
+                        let bgLayer = block.querySelector('.segment-bg');
+                        if (!bgLayer) {
+                            bgLayer = document.createElement('div');
+                            bgLayer.className = 'segment-bg';
+                            block.querySelector('.segment').prepend(bgLayer);
+                        }
+                        bgLayer.style.backgroundImage = 'url(' + json.url + ')';
+
                         if (!block.querySelector('.segment-overlay')) {
                             const overlay = document.createElement('div');
                             overlay.className = 'segment-overlay';
-                            segment.prepend(overlay);
+                            block.querySelector('.segment').prepend(overlay);
                         }
-                        // Swap + BG → BG entfernen
                         const bgWrap = block.querySelector('.bg-btn-wrap');
                         if (bgWrap) {
                             bgWrap.innerHTML =
@@ -775,8 +837,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             initImageControls(block);
                         }
                     } else {
-                        const segment = block.querySelector('.segment');
-                        segment.style.backgroundImage = '';
+                        block.querySelector('.segment-bg')?.remove();
                         block.querySelector('.segment-overlay')?.remove();
                         // Swap BG entfernen → + BG
                         const bgWrap = block.querySelector('.bg-btn-wrap');
