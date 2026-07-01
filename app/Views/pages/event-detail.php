@@ -89,6 +89,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                     </span>
 
                     <?php if ($isUpcoming): ?>
+                        <i class="ti ti-arrow-narrow-right"></i>
                         <button class="btn-section btn-section--danger"
                             data-action="cancel-event"
                             data-event-id="<?= $event->id ?>">
