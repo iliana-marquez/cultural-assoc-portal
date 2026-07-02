@@ -970,6 +970,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // to activade edit mode of new section by default without needing to click the pencil
+    if (sessionStorage.getItem('new_section')) {
+        const id = sessionStorage.getItem('new_section');
+        sessionStorage.removeItem('new_section');
+        const target = document.querySelector('.editable-block[data-section-id="' + id + '"]');
+        if (target) doActivateBlock(target);
+    }
+
     // ──────────────────────────────────────────────────────────
     // ENTITY EDIT ROWS
     // ──────────────────────────────────────────────────────────
@@ -3058,6 +3066,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(res => res.json())
                 .then(function (json) {
                     if (json.success) {
+                        // to active edit mode of newly created session
+                        sessionStorage.setItem('new_section', json.id);
                         window.location.reload();
                     } else {
                         alert('Fehler beim Hinzufügen des Abschnitts.');
