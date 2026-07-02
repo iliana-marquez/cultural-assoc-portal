@@ -87,7 +87,17 @@ if ($sectionsMode === 'intro') {
             $cta         = $section->cta          ?? null;
             $objectFit   = $section->object_fit   ?? 'cover';
 
-            require $sectionFile;
+            $isEmpty = !$isLoggedIn
+                && empty($image)
+                && empty($bgImage)
+                && empty($title)
+                && empty($subtitle)
+                && empty($text)
+                && empty($cta);
+
+            if (!$isEmpty) {
+                require $sectionFile;
+            }
         }
     } elseif ($isLoggedIn) {
         $afterIndex  = null;
@@ -151,7 +161,17 @@ if ($sectionsMode === 'intro') {
         $canMoveUp   = $i > 0;
         $canMoveDown = $i < $count - 1;
 
-        require $sectionFile;
+        $isEmpty = !$isLoggedIn
+            && empty($image)
+            && empty($bgImage)
+            && empty($title)
+            && empty($subtitle)
+            && empty($text)
+            && empty($cta);
+
+        if (!$isEmpty) {
+            require $sectionFile;
+        }
     }
 
     if ($isLoggedIn) {
