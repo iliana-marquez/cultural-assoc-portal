@@ -146,14 +146,14 @@ class PageController extends BaseController
             return;
         }
 
-        $success = $this->pagesModel->addSection(
+        $id = $this->pagesModel->addSection(
             $pageKey,
             $sectionKey,
             $orderIndex,
             json_decode($content, true) ?? []
         );
 
-        $success ? $this->jsonSuccess() : $this->jsonError('Failed to add section');
+        $id ? $this->jsonSuccess(['id' => $id]) : $this->jsonError('Failed to add section');
     }
 
     /**
