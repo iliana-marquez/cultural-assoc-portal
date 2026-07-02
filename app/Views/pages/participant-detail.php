@@ -135,15 +135,8 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                             </p>
                             <select class="entity-field entity-select" data-field="type">
                                 <option value="">— bitte wählen —</option>
-                                <?php foreach (['individual', 'ensemble', 'orchestra'] as $t): ?>
-                                    <option value="<?= $t ?>" <?= ($participant->type ?? '') === $t ? 'selected' : '' ?>>
-                                        <?= match ($t) {
-                                            'individual' => 'Person',
-                                            'ensemble'   => 'Ensemble',
-                                            'orchestra'  => 'Orchester',
-                                        } ?>
-                                    </option>
-                                <?php endforeach; ?>
+                                <option value="individual" <?= ($participant->type ?? '') === 'individual' ? 'selected' : '' ?>>Individual</option>
+                                <option value="group" <?= ($participant->type ?? '') === 'group' ? 'selected' : '' ?>>Gruppe</option>
                             </select>
                         </div>
 
@@ -199,20 +192,23 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                     if (!$isLoggedIn && ($isCancelled || $isDraft)) continue;
                                     ?>
                                     <li>
-                                        <a href="/veranstaltungen/<?= htmlspecialchars($event->slug) ?>">
-                                            <?= htmlspecialchars($event->title) ?>
-                                            <?php if (!empty($event->date)): ?>
-                                                <small><?= date('d.m.Y', strtotime($event->date)) ?></small>
-                                            <?php endif; ?>
+                                        <div class="event-participant-item">
+                                            <i class="ti ti-arrow-narrow-right"></i>
+                                            <a href="/veranstaltungen/<?= htmlspecialchars($event->slug) ?>" class="inline-link">
+                                                <?= htmlspecialchars($event->title) ?>
+                                                <?php if (!empty($event->date)): ?>
+                                                    <small><?= date('d.m.Y', strtotime($event->date)) ?></small>
+                                                <?php endif; ?>
 
-                                            <?php if ($isLoggedIn && $isDraft): ?>
-                                                <span class="badge bg-secondary ms-1">Entwurf</span>
-                                            <?php endif; ?>
+                                                <?php if ($isLoggedIn && $isDraft): ?>
+                                                    <span class="badge bg-secondary ms-1">Entwurf</span>
+                                                <?php endif; ?>
 
-                                            <?php if ($isLoggedIn && $isCancelled): ?>
-                                                <span class="badge bg-danger ms-1">Abgesagt</span>
-                                            <?php endif; ?>
-                                        </a>
+                                                <?php if ($isLoggedIn && $isCancelled): ?>
+                                                    <span class="badge bg-danger ms-1">Abgesagt</span>
+                                                <?php endif; ?>
+                                            </a>
+                                        </div>
                                     </li>
                                 <?php endforeach; ?>
                             </ul>
