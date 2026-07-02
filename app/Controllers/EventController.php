@@ -3,9 +3,9 @@
 /**
  * EventController
  *
- * GET /veranstaltungen          → upcoming events only (all past → /archiv)
+ * GET /programm                 → upcoming events only 
  * GET /veranstaltungen/{slug}   → event detail
- * GET /archiv                   → archive listing, filtered by year + category
+ * GET /archiv                   → past events only
  * GET /archiv/filter            → AJAX fragment: events grid + category chips
  * GET /events/{id}/promo-fragment
  * POST /events/add              → add event
@@ -51,7 +51,7 @@ class EventController extends BaseController
      */
     public function index(array $params = []): void
     {
-        $sections = $this->pagesModel->getForPage('veranstaltungen');
+        $sections = $this->pagesModel->getForPage('programm');
         $upcoming = $this->eventModel->getUpcoming();
 
         if (!$this->isLoggedIn()) {
@@ -73,7 +73,7 @@ class EventController extends BaseController
             'sections' => $sections,
             'upcoming' => $upcoming,
             'seo'      => $seo,
-            'pageKey'  => 'veranstaltungen',
+            'pageKey'  => 'programm',
         ]);
     }
 
