@@ -46,7 +46,7 @@ $hasLogo = !empty($org->logo_url);
                             <i class="ti ti-history"></i>
                             Rückblick
                         </a>
-                        <a href="/veranstaltungen" class="btn-section">
+                        <a href="/programm" class="btn-section">
                             <i class="ti ti-calendar-check"></i>
                             Was kommt?
                         </a>
