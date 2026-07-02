@@ -15,6 +15,13 @@
 
 $saveUrl = '/events/' . $event->id . '/save';
 
+// Conditionals to go back either to programm or achive pages
+$isUpcoming = strtotime($event->date) >= strtotime('today');
+$backUrl    = $isUpcoming
+    ? '/programm'
+    : '/archiv?year=' . date('Y', strtotime($event->date));
+$backLabel  = $isUpcoming ? 'Programm' : 'Archiv';
+
 // Split media by stage
 $promoImages = [];
 $videos      = [];
@@ -568,8 +575,8 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
     <!-- Back -->
     <div class="row mt-4">
         <div class="col-12">
-            <a href="/veranstaltungen" class="nav-icon-ux">
-                <i class="ti ti-arrow-left"></i> Veranstaltungen
+            <a href="<?= $backUrl ?>" class="nav-icon-ux">
+                <i class="ti ti-arrow-left"></i> <?= $backLabel ?>
             </a>
         </div>
     </div>
