@@ -42,11 +42,11 @@
     </nav>
 
     <nav class="footer-links small" aria-label="Footer Navigation">
-        <a href="/datenschutz">Datenschutzerklärung</a>
+        <a href="/datenschutz" class="inline-link">Datenschutzerklärung</a>
         <span class="divider">|</span>
-        <a href="/impressum">Impressum</a>
+        <a href="/impressum" class="inline-link">Impressum</a>
         <span class="divider">|</span>
-        <a href="/kontakt">Kontakt</a>
+        <a href="/kontakt" class="inline-link">Kontakt</a>
     </nav>
 
 </footer>

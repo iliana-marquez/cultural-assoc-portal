@@ -41,9 +41,17 @@ $hasLogo = !empty($org->logo_url);
                         <p><?= htmlspecialchars($org->description) ?></p>
                     <?php endif; ?>
 
-                    <a href="/veranstaltungen" class="btn-section">
-                        Veranstaltungen
-                    </a>
+                    <div class="hero-actions">
+                        <a href="/archiv" class="btn-section btn-section-outline">
+                            <i class="ti ti-history"></i>
+                            Rückblick
+                        </a>
+                        <a href="/veranstaltungen" class="btn-section">
+                            <i class="ti ti-calendar-check"></i>
+                            Was kommt?
+                        </a>
+
+                    </div>
 
                 </div>
             </div>

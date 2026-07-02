@@ -22,10 +22,12 @@
                 <?php if (!empty($org->email)): ?>
                     <div class="contact-block">
                         <h3>Anfragen &amp; Feedback</h3>
-                        <a href="mailto:<?= htmlspecialchars($org->email) ?>" class="contact-link">
+                        <span class="event-participant-item">
                             <i class="ti ti-mail"></i>
-                            <?= htmlspecialchars($org->email) ?>
-                        </a>
+                            <a href="mailto:<?= htmlspecialchars($org->email) ?>" class="contact-link inline-link">
+                                <?= htmlspecialchars($org->email) ?>
+                            </a>
+                        </span>
                     </div>
                 <?php endif; ?>
 
@@ -45,6 +47,13 @@
                     </div>
                 <?php endif; ?>
 
+                <!-- ZVR -->
+                <?php if (!empty($org->registration_number)): ?>
+                    <div class="contact-block d-flex flex-row">
+                        <strong>ZVR:</strong> <?= htmlspecialchars($org->registration_number) ?>
+                    </div>
+                <?php endif; ?>
+
                 <!-- Social links -->
                 <?php if (!empty($urls)): ?>
                     <div class="contact-block">
@@ -61,22 +70,15 @@
                     </div>
                 <?php endif; ?>
 
-                <!-- ZVR -->
-                <?php if (!empty($org->registration_number)): ?>
-                    <div class="contact-block">
-                        <small>ZVR: <?= htmlspecialchars($org->registration_number) ?></small>
-                    </div>
-                <?php endif; ?>
-
                 <!-- Credit -->
                 <div class="contact-block contact-credit">
-
                     <h3>Websitegestaltung</h3>
-                    <a href="https://ilianamarquez.com" target="_blank" rel="noopener noreferrer">
-                        Iliana Márquez
-                        <small>(2026)</small>
-                    </a>
-
+                    <div class="event-participant-item">
+                        <i class="ti ti-code-circle-2"></i>
+                        <a href="https://ilianamarquez.com" class="inline-link" target="_blank" rel="noopener noreferrer">
+                            Iliana Márquez
+                        </a>
+                    </div>
                 </div>
 
             </div>
@@ -119,13 +121,11 @@
                         <div>
                             <label class="contact-terms">
                                 <input type="checkbox" id="contact-terms" required>
-                                <a href="/datenschutz" target="_blank" rel="noopener noreferrer">
-                                    <span>
-                                        Ich bin damit einverstanden, dass meine Daten für den
-                                        angegebenen Zweck verwendet werden (Datenschutzerklärung).
-                                    </span>
-                                </a>
-
+                                <span>Ich bin damit einverstanden, dass meine Daten für den
+                                    angegebenen Zweck verwendet werden.
+                                    <a href="/datenschutz" target="_blank" rel="noopener noreferrer" class="inline-link disclaimer">
+                                        Datenschutzerklärung
+                                    </a></span>
                             </label>
                             <span class="field-error" id="error-terms"></span>
                         </div>

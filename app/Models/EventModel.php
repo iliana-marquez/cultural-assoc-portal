@@ -46,8 +46,9 @@ class EventModel extends BaseModel
 
     /**
      * Get past events (before today) — all of them, no year threshold.
-     * Archive is the single home for all past events; /veranstaltungen
-     * shows only upcoming. The cut is CURDATE(), not a hardcoded year.
+     * /archiv is the single home for all past events; 
+     * /programm shows only upcoming; 
+     * The cut is CURDATE(), not a hardcoded year.
      */
     public function getPast(): array
     {

@@ -3085,6 +3085,65 @@ A bg image applied directly on `.segment` bled its own colours and textures into
 - Dark-theme empty section → renders as colour separator ✓
 - Empty section → visible to logged-in editor ✓
 
+# style/link-and-btn-interactions
+
+## Overview
+
+Establishes a consistent interaction language across links, buttons, and navigation. No new features — purely visual and UX polish on existing elements.
+
+## Changes
+
+### `inline-link` — animated underline for text links
+
+`border-bottom: 2px solid transparent` at rest, `currentColor` on hover and active. Works on both light and dark segments. `inline-link--content` adds bold weight for richtext section links.
+
+**Key decision:** class-based opt-in rather than global `a` rule — avoids conflicts with buttons, chips, cards, and UI controls that are also `<a>` tags.
+
+### Button hover — segment-aware inversion
+
+`.btn-section:hover` fills with `--text-on-light` or `--text-on-dark` depending on parent segment. CSS context selectors only — no JS.
+
+### Form buttons — filled by default
+
+Newsletter and contact submit buttons start filled, revert to transparent on hover. Signals primary action without an extra class.
+
+### Social icon circles — segment-aware inversion
+
+`.nav-socials a:hover` fills and inverts color based on segment context. Consistent with button behavior.
+
+### Entity URL links — nav-icon-ux
+
+External links on entity detail pages (team, participants) use `.nav-icon-ux` — icon + label, subtle hover fill.
+
+### Nav active state
+
+`navActive()` and `navActivePrefix()` PHP helpers in `nav.php` add `active` class to matching links. Active state shares the `inline-link` underline treatment. Applied to desktop nav, dropdown submenu, and mobile sidebar.
+
+### Dropdown/sidebar hover
+
+Individual submenu links invert to dark fill on hover/active. Transparent at rest.
+
+### `/programm` routing
+
+`/veranstaltungen` listing → `/programm`. Event detail back link conditional on event date.
+
+### Participant display
+
+Grouped by type, draft status visible to editors and visitors differently.
+
+## Files Changed
+
+- `public/assets/css/main.css`
+- `app/Views/components/nav.php`
+- `app/Views/layouts/footer.php`
+- `app/Views/components/entity-urls.php`
+- `app/Views/components/entity-venues.php`
+- `app/Views/pages/event-detail.php`
+- `app/Controllers/EventController.php` — `index()` page_key updated to `programm`
+- `config/routes.php` — `/veranstaltungen` listing replaced by `/programm`
+- `app/Views/pages/event-detail.php` — conditional back link: upcoming → `/programm`, past → `/archiv?year=` derived from event date
+- `public/assets/js/edit-mode.js`
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
