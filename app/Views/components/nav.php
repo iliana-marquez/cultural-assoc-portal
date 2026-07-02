@@ -9,6 +9,18 @@
  *
  * $org available from BaseController::render()
  */
+
+$currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+function navActive(string $path, string $current): string
+{
+    return $path === $current ? 'active' : '';
+}
+
+function navActivePrefix(string $prefix, string $current): string
+{
+    return str_starts_with($current, $prefix) ? 'active' : '';
+}
 ?>
 
 <header class="site-header light-segment">
@@ -23,30 +35,28 @@
             <?php endif; ?>
         </a>
 
-
-
         <nav id="main-nav">
             <ul class="nav-links">
 
                 <li class="has-dropdown">
-                    <a href="/" class="dropdown-trigger">Verein</a>
+                    <a href="/" class="inline-link dropdown-trigger <?= navActive('/', $currentPath) ?>">Verein</a>
                     <ul class="dropdown-menu">
-                        <li><a href="/ueber-uns">Über uns</a></li>
-                        <li><a href="/team">Team</a></li>
-                        <li><a href="/partner">Partner</a></li>
-                        <li><a href="/sponsoren">Sponsoren</a></li>
-                        <li><a href="/kuenstlerinnen">Künstler:innen</a></li>
-                        <li><a href="/mitglied-werden">Mitglied werden</a></li>
+                        <li><a href="/ueber-uns" class="inline-link <?= navActive('/ueber-uns', $currentPath) ?>">Über uns</a></li>
+                        <li><a href="/team" class="inline-link <?= navActivePrefix('/team', $currentPath) ?>">Team</a></li>
+                        <li><a href="/partner" class="inline-link <?= navActive('/partner', $currentPath) ?>">Partner</a></li>
+                        <li><a href="/sponsoren" class="inline-link <?= navActive('/sponsoren', $currentPath) ?>">Sponsoren</a></li>
+                        <li><a href="/kuenstlerinnen" class="inline-link <?= navActivePrefix('/kuenstlerinnen', $currentPath) ?>">Künstler:innen</a></li>
+                        <li><a href="/mitglied-werden" class="inline-link <?= navActive('/mitglied-werden', $currentPath) ?>">Mitglied werden</a></li>
                     </ul>
                 </li>
 
-                <li><a href="/programm">Programm</a></li>
+                <li><a href="/programm" class="inline-link <?= navActivePrefix('/programm', $currentPath) ?>">Programm</a></li>
 
-                <li><a href="/alsergrund">Bezirksporträt</a></li>
+                <li><a href="/alsergrund" class="inline-link <?= navActive('/alsergrund', $currentPath) ?>">Bezirksporträt</a></li>
 
-                <li><a href="/archiv">Archiv</a></li>
+                <li><a href="/archiv" class="inline-link <?= navActivePrefix('/archiv', $currentPath) ?>">Archiv</a></li>
 
-                <li><a href="/kontakt">Kontakt</a></li>
+                <li><a href="/kontakt" class="inline-link <?= navActive('/kontakt', $currentPath) ?>">Kontakt</a></li>
 
             </ul>
         </nav>
@@ -62,23 +72,23 @@
     <ul class="sidebar-links">
 
         <li>
-            <a href="/" class="sidebar-section-label">
+            <a href="/" class="inline-link sidebar-section-label <?= navActive('/', $currentPath) ?>">
                 Verein
             </a>
             <ul class="sidebar-submenu">
-                <li><a href="/ueber-uns">Über uns</a></li>
-                <li><a href="/team">Team</a></li>
-                <li><a href="/partner">Partner</a></li>
-                <li><a href="/sponsoren">Sponsoren</a></li>
-                <li><a href="/kuenstlerinnen">Künstler:innen</a></li>
-                <li><a href="/mitglied-werden">Mitglied werden</a></li>
+                <li><a href="/ueber-uns" class="inline-link <?= navActive('/ueber-uns', $currentPath) ?>">Über uns</a></li>
+                <li><a href="/team" class="inline-link <?= navActivePrefix('/team', $currentPath) ?>">Team</a></li>
+                <li><a href="/partner" class="inline-link <?= navActive('/partner', $currentPath) ?>">Partner</a></li>
+                <li><a href="/sponsoren" class="inline-link <?= navActive('/sponsoren', $currentPath) ?>">Sponsoren</a></li>
+                <li><a href="/kuenstlerinnen" class="inline-link <?= navActivePrefix('/kuenstlerinnen', $currentPath) ?>">Künstler:innen</a></li>
+                <li><a href="/mitglied-werden" class="inline-link <?= navActive('/mitglied-werden', $currentPath) ?>">Mitglied werden</a></li>
             </ul>
         </li>
 
-        <li><a href="/programm">Programm</a></li>
-        <li><a href="/kontakt">Kontakt</a></li>
-        <li><a href="/alsergrund">Bezirksporträt</a></li>
-        <li><a href="/archiv">Archiv</a></li>
+        <li><a href="/programm" class="inline-link <?= navActivePrefix('/programm', $currentPath) ?>">Programm</a></li>
+        <li><a href="/kontakt" class="inline-link <?= navActive('/kontakt', $currentPath) ?>">Kontakt</a></li>
+        <li><a href="/alsergrund" class="inline-link <?= navActive('/alsergrund', $currentPath) ?>">Bezirksporträt</a></li>
+        <li><a href="/archiv" class="inline-link <?= navActivePrefix('/archiv', $currentPath) ?>">Archiv</a></li>
 
         <li class="nav-socials">
             <?php foreach ($org->urls as $url): ?>
