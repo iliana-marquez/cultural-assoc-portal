@@ -22,6 +22,10 @@
                 <button class="section-control-btn" data-action="remove-image">
                     <i class="ti ti-trash"></i> Entfernen
                 </button>
+                <button class="section-control-btn" data-action="edit-section-credit"
+                    data-credit="<?= htmlspecialchars($imageCredit ?? '') ?>">
+                    <i class="ti ti-camera"></i> Credit
+                </button>
             </div>
         <?php endif; ?>
     </div>
@@ -29,7 +33,7 @@
     <?php if (!empty($imageCredit)): ?>
         <span class="image-credit small">
             <i class="ti ti-camera"></i>
-            <?= htmlspecialchars($imageCredit) ?>
+            <span class="image-credit-text"><?= htmlspecialchars($imageCredit) ?></span>
         </span>
     <?php endif; ?>
 

@@ -146,14 +146,14 @@ class PageController extends BaseController
             return;
         }
 
-        $success = $this->pagesModel->addSection(
+        $id = $this->pagesModel->addSection(
             $pageKey,
             $sectionKey,
             $orderIndex,
             json_decode($content, true) ?? []
         );
 
-        $success ? $this->jsonSuccess() : $this->jsonError('Failed to add section');
+        $id ? $this->jsonSuccess(['id' => $id]) : $this->jsonError('Failed to add section');
     }
 
     /**
@@ -186,7 +186,8 @@ class PageController extends BaseController
             'object_fit',
             'align',
             'image',
-            'bg_image'
+            'image_credit',
+            'bg_image',
         ];
 
         // Allowed HTML tags for rich text fields — strip dangerous tags, keep formatting

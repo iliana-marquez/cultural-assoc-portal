@@ -271,6 +271,15 @@ class MediaController extends BaseController
             $pagesModel = new PagesModel();
             $existing   = $pagesModel->getById($sectionId);
             $current    = json_decode($existing->content ?? '{}', true) ?: [];
+
+            // Delete old Cloudinary file if replacing an existing image
+            if (!empty($current[$field])) {
+                $oldPublicId = CloudinaryService::extractPublicId($current[$field]);
+                if ($oldPublicId) {
+                    CloudinaryService::delete($oldPublicId);
+                }
+            }
+
             $current[$field] = $result['secure_url'];
             $pagesModel->updateContent($sectionId, $current);
 

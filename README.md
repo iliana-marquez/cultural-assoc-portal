@@ -2993,6 +2993,98 @@ The `$hasDrafts` comparison used `count($events)` after the public filter agains
 
 - `feat/video-embed` — YouTube/Cloudinary video embedding on event detail
 
+# fix/free-section
+
+## Overview
+
+A set of issues and missing features discovered during real-world use of `feat/free-sections-lifecycle`, covering both the editor experience and the public display. Fixed and shipped as a standalone branch.
+
+---
+
+## Issues Fixed
+
+### Richtext toolbar not working
+
+Formatting could be applied but not removed — toggling bold, italic, or list off had no effect.
+
+**Fix:** Toggle detection now runs before selection is restored, at the only point where DOM state is reliable. `resnapSelection()` re-snaps the saved range after every wrap/unwrap so subsequent toolbar clicks reflect current state correctly.
+
+---
+
+### Section image Ändern leaving orphaned Cloudinary files
+
+Replacing a section image or bg image uploaded the new file and updated the DB, but silently left the old file in Cloudinary with no reference and no way to clean it up.
+
+**Fix:** `uploadSection()` now checks for an existing URL before writing, extracts the old `public_id`, and deletes it from Cloudinary first.
+
+---
+
+### New section added without edit mode active
+
+After adding a section the page reloaded with the new block inactive. The editor had to find it and manually click the pencil — easy to miss mid-page, and leaving an empty unedited section behind was a real risk.
+
+**Fix:** The new section ID is stored in `sessionStorage` before reload. On page load the ID is read, cleared, and used to find and auto-activate the exact block via `doActivateBlock()`.
+
+---
+
+### Empty sections rendering as blank space on public side
+
+Newly created or fully cleared sections rendered as an invisible gap in the public layout.
+
+**Fix:** `render-sections.php` skips rendering when `image`, `bg_image`, `title`, `subtitle`, `text`, and `cta` are all empty. `theme` is excluded — it always has a default. Dark-theme sections with no content render as intentional colour separators. Empty sections remain visible to editors.
+
+---
+
+## New Features
+
+### Image credit
+
+Section images had no photographer attribution. A Credit button was added to the image overlay, saving via direct AJAX POST to the section save endpoint — independent of `saveBlock()`. Displays below the image on the public side.
+
+---
+
+### Background image abstracted into its own div
+
+A bg image applied directly on `.segment` bled its own colours and textures into the section design. The bg image is now rendered in a dedicated `.segment-bg` child div, keeping it visually isolated from the content and overlay above it.
+
+**Key decision:** Rather than applying a greyscale filter to the overlay (which would affect content), the image itself is contained in its own layer so greyscale filter applies only to it, adding texture and removing the color noise.
+
+---
+
+## Key Decisions
+
+- **Credit saves independently of `saveBlock()`** — avoids the structural issue of `_image.php` being included twice in `section.php`
+- **`uploadSection()` owns Cloudinary cleanup** — the layer that owns the upload owns the deletion
+- **sessionStorage over URL params** — no URL pollution, survives same-tab reload, cleared immediately
+- **theme excluded from empty check** — always has a default, never a reliable signal of editorial intent
+
+---
+
+## Files Changed
+
+- `edit-mode.js`
+- `app/Views/components/sections/partials/_image.php`
+- `app/Views/components/sections/partials/_content.php`
+- `app/Views/components/sections/section.php`
+- `app/Controllers/Admin/MediaController.php`
+- `app/Controllers/PageController.php`
+- `app/Models/PagesModel.php`
+- `app/Views/components/sections/render-sections.php`
+
+## Testing
+
+- Richtext bold/italic/list/link apply and toggle off correctly in same session ✓
+- Image credit saves and persists after reload ✓
+- Credit modal pre-fills existing value on re-open ✓
+- BG image visually isolated — text and overlay unaffected by image colours ✓
+- Section image Ändern — old file deleted from Cloudinary ✓
+- BG image Ändern — old file deleted from Cloudinary ✓
+- New section → correct block auto-activates on reload ✓
+- New section inserted mid-page → correct block activated, not last block ✓
+- Empty section → invisible on public side ✓
+- Dark-theme empty section → renders as colour separator ✓
+- Empty section → visible to logged-in editor ✓
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES

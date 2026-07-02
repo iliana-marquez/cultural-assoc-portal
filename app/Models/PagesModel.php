@@ -84,7 +84,7 @@ class PagesModel extends BaseModel
      * @param array  $content    Section content
      * @return bool
      */
-    public function addSection(string $pageKey, string $sectionKey, int $orderIndex, array $content): bool
+    public function addSection(string $pageKey, string $sectionKey, int $orderIndex, array $content): int|false
     {
         // json_encode([]) always produces "[]", never "{}" — PHP has
         // no way to tell "empty associative array" from "empty list"
@@ -96,11 +96,13 @@ class PagesModel extends BaseModel
             ? '{}'
             : json_encode($content, JSON_UNESCAPED_UNICODE);
 
-        return $this->execute(
+        $this->execute(
             "INSERT INTO {$this->table} (page_key, section_key, order_index, content)
              VALUES (?, ?, ?, ?)",
             [$pageKey, $sectionKey, $orderIndex, $encoded]
         );
+
+        return $this->lastInsertId() ?: false;
     }
 
     /**

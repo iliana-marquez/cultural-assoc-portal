@@ -462,6 +462,60 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         });
+
+        // Credit button — inside image overlay, opens shared input modal.
+        // Updates hidden data-field="image_credit" so saveBlock() picks it up,
+        // and live-updates the visible credit display below the image.
+        block.querySelectorAll('[data-action="edit-section-credit"]').forEach(function (btn) {
+            if (btn._creditInitialized) return;
+            btn._creditInitialized = true;
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                openInputModal({
+                    title: 'Bildcredit',
+                    placeholder: '© Fotografin / Fotograf',
+                    initialValue: btn.dataset.credit || '',
+                    onConfirm: function (value) {
+                        const data = new FormData();
+                        data.append('image_credit', value);
+
+                        fetch('/page/section/' + sectionId + '/save', {
+                            method: 'POST',
+                            body: data,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(res => res.json())
+                            .then(function (json) {
+                                if (!json.success) return;
+
+                                btn.dataset.credit = value;
+
+                                const imageCol = btn.closest('.section-image-col');
+                                let creditDisplay = imageCol?.querySelector('.image-credit');
+                                if (value) {
+                                    if (!creditDisplay) {
+                                        creditDisplay = document.createElement('span');
+                                        creditDisplay.className = 'image-credit small';
+                                        creditDisplay.innerHTML = '<i class="ti ti-camera"></i> <span class="image-credit-text"></span>';
+                                        imageCol?.querySelector('.img-placeholder')?.insertAdjacentElement('afterend', creditDisplay);
+                                    }
+                                    creditDisplay.querySelector('.image-credit-text').textContent = value;
+                                } else {
+                                    creditDisplay?.remove();
+                                }
+
+                                closeInputModal();
+                                showBlockFeedback(block, 'Credit gespeichert ✓', 'success');
+                            })
+                            .catch(function () {
+                                showBlockFeedback(block, 'Verbindungsfehler', 'error');
+                            });
+
+                    }
+                });
+            });
+        });
     }
 
     // ── Rich-text toolbar ───────────────────────────────────────
@@ -477,100 +531,158 @@ document.addEventListener('DOMContentLoaded', function () {
     function initRichTextToolbar(block) {
         let savedRange = null;
 
-        function getActiveField() {
-            const sel = document.getSelection();
-            if (!sel || sel.rangeCount === 0) return null;
-            const field = sel.anchorNode && (sel.anchorNode.nodeType === 1
-                ? sel.anchorNode.closest('[data-field].editable-field')
-                : sel.anchorNode.parentElement?.closest('[data-field].editable-field'));
-            return field && block.contains(field) ? field : null;
+        // Get the editable field containing a DOM node
+        function fieldOf(node) {
+            if (!node) return null;
+            const el = node.nodeType === 1 ? node : node.parentElement;
+            const field = el?.closest('[data-field].editable-field');
+            return (field && block.contains(field)) ? field : null;
         }
 
-        // Track the live selection continuously WHILE it's genuinely
-        // inside one of THIS block's text fields.
-        block.querySelectorAll('[data-field]').forEach(function (field) {
-            field.addEventListener('keyup', captureSelection);
-            field.addEventListener('mouseup', captureSelection);
-        });
-
-        function captureSelection() {
+        // Capture selection on interaction with any editable field in this block
+        function saveSelection() {
             const sel = document.getSelection();
             if (!sel || sel.rangeCount === 0) return;
-            const range = sel.getRangeAt(0);
-            const field = getActiveField();
-            if (field) savedRange = range.cloneRange();
+            if (fieldOf(sel.anchorNode)) {
+                savedRange = sel.getRangeAt(0).cloneRange();
+            }
+        }
+
+        block.querySelectorAll('[data-field]').forEach(function (field) {
+            field.addEventListener('mouseup', saveSelection);
+            field.addEventListener('keyup', saveSelection);
+        });
+
+        // Prevent selection loss when clicking toolbar buttons
+        block.addEventListener('mousedown', function (e) {
+            if (e.target.closest('[data-action^="richtext-"]')) {
+                e.preventDefault();
+            }
+        });
+
+        // Check if savedRange start is already inside a span with className.
+        // Checked BEFORE restoring selection — avoids unreliable post-addRange state.
+        function existingWrap(className) {
+            if (!savedRange) return null;
+            const startEl = savedRange.startContainer.nodeType === 1
+                ? savedRange.startContainer
+                : savedRange.startContainer.parentElement;
+            const field = fieldOf(savedRange.startContainer);
+            if (!field) return null;
+            const span = startEl?.closest('.' + className);
+            return (span && field.contains(span)) ? span : null;
         }
 
         function restoreSelection() {
-            if (!savedRange) return null;
+            if (!savedRange) return;
             const sel = document.getSelection();
             sel.removeAllRanges();
             sel.addRange(savedRange);
-            return getActiveField();
+        }
+
+        // After any DOM mutation, re-snap savedRange to whatever is selected now.
+        // This keeps savedRange valid across wrap/unwrap operations in the same
+        // session — so the next toolbar click can correctly detect the new state
+        // without requiring the editor to re-select text manually.
+        function resnapSelection() {
+            const sel = document.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                savedRange = sel.getRangeAt(0).cloneRange();
+            }
         }
 
         function applySpanClass(className) {
             if (!savedRange) return;
-            const node = savedRange.commonAncestorContainer;
-            const field = node.nodeType === 1
-                ? node.closest('[data-field].editable-field')
-                : node.parentElement?.closest('[data-field].editable-field');
-            if (!field || !block.contains(field)) return;
+
+            const field = fieldOf(savedRange.startContainer);
+            if (!field) return;
+
+            // Toggle detection BEFORE touching focus or selection
+            const existing = existingWrap(className);
 
             field.focus();
-            const sel = document.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(savedRange);
-            if (sel.toString() === '') return;
+            restoreSelection();
 
-            const range = sel.getRangeAt(0);
-
-            // Check the CURRENT DOM parent of the anchor node —
-            // not startContainer from the range, which reflects the
-            // pre-wrap position. After surroundContents(), the text
-            // node's parentElement IS the newly created span, so
-            // checking anchorNode.parentElement correctly detects
-            // an already-wrapped selection on subsequent clicks.
-            const anchorEl = sel.anchorNode.nodeType === 1
-                ? sel.anchorNode
-                : sel.anchorNode.parentElement;
-            const existing = anchorEl?.closest('.' + className);
-
-            if (existing && field.contains(existing)) {
-                // Unwrap — move children out, remove the span
+            if (existing) {
+                // ── Unwrap ────────────────────────────────────────────
                 const parent = existing.parentNode;
                 while (existing.firstChild) {
                     parent.insertBefore(existing.firstChild, existing);
                 }
                 existing.remove();
+                field.normalize(); // merge adjacent text nodes after removal
             } else {
-                const span = document.createElement('span');
-                span.className = className;
-                try {
-                    range.surroundContents(span);
-                } catch (e) {
-                    span.appendChild(range.extractContents());
-                    range.insertNode(span);
+                // ── Wrap ──────────────────────────────────────────────
+                const sel = document.getSelection();
+                const hasText = sel.toString().trim() !== '';
+
+                if (!hasText && (className === 'rt-ul' || className === 'rt-ol')) {
+                    // List with no selection — wrap entire field content so the
+                    // editor can click the list button without selecting text first
+                    const span = document.createElement('span');
+                    span.className = className;
+                    while (field.firstChild) span.appendChild(field.firstChild);
+                    field.appendChild(span);
+                    // Select the new span so next click detects and toggles it off
+                    const r = document.createRange();
+                    r.selectNodeContents(span);
+                    sel.removeAllRanges();
+                    sel.addRange(r);
+
+                } else if (hasText) {
+                    const range = sel.getRangeAt(0);
+                    const span = document.createElement('span');
+                    span.className = className;
+                    try {
+                        range.surroundContents(span);
+                    } catch (_) {
+                        span.appendChild(range.extractContents());
+                        range.insertNode(span);
+                    }
+                    // Update selection to inside the new span — enables immediate
+                    // same-session toggle without requiring the editor to re-select
+                    const r = document.createRange();
+                    r.selectNodeContents(span);
+                    sel.removeAllRanges();
+                    sel.addRange(r);
                 }
+                // bold/italic with no selection: no-op — nothing to style
             }
 
+            resnapSelection();
             field.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
         function applyLinkFormat() {
             if (!savedRange) return;
-            const node = savedRange.commonAncestorContainer;
-            const field = node.nodeType === 1
-                ? node.closest('[data-field].editable-field')
-                : node.parentElement?.closest('[data-field].editable-field');
-            if (!field || !block.contains(field)) return;
+
+            const field = fieldOf(savedRange.startContainer);
+            if (!field) return;
+
+            // Toggle off existing link — check BEFORE restoring selection
+            const startEl = savedRange.startContainer.nodeType === 1
+                ? savedRange.startContainer
+                : savedRange.startContainer.parentElement;
+            const existingLink = startEl?.closest('a');
+            if (existingLink && field.contains(existingLink)) {
+                field.focus();
+                restoreSelection();
+                const parent = existingLink.parentNode;
+                while (existingLink.firstChild) {
+                    parent.insertBefore(existingLink.firstChild, existingLink);
+                }
+                existingLink.remove();
+                field.normalize();
+                resnapSelection();
+                field.dispatchEvent(new Event('input', { bubbles: true }));
+                return;
+            }
 
             field.focus();
-            const sel = document.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(savedRange);
+            restoreSelection();
 
-            if (sel.toString() === '') {
+            const sel = document.getSelection();
+            if (sel.toString().trim() === '') {
                 alert('Bitte zuerst Text markieren, der verlinkt werden soll.');
                 return;
             }
@@ -581,51 +693,36 @@ document.addEventListener('DOMContentLoaded', function () {
             let normalized = url.trim();
             if (!/^https?:\/\//i.test(normalized)) normalized = 'https://' + normalized;
 
+            // prompt() causes focus loss — restore field focus and selection again
             field.focus();
-            sel.removeAllRanges();
-            sel.addRange(savedRange);
+            restoreSelection();
 
-            const range = sel.getRangeAt(0);
+            const range = document.getSelection().getRangeAt(0);
             const a = document.createElement('a');
             a.href = normalized;
             a.target = '_blank';
             a.rel = 'noopener noreferrer';
             try {
                 range.surroundContents(a);
-            } catch (e) {
+            } catch (_) {
                 a.appendChild(range.extractContents());
                 range.insertNode(a);
             }
 
+            resnapSelection();
             field.dispatchEvent(new Event('input', { bubbles: true }));
         }
-
-        block.addEventListener('mousedown', function (e) {
-            if (e.target.closest('[data-action^="richtext-"]')) {
-                e.preventDefault();
-            }
-        });
 
         block.querySelectorAll('[data-action^="richtext-"]').forEach(function (btn) {
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 switch (btn.dataset.action) {
-                    case 'richtext-bold':
-                        applySpanClass('rt-bold');
-                        break;
-                    case 'richtext-italic':
-                        applySpanClass('rt-italic');
-                        break;
-                    case 'richtext-bullet-list':
-                        applySpanClass('rt-ul');
-                        break;
-                    case 'richtext-numbered-list':
-                        applySpanClass('rt-ol');
-                        break;
-                    case 'richtext-link':
-                        applyLinkFormat();
-                        break;
+                    case 'richtext-bold': applySpanClass('rt-bold'); break;
+                    case 'richtext-italic': applySpanClass('rt-italic'); break;
+                    case 'richtext-bullet-list': applySpanClass('rt-ul'); break;
+                    case 'richtext-numbered-list': applySpanClass('rt-ol'); break;
+                    case 'richtext-link': applyLinkFormat(); break;
                 }
             });
         });
@@ -678,14 +775,22 @@ document.addEventListener('DOMContentLoaded', function () {
                         updateColumns(block, layout);
 
                     } else {
-                        const segment = block.querySelector('.segment');
-                        segment.style.backgroundImage = 'url(' + json.url + ')';
+                        // BG image — on its own .segment-bg layer so
+                        // filter: grayscale() only affects the image,
+                        // never the text content above it.
+                        let bgLayer = block.querySelector('.segment-bg');
+                        if (!bgLayer) {
+                            bgLayer = document.createElement('div');
+                            bgLayer.className = 'segment-bg';
+                            block.querySelector('.segment').prepend(bgLayer);
+                        }
+                        bgLayer.style.backgroundImage = 'url(' + json.url + ')';
+
                         if (!block.querySelector('.segment-overlay')) {
                             const overlay = document.createElement('div');
                             overlay.className = 'segment-overlay';
-                            segment.prepend(overlay);
+                            block.querySelector('.segment').prepend(overlay);
                         }
-                        // Swap + BG → BG entfernen
                         const bgWrap = block.querySelector('.bg-btn-wrap');
                         if (bgWrap) {
                             bgWrap.innerHTML =
@@ -732,8 +837,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             initImageControls(block);
                         }
                     } else {
-                        const segment = block.querySelector('.segment');
-                        segment.style.backgroundImage = '';
+                        block.querySelector('.segment-bg')?.remove();
                         block.querySelector('.segment-overlay')?.remove();
                         // Swap BG entfernen → + BG
                         const bgWrap = block.querySelector('.bg-btn-wrap');
@@ -865,6 +969,14 @@ document.addEventListener('DOMContentLoaded', function () {
             moveSection('down');
         });
     });
+
+    // to activade edit mode of new section by default without needing to click the pencil
+    if (sessionStorage.getItem('new_section')) {
+        const id = sessionStorage.getItem('new_section');
+        sessionStorage.removeItem('new_section');
+        const target = document.querySelector('.editable-block[data-section-id="' + id + '"]');
+        if (target) doActivateBlock(target);
+    }
 
     // ──────────────────────────────────────────────────────────
     // ENTITY EDIT ROWS
@@ -2954,6 +3066,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(res => res.json())
                 .then(function (json) {
                     if (json.success) {
+                        // to active edit mode of newly created session
+                        sessionStorage.setItem('new_section', json.id);
                         window.location.reload();
                     } else {
                         alert('Fehler beim Hinzufügen des Abschnitts.');
