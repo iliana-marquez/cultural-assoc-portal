@@ -702,6 +702,7 @@ document.addEventListener('DOMContentLoaded', function () {
             a.href = normalized;
             a.target = '_blank';
             a.rel = 'noopener noreferrer';
+            a.className = 'inline-link inline-link--content';
             try {
                 range.surroundContents(a);
             } catch (_) {
