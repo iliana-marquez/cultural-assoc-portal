@@ -42,15 +42,15 @@ $hasLogo = !empty($org->logo_url);
                     <?php endif; ?>
 
                     <div class="hero-actions">
+                        <a href="/archiv" class="btn-section btn-section-outline">
+                            <i class="ti ti-history"></i>
+                            Rückblick
+                        </a>
                         <a href="/veranstaltungen" class="btn-section">
                             <i class="ti ti-calendar-check"></i>
                             Was kommt?
                         </a>
 
-                        <a href="/archiv" class="btn-section btn-section-outline">
-                            <i class="ti ti-history"></i>
-                            Rückblick
-                        </a>
                     </div>
 
                 </div>
