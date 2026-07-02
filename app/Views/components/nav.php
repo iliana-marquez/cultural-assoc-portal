@@ -40,7 +40,7 @@
                     </ul>
                 </li>
 
-                <li><a href="/veranstaltungen">Programm</a></li>
+                <li><a href="/programm">Programm</a></li>
 
                 <li><a href="/alsergrund">Bezirksporträt</a></li>
 
@@ -75,7 +75,7 @@
             </ul>
         </li>
 
-        <li><a href="/veranstaltungen">Programm</a></li>
+        <li><a href="/programm">Programm</a></li>
         <li><a href="/kontakt">Kontakt</a></li>
         <li><a href="/alsergrund">Bezirksporträt</a></li>
         <li><a href="/archiv">Archiv</a></li>
