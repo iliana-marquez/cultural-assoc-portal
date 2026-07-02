@@ -364,26 +364,89 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         <?php endif; ?>
 
                         <?php if (!empty($event->participants)): ?>
+                            <?php
+                            $individuals = array_filter($event->participants, fn($p) => ($p->type ?? 'individual') === 'individual');
+                            $groups      = array_filter($event->participants, fn($p) => ($p->type ?? 'individual') !== 'individual');
+                            ?>
+
                             <div class="event-participant-list p-2">
-                                <?php foreach ($event->participants as $participant): ?>
-                                    <div class="event-participant-item">
-                                        <?php if ($isLoggedIn): ?>
-                                            <button class="entity-remove-btn border-0"
-                                                data-action="remove-participant"
-                                                data-event-id="<?= $event->id ?>"
-                                                data-participant-id="<?= $participant->id ?>">
-                                                <i class="ti ti-trash"></i>
-                                            </button>
-                                        <?php endif; ?>
-                                        <a href="/kuenstlerinnen/<?= htmlspecialchars($participant->slug) ?>">
-                                            <?= htmlspecialchars($participant->displayName) ?>
-                                            <?php if (!empty($participant->field)): ?>
-                                                · <span class="participant-field"><?= htmlspecialchars($participant->field) ?></span>
+
+                                <?php if (!empty($individuals)): ?>
+                                    <?php foreach ($individuals as $participant): ?>
+                                        <div class="event-participant-item">
+                                            <?php if ($isLoggedIn): ?>
+                                                <button class="entity-remove-btn border-0"
+                                                    data-action="remove-participant"
+                                                    data-event-id="<?= $event->id ?>"
+                                                    data-participant-id="<?= $participant->id ?>">
+                                                    <i class="ti ti-trash"></i>
+                                                </button>
                                             <?php endif; ?>
-                                        </a>
-                                    </div>
-                                <?php endforeach; ?>
+                                            <?php if ($isLoggedIn || ($participant->status ?? 'published') === 'published'): ?>
+                                                <i class="ti ti-arrow-narrow-right"></i>
+                                                <a href="/kuenstlerinnen/<?= htmlspecialchars($participant->slug) ?>" class="inline-link">
+                                                    <?= htmlspecialchars($participant->displayName) ?>
+                                                    <?php if (!empty($participant->field)): ?>
+                                                        · <span class="participant-field"><?= htmlspecialchars($participant->field) ?></span>
+                                                    <?php endif; ?>
+                                                    <?php if ($isLoggedIn && ($participant->status ?? 'published') !== 'published'): ?>
+                                                        <small class="text-muted"> - Entwurf</small>
+                                                    <?php endif; ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <i class="ti ti-arrow-narrow-right"></i>
+                                                <span class="text-muted">
+                                                    <?= htmlspecialchars($participant->displayName) ?>
+                                                    <?php if (!empty($participant->field)): ?>
+                                                        · <span class="participant-field"><?= htmlspecialchars($participant->field) ?></span>
+                                                    <?php endif; ?>
+                                                    <small> - bald veröffentlicht</small>
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+
+                                <?php if (!empty($groups)): ?>
+                                    <small class="text-muted text-uppercase event-participant-item">
+                                        Ensembles
+                                    </small>
+                                    <?php foreach ($groups as $participant): ?>
+                                        <div class="event-participant-item">
+                                            <?php if ($isLoggedIn): ?>
+                                                <button class="entity-remove-btn border-0"
+                                                    data-action="remove-participant"
+                                                    data-event-id="<?= $event->id ?>"
+                                                    data-participant-id="<?= $participant->id ?>">
+                                                    <i class="ti ti-trash"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                            <i class="ti ti-arrow-narrow-right"></i>
+                                            <?php if ($isLoggedIn || ($participant->status ?? 'published') === 'published'): ?>
+                                                <a href="/kuenstlerinnen/<?= htmlspecialchars($participant->slug) ?>" class="inline-link">
+                                                    <?= htmlspecialchars($participant->displayName) ?>
+                                                    <?php if (!empty($participant->field)): ?>
+                                                        · <span class="participant-field"><?= htmlspecialchars($participant->field) ?></span>
+                                                    <?php endif; ?>
+                                                    <?php if ($isLoggedIn && ($participant->status ?? 'published') !== 'published'): ?>
+                                                        <small class="text-muted"> - Entwurf</small>
+                                                    <?php endif; ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="text-muted">
+                                                    <?= htmlspecialchars($participant->displayName) ?>
+                                                    <?php if (!empty($participant->field)): ?>
+                                                        · <span class="participant-field"><?= htmlspecialchars($participant->field) ?></span>
+                                                    <?php endif; ?>
+                                                    <small> - bald veröffentlicht</small>
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+
                             </div>
+
                         <?php elseif ($isLoggedIn): ?>
                             <div class="event-participant-list p-2">
                                 <p class="text-muted p-2 mb-0">

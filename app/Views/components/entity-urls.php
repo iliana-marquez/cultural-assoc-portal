@@ -114,7 +114,7 @@ endif;
                                 <i class="ti ti-trash"></i>
                             </button>
                         <?php endif; ?>
-                        <a href="<?= htmlspecialchars($url->url) ?>" target="_blank" rel="noopener">
+                        <a href="<?= htmlspecialchars($url->url) ?>" target="_blank" rel="noopener" class="nav-icon-ux">
                             <i class="ti <?= htmlspecialchars($url->icon ?? 'ti-link') ?>"></i>
                             <?= htmlspecialchars($url->label ?: $url->type_label) ?>
                         </a>

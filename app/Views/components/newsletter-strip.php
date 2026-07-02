@@ -44,6 +44,6 @@
 
     <small class="newsletter-strip__terms">
         Mit der Anmeldung stimmen Sie der Verarbeitung Ihrer E-Mail-Adresse gemäß unserer
-        <a href="/datenschutz">Datenschutzerklärung</a> zu.
+        <a href="/datenschutz" class="inline-link disclaimer">Datenschutzerklärung</a> zu.
     </small>
 </div>
