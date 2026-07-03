@@ -3338,20 +3338,19 @@ document.addEventListener('DOMContentLoaded', function () {
         const saveBtn = row?.querySelector('.entity-save-btn');
         saveBtn?.addEventListener('click', function () {
             if (select.value === '__custom__' && customInput) {
-                select.value = customInput.value.trim();
-                // Re-insert as a real option so entity-select-row's
-                // own save handler (unchanged) can read select.value
-                // and select.options[selectedIndex].text correctly.
-                const exists = Array.from(select.options).some(function (o) { return o.value === select.value; });
-                if (!exists && select.value) {
+                const typed = customInput.value.trim();
+                if (!typed) return;
+                select.value = typed;
+                const exists = Array.from(select.options).some(function (o) { return o.value === typed; });
+                if (!exists) {
                     const opt = document.createElement('option');
-                    opt.value = select.value;
-                    opt.textContent = select.value;
+                    opt.value = typed;
+                    opt.textContent = typed;
                     opt.selected = true;
                     select.appendChild(opt);
                 }
             }
-        }, true); // capture phase — runs before entity-select-row's own save listener
+        }, true);// capture phase — runs before entity-select-row's own save listener
     });
 
     // ── Team staff grid reorder ───────────────────────────────────

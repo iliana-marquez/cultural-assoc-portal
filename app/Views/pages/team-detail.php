@@ -160,7 +160,7 @@ $isCustomRole = !empty($member->role) && !in_array($member->role, $roleOptions, 
                                 <?php endforeach; ?>
                                 <option value="__custom__" <?= $isCustomRole ? 'selected' : '' ?>>Sonstiges (freier Text)</option>
                             </select>
-                            <input type="text" class="entity-field role-custom-input" data-field="role"
+                            <input type="text" class="role-custom-input"
                                 placeholder="Eigene Rolle eingeben..."
                                 value="<?= $isCustomRole ? htmlspecialchars($member->role) : '' ?>"
                                 style="<?= $isCustomRole ? '' : 'display:none;' ?>">

@@ -130,7 +130,7 @@ class TeamController extends BaseController
         foreach ($allowed as $f) {
             if (isset($_POST[$f])) {
                 $field = $f;
-                $value = trim($_POST[$f]);
+                $value = trim($_POST[$f]) ?: null;
                 break;
             }
         }
