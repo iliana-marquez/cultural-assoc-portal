@@ -55,8 +55,8 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
 };
 ?>
 
-<section class="segment light-segment container">
-    <div class="container-fluid">
+<section class="segment light-segment">
+    <div class="container px-3">
         <?php if ($isLoggedIn): ?>
             <?php
             $isCancelled = !empty($event->cancelled_at);
@@ -108,9 +108,8 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
         <?php endif; ?>
 
 
-
         <!-- Row 1: Promo image | Event details -->
-        <div class="row g-5 align-items-start">
+        <div class="row gx-4 gy-4 align-items-start">
 
             <!-- Promo image -->
             <?php if (!empty($promoImages) || $isLoggedIn): ?>
@@ -232,7 +231,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         </div>
 
                         <?= $editRow('Betrag / Preis', 'admission_amount', $event->admission_amount ?? '', $saveUrl) ?>
-                        <?= $editRow('Ticket / Anmelde-URL', 'admission_url', $event->admission_url ?? '', $saveUrl) ?>
+                        <?= $editRow('Ticket / Anmeldeldung (Link: http://... | Email: mailto:...)', 'admission_url', $event->admission_url ?? '', $saveUrl) ?>
                         <?= $editRow('Beschreibung', 'description', $event->description ?? '', $saveUrl) ?>
 
                     <?php else: ?>
@@ -490,159 +489,160 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
             </div>
 
         </div>
-    </div>
 
-    </div>
+        <!-- Row 2: Review -->
+        <div class="row gx-4 gy-4 align-items-start event-review-row">
+            <div class="col-12 <?= !empty($videos) ? 'col-md-8' : '' ?>">
+                <?php if ($isLoggedIn): ?>
+                    <?= $editRow('Rückblick', 'review', $event->review ?? '', $saveUrl) ?>
+                <?php elseif (!empty($event->review)): ?>
 
-    <!-- Row 2: Review -->
-    <div class="row g-5 align-items-start event-review-row">
-        <div class="col-12 <?= !empty($videos) ? 'col-md-8' : '' ?>">
-            <?php if ($isLoggedIn): ?>
-                <?= $editRow('Rückblick', 'review', $event->review ?? '', $saveUrl) ?>
-            <?php elseif (!empty($event->review)): ?>
+                    <div class="event-review">
+                        <hr>
+                        <h3>Rückblick</h3>
 
-                <div class="event-review">
-                    <hr>
-                    <h3>Rückblick</h3>
-
-                    <p><?= nl2br(htmlspecialchars($event->review)) ?></p>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <?php if (!empty($videos)): ?>
-            <div class="col-12 col-md-4">
-                <?php foreach ($videos as $video): ?>
-                    <div class="event-media-item">
-                        <video src="<?= htmlspecialchars($video->media_url) ?>" controls></video>
-                        <?php if (!empty($video->caption)): ?>
-                            <small><?= htmlspecialchars($video->caption) ?></small>
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <!-- Row 3: Gallery -->
-    <?php if (!empty($gallery) || $isLoggedIn): ?>
-        <div class="media-edit-row mt-2"
-            data-entity-type="event"
-            data-entity-id="<?= $event->id ?>"
-            data-entity-slug="<?= htmlspecialchars($event->slug) ?>"
-            data-stage="gallery">
-
-            <?php if ($isLoggedIn): ?>
-                <div class="edit-row-header">
-                    <label class="edit-row-label">Galerie</label>
-                    <div class="edit-row-actions align-items-center">
-                        <span class="entity-feedback"></span>
-                        <button class="section-control-btn gallery-btn-caption">
-                            <i class="ti ti-text-caption"></i> Caption
-                        </button>
-                        <button class="section-control-btn gallery-btn-credit">
-                            <i class="ti ti-camera"></i> Credit
-                        </button>
-                        <button class="section-control-btn gallery-btn-delete">
-                            <i class="ti ti-trash"></i> Löschen
-                        </button>
-                        <label class="entity-edit-btn gallery-select-all" title="Alle auswählen" style="cursor:pointer;">
-                            <span style="margin-right:0.5rem;">select all</span>
-                            <input type="checkbox" class="gallery-checkbox-all">
-                        </label>
-                        <label class="entity-edit-btn media-upload-btn" style="cursor:pointer;" title="Bild hinzufügen">
-                            <i class="ti ti-photo-plus"></i>
-                            <input type="file" accept="image/*" class="d-none"
-                                data-action="upload-entity-image"
-                                data-entity-type="event"
-                                data-entity-id="<?= $event->id ?>"
-                                data-stage="gallery">
-                        </label>
-                        <button class="entity-edit-btn media-pencil-btn"><i class="ti ti-pencil"></i></button>
-                        <button class="entity-cancel-btn media-cancel-btn"><i class="ti ti-x"></i></button>
-                    </div>
-                </div>
-
-                <div class="media-upload-zone">
-                    <div class="media-dropzone">
-                        <i class="ti ti-photo-plus"></i>
-                        <span class="media-dropzone-label">Fotos hierher ziehen oder klicken</span>
-                        <input type="file" accept="image/*" multiple class="media-file-input">
-                    </div>
-                    <button class="section-control-btn media-upload-confirm mt-2">
-                        <i class="ti ti-upload"></i> Hochladen
-                    </button>
-                    <div class="media-upload-progress mt-1"></div>
-                </div>
-            <?php elseif (!empty($gallery)): ?>
-
-                <div class="event-review">
-                    <hr>
-                    <h3>Galerie</h3>
-                </div>
-            <?php endif; ?>
-
-            <div class="row g-3 event-gallery media-gallery-grid p-2">
-                <?php if (empty($gallery) && $isLoggedIn): ?>
-                    <div class="col-12">
-                        <p class="text-muted p-2">
-                            <i class="ti ti-photo-off"></i>
-                            Noch keine Galeriebilder
-                        </p>
+                        <p><?= nl2br(htmlspecialchars($event->review)) ?></p>
                     </div>
                 <?php endif; ?>
-
-                <?php foreach ($gallery as $media): ?>
-                    <div class="col-6 col-md-4 col-lg-3 gallery-item" data-media-id="<?= $media->id ?>">
-                        <?php if ($isLoggedIn): ?>
-                            <label class="gallery-item-checkbox">
-                                <input type="checkbox" class="gallery-checkbox"
-                                    value="<?= $media->id ?>"
-                                    data-caption="<?= htmlspecialchars($media->caption ?? '') ?>"
-                                    data-credit="<?= htmlspecialchars($media->credit ?? '') ?>">
-                            </label>
-                        <?php endif; ?>
-                        <div class="img-placeholder event-gallery-img">
-                            <img src="<?= htmlspecialchars($media->media_url) ?>"
-                                alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
-                                class="zoomable">
-                            <?php if ($isLoggedIn): ?>
-                                <div class="image-edit-overlay">
-                                    <button class="section-control-btn"
-                                        data-action="delete-entity-image"
-                                        data-media-id="<?= $media->id ?>"
-                                        data-entity-type="event"
-                                        data-entity-id="<?= $event->id ?>">
-                                        <i class="ti ti-trash"></i>
-                                    </button>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <?php if (!empty($media->caption) || !empty($media->credit)): ?>
-                            <small class="gallery-item-meta">
-                                <?php if (!empty($media->caption)): ?>
-                                    <span><?= htmlspecialchars($media->caption) ?></span>
-                                <?php endif; ?>
-                                <?php if (!empty($media->credit)): ?>
-                                    <span class="image-credit"><i class="ti ti-camera"></i> <?= htmlspecialchars($media->credit) ?></span>
-                                <?php endif; ?>
-                            </small>
-                        <?php endif; ?>
-                    </div>
-                <?php endforeach; ?>
             </div>
 
+            <?php if (!empty($videos)): ?>
+                <div class="col-12 col-md-4">
+                    <?php foreach ($videos as $video): ?>
+                        <div class="event-media-item">
+                            <video src="<?= htmlspecialchars($video->media_url) ?>" controls></video>
+                            <?php if (!empty($video->caption)): ?>
+                                <small><?= htmlspecialchars($video->caption) ?></small>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
-    <?php endif; ?>
 
-    <!-- Back -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <a href="<?= $backUrl ?>" class="nav-icon-ux">
-                <i class="ti ti-arrow-left"></i> <?= $backLabel ?>
-            </a>
+        <!-- Row 3: Gallery -->
+        <?php if (!empty($gallery) || $isLoggedIn): ?>
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="media-edit-row mt-2"
+                        data-entity-type="event"
+                        data-entity-id="<?= $event->id ?>"
+                        data-entity-slug="<?= htmlspecialchars($event->slug) ?>"
+                        data-stage="gallery">
+
+                        <?php if ($isLoggedIn): ?>
+                            <div class="edit-row-header">
+                                <label class="edit-row-label">Galerie</label>
+                                <div class="edit-row-actions align-items-center">
+                                    <span class="entity-feedback"></span>
+                                    <button class="section-control-btn gallery-btn-caption">
+                                        <i class="ti ti-text-caption"></i> Caption
+                                    </button>
+                                    <button class="section-control-btn gallery-btn-credit">
+                                        <i class="ti ti-camera"></i> Credit
+                                    </button>
+                                    <button class="section-control-btn gallery-btn-delete">
+                                        <i class="ti ti-trash"></i> Löschen
+                                    </button>
+                                    <label class="entity-edit-btn gallery-select-all" title="Alle auswählen" style="cursor:pointer;">
+                                        <span style="margin-right:0.5rem;">select all</span>
+                                        <input type="checkbox" class="gallery-checkbox-all">
+                                    </label>
+                                    <label class="entity-edit-btn media-upload-btn" style="cursor:pointer;" title="Bild hinzufügen">
+                                        <i class="ti ti-photo-plus"></i>
+                                        <input type="file" accept="image/*" class="d-none"
+                                            data-action="upload-entity-image"
+                                            data-entity-type="event"
+                                            data-entity-id="<?= $event->id ?>"
+                                            data-stage="gallery">
+                                    </label>
+                                    <button class="entity-edit-btn media-pencil-btn"><i class="ti ti-pencil"></i></button>
+                                    <button class="entity-cancel-btn media-cancel-btn"><i class="ti ti-x"></i></button>
+                                </div>
+                            </div>
+
+                            <div class="media-upload-zone">
+                                <div class="media-dropzone">
+                                    <i class="ti ti-photo-plus"></i>
+                                    <span class="media-dropzone-label">Fotos hierher ziehen oder klicken</span>
+                                    <input type="file" accept="image/*" multiple class="media-file-input">
+                                </div>
+                                <button class="section-control-btn media-upload-confirm mt-2">
+                                    <i class="ti ti-upload"></i> Hochladen
+                                </button>
+                                <div class="media-upload-progress mt-1"></div>
+                            </div>
+                        <?php elseif (!empty($gallery)): ?>
+
+                            <div class="event-review">
+                                <hr>
+                                <h3>Galerie</h3>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="row g-3 event-gallery media-gallery-grid">
+                            <?php if (empty($gallery) && $isLoggedIn): ?>
+                                <div class="col-12">
+                                    <p class="text-muted p-2">
+                                        <i class="ti ti-photo-off"></i>
+                                        Noch keine Galeriebilder
+                                    </p>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php foreach ($gallery as $media): ?>
+                                <div class="col-12 col-md-6 col-lg-4 col-xl-3 gallery-item" data-media-id="<?= $media->id ?>">
+                                    <?php if ($isLoggedIn): ?>
+                                        <label class="gallery-item-checkbox">
+                                            <input type="checkbox" class="gallery-checkbox"
+                                                value="<?= $media->id ?>"
+                                                data-caption="<?= htmlspecialchars($media->caption ?? '') ?>"
+                                                data-credit="<?= htmlspecialchars($media->credit ?? '') ?>">
+                                        </label>
+                                    <?php endif; ?>
+                                    <div class="img-placeholder event-gallery-img">
+                                        <img src="<?= htmlspecialchars($media->media_url) ?>"
+                                            alt="<?= htmlspecialchars($media->caption ?? $event->title) ?>"
+                                            class="zoomable">
+                                        <?php if ($isLoggedIn): ?>
+                                            <div class="image-edit-overlay">
+                                                <button class="section-control-btn"
+                                                    data-action="delete-entity-image"
+                                                    data-media-id="<?= $media->id ?>"
+                                                    data-entity-type="event"
+                                                    data-entity-id="<?= $event->id ?>">
+                                                    <i class="ti ti-trash"></i>
+                                                </button>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if (!empty($media->caption) || !empty($media->credit)): ?>
+                                        <small class="gallery-item-meta">
+                                            <?php if (!empty($media->caption)): ?>
+                                                <span><?= htmlspecialchars($media->caption) ?></span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($media->credit)): ?>
+                                                <span class="image-credit"><i class="ti ti-camera"></i> <?= htmlspecialchars($media->credit) ?></span>
+                                            <?php endif; ?>
+                                        </small>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Back -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <a href="<?= $backUrl ?>" class="nav-icon-ux">
+                    <i class="ti ti-arrow-left"></i> <?= $backLabel ?>
+                </a>
+            </div>
         </div>
-    </div>
 
     </div>
 </section>
