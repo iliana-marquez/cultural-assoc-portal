@@ -82,21 +82,21 @@ $ctaAlignClass = $hasImage
                 ?>
 
                 <?php if ($imageLeft && $showImageCol): ?>
-                    <div class="<?= $cols['image'] ?> section-image-col">
+                    <div class="<?= $cols['image'] ?> section-image-col order-first order-md-1">
                         <?php require $partialsDir . '_image.php'; ?>
                     </div>
                 <?php endif; ?>
 
-                <div class="<?= $contentClass ?> section-text-col" id="section-content-col-<?= $section->id ?>">
+                <div class="<?= $contentClass ?> section-text-col order-md-2" id="section-content-col-<?= $section->id ?>">
                     <?php require $partialsDir . '_content.php'; ?>
                 </div>
 
                 <?php if (!$imageLeft && $showImageCol): ?>
-                    <div class="<?= $cols['image'] ?> section-image-col">
+                    <div class="<?= $cols['image'] ?> section-image-col order-first order-md-3">
                         <?php require $partialsDir . '_image.php'; ?>
                     </div>
                 <?php elseif ($isLoggedIn): ?>
-                    <div class="<?= $cols['image'] ?> section-image-col d-none">
+                    <div class="<?= $cols['image'] ?> section-image-col d-none order-first order-md-3">
                         <?php require $partialsDir . '_image.php'; ?>
                     </div>
                 <?php endif; ?>
