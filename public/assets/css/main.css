@@ -134,6 +134,54 @@ ul {
 .rt-ol     { display: list-item; list-style-type: decimal; margin-left: 1.5rem; }
 
 strong { font-weight: var(--font-bold) }
+
+/* Public facing modals */
+.public-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.public-modal-card {
+    border-radius: 4px;
+    padding: 2rem;
+    max-width: 480px;
+    width: 90%;
+}
+
+.public-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.public-modal-title {
+    margin: 0;
+}
+
+.public-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.public-modal-close:hover { opacity: 1; }
+
+.public-modal-message {
+    margin: 0;
+    opacity: 0.9;
+    line-height: 1.6;
+}
  
 /* Icons */
 i {
