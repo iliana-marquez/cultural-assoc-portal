@@ -12,7 +12,7 @@
 <section class="segment light-segment">
     <div class="container text-center">
         <?php if ($success): ?>
-            <i class="ti ti-circle-check" style="font-size:3rem; color: var(--feedback-success);"></i>
+            <i class="ti ti-heart-handshake" style="font-size:5rem;"></i>
         <?php else: ?>
             <i class="ti ti-circle-x" style="font-size:3rem; color: var(--feedback-error);"></i>
         <?php endif; ?>
