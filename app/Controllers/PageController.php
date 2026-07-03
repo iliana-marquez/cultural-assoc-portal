@@ -113,8 +113,8 @@ class PageController extends BaseController
         $seo = $this->buildSeo(
             $this->org,
             $title,
-            $this->org->description ?? $this->org->tagline ?? '',
-            $this->org->logo_url ?? '',
+            '',
+            '',
             'website',
             SchemaBuilder::build('organisation', $this->org)
         );
