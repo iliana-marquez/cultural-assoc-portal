@@ -149,13 +149,13 @@ class BaseController
         string $schema = ''
     ): array {
         return [
-            'title'       => $title ?: $org->name,
-            'description' => $description ?: ($org->description ?? $org->tagline ?? ''),
-            'image'       => $image ?: ($org->logo_url ?? ''),
-            'url'         => 'https://' . $_SERVER['HTTP_HOST']
+            'title'          => $title ?: $org->name,
+            'description'    => $description ?: ($org->seo_description ?? $org->tagline ?? ''),
+            'image'          => $image ?: ($org->logo_url ?? ''),
+            'url'            => 'https://' . $_SERVER['HTTP_HOST']
                 . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH),
-            'type'        => $type,
-            'schema'      => $schema,
+            'type'           => $type,
+            'schema'         => $schema,
         ];
     }
 
