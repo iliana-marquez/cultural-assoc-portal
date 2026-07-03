@@ -48,6 +48,9 @@
     <!-- Navbar -->
     <?php require __DIR__ . '/../components/nav.php'; ?>
 
+    <!-- Feedback modal — available to all visitors -->
+    <?php require __DIR__ . '/../components/modals/feedback-modal.php'; ?>
+
     <!-- Edit-Bar for Editing Mode only -->
     <?php if ($isLoggedIn): ?>
         <?php require __DIR__ . '/../components/edit-bar.php'; ?>
@@ -70,6 +73,7 @@
 
     <!-- Script -->
     <script src="/assets/js/app.js"></script>
+    <script src="/assets/js/feedback-modal.js"></script>
     <?php if ($isLoggedIn): ?>
         <script src="/assets/js/edit-mode.js"></script>
         <script src="/assets/js/attach-entity-modal.js"></script>
