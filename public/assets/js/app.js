@@ -214,7 +214,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(res => res.json())
                 .then(function (json) {
                     if (json.success) {
-                        showFeedback(json.message ?? 'Nachricht gesendet!', 'success');
                         nameInput.value = '';
                         emailInput.value = '';
                         msgInput.value = '';
@@ -225,6 +224,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         showFieldError(errorTerms, '');
                         touched.name = touched.email = touched.message = touched.terms = false;
                         submitBtn.disabled = true;
+                        openFeedbackModal({
+                            title: 'Vielen Dank für Ihre Nachricht!',
+                            message: 'Wir melden uns so bald wie möglich zurück.'
+                        });
                     } else {
                         showFeedback(json.error ?? 'Fehler beim Senden.', 'error');
                         updateSubmitState();
@@ -284,9 +287,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 .then(res => res.json())
                 .then(function (json) {
                     if (json.success) {
-                        showFeedback(json.message ?? 'Bitte E-Mails prüfen!', 'success');
                         emailInput.value = '';
                         submitBtn.disabled = true;
+                        openFeedbackModal({
+                            title: 'Vielen Dank!',
+                            message: 'Wir haben Ihnen eine Bestätigungs-E-Mail geschickt. Bitte klicken Sie auf den Link darin — wir freuen uns, Sie bald mit unserem Programm zu begeistern!'
+                        });
                     } else {
                         showFeedback(json.error ?? 'Fehler. Bitte erneut versuchen.', 'error');
                         submitBtn.disabled = false;
