@@ -21,6 +21,7 @@
 
     --text-on-light: #900000;
     --text-on-dark: #ffffff;
+    --text-black: #333;
 
     --neutral: rgba(120, 120, 120, 0.5);
 
@@ -163,6 +164,7 @@ strong { font-weight: var(--font-bold) }
 
 .public-modal-title {
     margin: 0;
+    color: var(--text-black);
 }
 
 .public-modal-close {
@@ -181,6 +183,11 @@ strong { font-weight: var(--font-bold) }
     margin: 0;
     opacity: 0.9;
     line-height: 1.6;
+    color: var(--text-black);
+}
+
+.public-modal-greet {
+    color: var(--text-black);
 }
  
 /* Icons */
@@ -1180,6 +1187,15 @@ form {
     padding-left: 0.2rem;
     font-style: italic;
 }
+
+/* -- Membership Form ----------------------------------------------- */
+.required-icon {
+    font-size: 0.7rem;
+    position: relative;
+    top: -0.25em;
+    left: -0.25rem;
+}
+
 
 /* ── Mobile (desktop nav) ─────────────────────────────────────────────────── */
 @media (max-width: 1000px) {
