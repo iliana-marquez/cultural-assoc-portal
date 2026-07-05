@@ -231,7 +231,7 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                         </div>
 
                         <?= $editRow('Betrag / Preis', 'admission_amount', $event->admission_amount ?? '', $saveUrl) ?>
-                        <?= $editRow('Ticket / Anmeldeldung (Link: http://... | Email: mailto:...)', 'admission_url', $event->admission_url ?? '', $saveUrl) ?>
+                        <?= $editRow('Ticket / Anmeldeldung (Link: https://... | Email: mailto:...)', 'admission_url', $event->admission_url ?? '', $saveUrl) ?>
                         <?= $editRow('Beschreibung', 'description', $event->description ?? '', $saveUrl) ?>
 
                     <?php else: ?>
@@ -407,8 +407,9 @@ $editRow = function (string $label, string $field, string $value, string $saveUr
                                 <?php endif; ?>
 
                                 <?php if (!empty($groups)): ?>
-                                    <small class="text-muted text-uppercase event-participant-item">
-                                        Ensembles
+                                    <small class="text-uppercase event-participant-item">
+                                        <?= count($groups) === 1 ? 'Ensemble' : 'Ensembles' ?>
+                                        <hr>
                                     </small>
                                     <?php foreach ($groups as $participant): ?>
                                         <div class="event-participant-item">
