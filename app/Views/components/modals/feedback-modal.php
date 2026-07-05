@@ -20,5 +20,15 @@
             </button>
         </div>
         <p class="public-modal-message"></p>
+        <div class="public-modal-footer mt-4">
+            <p class="public-modal-greet">Ihr</p>
+            <?php if (!empty($org->inline_logo_url)): ?>
+                <img src="<?= htmlspecialchars($org->inline_logo_url) ?>"
+                    alt="<?= htmlspecialchars($org->name ?? '') ?>"
+                    style="max-height: 3rem;">
+            <?php else: ?>
+                <strong><?= htmlspecialchars($org->name ?? '') ?></strong>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
