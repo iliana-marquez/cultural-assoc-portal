@@ -8,7 +8,7 @@
     <meta name="description" content="<?= htmlspecialchars($seo['description'] ?? '') ?>">
 
     <link rel="canonical" href="<?= htmlspecialchars($seo['url'] ?? '') ?>">
-    <link rel="icon" type="image/png" href="https://res.cloudinary.com/dj2lk9daf/image/upload/v1782859343/Gemini_Generated_Image_yydlmoyydlmoyydl_tad54a.png">
+    <link rel="icon" type="image/png" href="https://res.cloudinary.com/ic3b1u1a/image/upload/v1783234324/Gemini_Generated_Image_umslmaumslmaumsl-removebg-preview_tqzuvd.png">
 
 
 
