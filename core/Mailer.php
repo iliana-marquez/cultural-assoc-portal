@@ -47,7 +47,7 @@ class Mailer
             $mail->SMTPAuth   = true;
             $mail->Username   = $_ENV['MAIL_USERNAME'];
             $mail->Password   = $_ENV['MAIL_PASSWORD'];
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
             $mail->Port       = (int) $_ENV['MAIL_PORT'];
 
             // Sender — name from organisation_info via controller
