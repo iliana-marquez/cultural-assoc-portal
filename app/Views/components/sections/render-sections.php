@@ -47,19 +47,17 @@
  * declarations inside view-partial files.
  */
 
-$sectionFile  = __DIR__ . '/section.php';
-$partialsDir  = __DIR__ . '/partials/';
-$heroFile     = __DIR__ . '/../hero.php';
-$triggerFile  = $partialsDir . '_add-section-trigger.php';
+$sectionFile        = __DIR__ . '/section.php';
+$partialsDir        = __DIR__ . '/partials/';
+$heroFile           = __DIR__ . '/../hero.php';
+$membershipFormFile = __DIR__ . '/../membership-request-form.php';
+$triggerFile        = $partialsDir . '_add-section-trigger.php';
 
 require_once __DIR__ . '/../../../../core/RichTextFormatter.php';
 
 $sectionsMode = $sectionsMode ?? 'rest';
 
 if ($sectionsMode === 'intro') {
-    // At most ONE section, reserved at order_index = 0 — never a
-    // "between pairs" trigger, since this slot has no siblings of
-    // its own; it either exists or it doesn't.
     $introSection = null;
     foreach ($sections as $s) {
         if ((int) $s->order_index === 0) {
@@ -127,7 +125,9 @@ if ($sectionsMode === 'intro') {
     // simply never have an order_index=0 row, so this is
     // equivalent to "every section" for them.
     $restSections = array_values(array_filter($sections, function ($s) {
-        return ($s->type ?? 'section') !== 'hero' && (int) $s->order_index >= 1;
+        return ($s->type ?? 'section') !== 'hero'
+            && ($s->type ?? 'section') !== 'membership-request-form'
+            && (int) $s->order_index >= 1;
     }));
     $count = count($restSections);
 
@@ -179,5 +179,15 @@ if ($sectionsMode === 'intro') {
         $beforeIndex = null;
         $label       = null;
         require $triggerFile;
+    }
+
+    // membership-request-form — fixed section, always last, never reorderable.
+    // Filtered out of $restSections above so it never gets edit controls
+    // or move buttons — rendered here unconditionally when present.
+    foreach ($sections as $s) {
+        if (($s->type ?? '') === 'membership-request-form') {
+            require $membershipFormFile;
+            break;
+        }
     }
 }
