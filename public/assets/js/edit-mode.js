@@ -1463,7 +1463,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             '<button class="entity-remove-btn border-0" data-action="remove-participant"' +
                             ' data-event-id="' + eventId + '" data-participant-id="' + participantId + '">' +
                             '<i class="ti ti-trash"></i></button>' +
-                            '<a href="/kuenstlerinnen/' + (json.slug || '#') + '">' +
+                            '<i class="ti ti-arrow-narrow-right"></i><a href="/kuenstlerinnen/' + (json.slug || '#') + '">' +
                             selectedText +
                             (json.field ? ' · <span class="participant-field">' + json.field + '</span>' : '') +
                             '</a>';
@@ -3489,6 +3489,112 @@ document.addEventListener('DOMContentLoaded', function () {
                     showEntityFeedback(staffRow, 'Verbindungsfehler', 'error');
                     saveBtn.disabled = false;
                 });
+        });
+    }
+
+    // ── Member listing — tabs, accordion, activate/renew/delete ──
+    const membersPage = document.querySelector('.members-tabs');
+    if (membersPage) {
+
+        // ── Tabs ─────────────────────────────────────────────────
+        document.querySelectorAll('.members-tab').forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                document.querySelectorAll('.members-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.members-panel').forEach(p => p.style.display = 'none');
+                tab.classList.add('active');
+                document.getElementById('tab-' + tab.dataset.tab).style.display = 'block';
+            });
+        });
+
+        // ── Activate ──────────────────────────────────────────────
+        document.querySelectorAll('.member-activate-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const id = btn.dataset.id;
+                const row = btn.closest('.member-row');
+                btn.disabled = true;
+
+                fetch('/members/' + id + '/activate', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            row.remove();
+                        } else {
+                            alert(json.error ?? 'Fehler beim Aktivieren.');
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(function () {
+                        alert('Verbindungsfehler.');
+                        btn.disabled = false;
+                    });
+            });
+        });
+
+        // ── Renew ─────────────────────────────────────────────────
+        document.querySelectorAll('.member-renew-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const id = btn.dataset.id;
+                const row = btn.closest('.member-row');
+                btn.disabled = true;
+
+                fetch('/members/' + id + '/renew', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(res => res.json())
+                    .then(function (json) {
+                        if (json.success) {
+                            // Update expiry date in header without reload
+                            const dateEl = row.querySelector('.member-date');
+                            if (dateEl && json.expires_at) {
+                                dateEl.textContent = 'Aktiv bis: ' + json.expires_at;
+                                dateEl.classList.remove('member-date--expired');
+                            }
+                            btn.disabled = false;
+                        } else {
+                            alert(json.error ?? 'Fehler beim Verlängern.');
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(function () {
+                        alert('Verbindungsfehler.');
+                        btn.disabled = false;
+                    });
+            });
+        });
+
+        // ── Delete ────────────────────────────────────────────────
+        document.querySelectorAll('.member-delete-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const id = btn.dataset.id;
+                const row = btn.closest('.member-row');
+
+                openConfirmModal({
+                    title: 'Mitglied löschen',
+                    message: 'Dieses Mitglied wird unwiderruflich gelöscht.',
+                    confirmLabel: 'Endgültig löschen',
+                    onConfirm: function () {
+                        fetch('/members/' + id + '/delete', {
+                            method: 'POST',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(res => res.json())
+                            .then(function (json) {
+                                if (json.success) {
+                                    row.remove();
+                                } else {
+                                    alert(json.error ?? 'Fehler beim Löschen.');
+                                }
+                            })
+                            .catch(function () {
+                                alert('Verbindungsfehler.');
+                            });
+                    }
+                });
+            });
         });
     }
 
