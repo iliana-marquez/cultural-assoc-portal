@@ -3144,6 +3144,156 @@ Grouped by type, draft status visible to editors and visitors differently.
 - `app/Views/pages/event-detail.php` — conditional back link: upcoming → `/programm`, past → `/archiv?year=` derived from event date
 - `public/assets/js/edit-mode.js`
 
+# feat/membership-lifecycle
+
+## Overview
+
+A self-contained membership management system for small cultural NGOs. No payment processing, no member portal, no login system for members. The Verein receives requests via a public form, confirms payments manually via bank statement, and activates memberships with one click. Email communication is fully automated.
+
+---
+
+## Architecture Decisions
+
+### FormController — shared security base class
+
+`ContactController` already had a complete security stack — CSRF validation, rate limiting, input sanitization, email format validation, DNS check. Rather than duplicating this in `MembershipRequestController`, the shared logic was extracted into `FormController extends BaseController`. Both controllers now extend `FormController` and inherit the stack, overriding only their own fields, CSRF session keys, and email templates.
+
+This is not over-engineering — the alternative was ~60 lines of identical security code in two controllers with no shared maintenance path.
+
+---
+
+### expires_at as single source of truth
+
+No cron jobs, no automatic status changes. `expires_at` is the only field needed to determine membership validity:
+
+- `status = pending` AND `expires_at IS NULL` → awaiting payment confirmation
+- `status = active` AND `expires_at > NOW()` → valid member
+- `status = active` AND `expires_at < NOW()` → expired, due for renewal
+
+The editor never manually sets a member to inactive. Expiry is self-evident from the date. A volunteer who has never seen the system before can understand it instantly.
+
+---
+
+### payment_reference — auto-generated Verwendungszweck
+
+The payment reference is generated at submission time from org settings:
+
+```
+{payment_purpose}_{first_name}-{last_name}_{year}
+```
+
+Example: `Mitgliedsbeitrag-KLA_Max-Mustermann_2026`
+
+Capped at 140 characters per SEPA free text rules. Generated before DB insert so it's stored permanently — even if `payment_purpose` changes later, historical references remain correct. The Finanzreferent uses this to match bank transfers to member rows.
+
+---
+
+### membership_fee as VARCHAR not DECIMAL
+
+`membership_fee` is stored as `VARCHAR(20)` not `DECIMAL`. Austrian NGOs display fees as `€ 20` not `€ 20.00` — the decimal format is culturally wrong. Storing as VARCHAR lets the org enter any format (`20`, `9,90`, `€ 20`) without numeric type enforcement. The form display is whatever the editor types. No formatting logic needed in PHP.
+
+---
+
+### Form gated on membership_fee
+
+The membership request form only renders when `$org->membership_fee` is non-empty. If the org hasn't configured their fee yet, the section shows "Inhalt folgt in Kürze" instead. This prevents an incomplete form from going live accidentally while the org is still setting up their bank details.
+
+---
+
+### CSRF for public POST endpoint
+
+`MembershipRequestController::send()` is a public endpoint — no login required. CSRF protection is essential. The token is generated in `PageController::show()` (which handles the GET for `/mitglied-werden`) and stored in `$_SESSION['csrf_membership']`. `startSession()` must be called explicitly since `BaseController::startSession()` is not triggered automatically on public routes that don't call `isLoggedIn()`.
+
+---
+
+### emailExists() — duplicate prevention
+
+Before inserting a new member, `MemberModel::emailExists()` checks whether the email is already in the `members` table (non-deleted rows only). Duplicate submissions are rejected with a clear error message. This prevents the same person from submitting multiple times.
+
+---
+
+### Name normalization
+
+First name and last name are capitalized server-side (`mb_strtoupper` on first char, `mb_strtolower` on the rest) and in the JS form on blur. Email is lowercased. Both normalizations happen in the controller after sanitization — the JS is UX convenience, the PHP is the guarantee regardless of how data arrives.
+
+---
+
+## Database Migrations
+
+### `members` table — new
+
+```sql
+CREATE TABLE members (
+    id                  INT AUTO_INCREMENT PRIMARY KEY,
+    first_name          VARCHAR(100)  NOT NULL,
+    last_name           VARCHAR(100)  NOT NULL,
+    email               VARCHAR(200)  NOT NULL,
+    street              VARCHAR(200)  NULL,
+    plz                 VARCHAR(10)   NULL,
+    city                VARCHAR(100)  NULL,
+    phone               VARCHAR(50)   NULL,
+    birth_date          DATE          NULL,
+    newsletter          TINYINT(1)    NOT NULL DEFAULT 0,
+    payment_reference   VARCHAR(140)  NOT NULL,
+    status              VARCHAR(20)   NOT NULL DEFAULT 'pending',
+    expires_at          TIMESTAMP     NULL,
+    created_at          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at          TIMESTAMP     NULL
+);
+```
+
+### `organisation_info` — new columns
+
+```sql
+ALTER TABLE organisation_info
+    ADD COLUMN account_holder   VARCHAR(200) NULL,
+    ADD COLUMN iban             VARCHAR(50)  NULL,
+    ADD COLUMN bic              VARCHAR(20)  NULL,
+    ADD COLUMN payment_purpose  VARCHAR(100) NULL,
+    ADD COLUMN donation_purpose VARCHAR(100) NULL,
+    ADD COLUMN donation_note    TEXT         NULL,
+    ADD COLUMN membership_fee   VARCHAR(20)  NULL,
+    ADD COLUMN membership_note  TEXT         NULL;
+```
+
+---
+
+## Files Changed
+
+- `app/Controllers/FormController.php` — new
+- `app/Controllers/ContactController.php` — extends FormController
+- `app/Controllers/MembershipRequestController.php` — new
+- `app/Controllers/MemberController.php` — new
+- `app/Controllers/PageController.php` — CSRF token for mitglied-werden
+- `app/Models/MemberModel.php` — new
+- `app/Models/OrganisationModel.php` — new fields in updatable list
+- `app/Views/pages/members.php` — new
+- `app/Views/components/membership-request-form.php` — new
+- `app/Views/components/sections/render-sections.php` — membership-request-form type mapping
+- `app/Views/components/modals/feedback-modal.php` — org inline logo footer
+- `app/Views/layouts/org-edit.php` — Bankverbindung and membership sections
+- `app/Views/emails/membership-request-notification.php` — new
+- `app/Views/emails/membership-request-confirmation.php` — new
+- `app/Views/emails/member-activated.php` — new
+- `app/Views/emails/member-renewed.php` — new
+- `core/Mailer.php` — ENCRYPTION_SMTPS on port 465 for EasyName compatibility
+- `public/assets/js/app.js` — membership form handler
+- `public/assets/js/edit-mode.js` — member listing JS
+- `config/routes.php` — membership routes
+- `public/index.php` — new requires
+
+## Editor Workflow
+
+1. Member submits form → row created in `members` with `status = pending`
+2. Editor receives notification email with all member data
+3. Editor checks bank statement — finds matching transfer by `payment_reference`
+4. Editor clicks "Aktivieren" → `status = active`, `expires_at = NOW() + 1 year`
+5. Member receives activation confirmation email
+6. One year later → member appears in "Abgelaufen" tab
+7. Member pays again → editor clicks "Verlängern" → `expires_at` extended by 1 year from current expiry
+8. Member receives renewal confirmation email
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
