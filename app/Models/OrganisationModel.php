@@ -80,6 +80,14 @@ class OrganisationModel extends BaseModel
             'schema_type',
             'logo_url',
             'inline_logo_url',
+            'account_holder',
+            'iban',
+            'bic',
+            'payment_purpose',
+            'donation_purpose',
+            'donation_note',
+            'membership_fee',
+            'membership_note',
         ];
 
         if (!in_array($field, $allowed)) return false;
