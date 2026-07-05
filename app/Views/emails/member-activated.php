@@ -14,10 +14,10 @@
     <p>Wir freuen uns darauf, Sie bald bei einer unserer Veranstaltungen begrüßen zu dürfen.</p>
 
     <p style="margin: 1rem 0;">
-        → Entdecken Sie unser aktuelles Programm:
+        →
         <a href="https://<?= $_SERVER['HTTP_HOST'] ?>/programm"
             style="color: #900000; text-decoration: underline; font-weight: 600;">
-            <?= htmlspecialchars($_SERVER['HTTP_HOST']) ?>/programm
+            Entdecken Sie unser aktuelles Programm
         </a>
     </p>
 
