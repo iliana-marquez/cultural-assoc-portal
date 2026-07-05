@@ -26,6 +26,16 @@ $router->get('/kontakt',                    'ContactController', 'index');
 $router->post('/kontakt',                   'ContactController', 'send');
 $router->get('/logout',                    'AuthController', 'logout');
 
+// -- Membership Request -------------------------------------
+$router->post('/mitglied-werden', 'MembershipRequestController', 'send');
+// -- Members ------------------------------------------------
+$router->get('/members',              'MemberController', 'index');
+$router->get('/members/export',       'MemberController', 'export');
+$router->post('/members/{id}/activate', 'MemberController', 'activate');
+$router->post('/members/{id}/renew',    'MemberController', 'renew');
+$router->post('/members/{id}/delete',   'MemberController', 'delete');
+
+
 // ── Free Pages (non entity-specific) → PageController ───────
 $router->get('/',                    'PageController', 'show');
 $router->get('/ueber-uns',           'PageController', 'show');

@@ -29,12 +29,17 @@ require_once __DIR__ . '/../app/Models/VenueModel.php';
 require_once __DIR__ . '/../app/Models/ParticipantModel.php';
 require_once __DIR__ . '/../app/Models/EventModel.php';
 require_once __DIR__ . '/../app/Models/MediaModel.php';
+require_once __DIR__ . '/../app/Models/MemberModel.php';
+
 
 // Controllers
 require_once __DIR__ . '/../app/Controllers/BaseController.php';
 require_once __DIR__ . '/../app/Controllers/AuthController.php';
 require_once __DIR__ . '/../app/Controllers/PageController.php';
+require_once __DIR__ . '/../app/Controllers/FormController.php';
 require_once __DIR__ . '/../app/Controllers/ContactController.php';
+require_once __DIR__ . '/../app/Controllers/MembershipRequestController.php';
+require_once __DIR__ . '/../app/Controllers/MemberController.php';
 require_once __DIR__ . '/../app/Controllers/TeamController.php';
 require_once __DIR__ . '/../app/Controllers/EventController.php';
 require_once __DIR__ . '/../app/Controllers/ParticipantController.php';

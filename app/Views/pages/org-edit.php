@@ -59,6 +59,12 @@ function editRow(string $label, string $field, string $value, string $saveUrl): 
                 <?= editRow('Land',     'country',  $org->country  ?? '', $saveUrl) ?>
             </div>
 
+            <!-- Descriptions -->
+            <div class="col-12">
+                <h3>Beschreibungen</h3>
+                <?= editRow('Kurzbeschreibung (SEO · max. 160 Zeichen)', 'seo_description', $org->seo_description ?? '', $saveUrl) ?>
+                <?= editRow('Langbeschreibung (Homepage)',                'description',     $org->description    ?? '', $saveUrl) ?>
+            </div>
 
             <!-- Logos -->
             <div class="col-12">
@@ -148,12 +154,11 @@ function editRow(string $label, string $field, string $value, string $saveUrl): 
                 </div>
             </div>
 
-
             <!-- Legal representative — controls team.order_index 0,
                  not an organisation_info field. Lives here because the
                  editor manages this from Vereinsinfo in one place, not
                  by hunting through individual team profiles. -->
-            <div class="col-12">
+            <div class="col-12 col-md-6">
                 <h3>Gesetzliche Vertretung</h3>
                 <div class="entity-select-row" data-save-url="/<?= htmlspecialchars($config['admin_path']) ?>/org/legal-representative">
                     <div class="edit-row-header">
@@ -179,11 +184,27 @@ function editRow(string $label, string $field, string $value, string $saveUrl): 
                 </div>
             </div>
 
-            <!-- Descriptions -->
-            <div class="col-12">
-                <h3>Beschreibungen</h3>
-                <?= editRow('Kurzbeschreibung (SEO · max. 160 Zeichen)', 'seo_description', $org->seo_description ?? '', $saveUrl) ?>
-                <?= editRow('Langbeschreibung (Homepage)',                'description',     $org->description    ?? '', $saveUrl) ?>
+            <!-- Bankverbindung -->
+            <div class="col-12 col-md-6">
+                <h3>Bankverbindung</h3>
+                <?= editRow('Kontoinhaber',  'account_holder',   $org->account_holder  ?? '', $saveUrl) ?>
+                <?= editRow('IBAN',          'iban',             $org->iban            ?? '', $saveUrl) ?>
+                <?= editRow('BIC',           'bic',              $org->bic             ?? '', $saveUrl) ?>
+            </div>
+
+            <!-- Membership -->
+            <div class="col-12 col-md-6">
+                <h3>Mitgliedschaft</h3>
+                <?= editRow('Überweisung Verwendungszweck Mitgliedschaft', 'payment_purpose',  $org->payment_purpose  ?? '', $saveUrl) ?>
+                <?= editRow('Mitgliedsbeitrag (€)', 'membership_fee', $org->membership_fee ?? '', $saveUrl) ?>
+                <?= editRow('Mitgliedschaftshinweis', 'membership_note', $org->membership_note ?? '', $saveUrl) ?>
+            </div>
+
+            <!-- Spenden -->
+            <div class="col-12 col-md-6">
+                <h3>Spenden</h3>
+                <?= editRow('Überweisung Verwendungszweck Spende',         'donation_purpose', $org->donation_purpose ?? '', $saveUrl) ?>
+                <?= editRow('Spendenhinweis (steuerliche Absetzbarkeit etc.)', 'donation_note', $org->donation_note ?? '', $saveUrl) ?>
             </div>
 
 

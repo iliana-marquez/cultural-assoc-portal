@@ -77,11 +77,20 @@ class OrganisationController extends BaseController
             'registration_number',
             'statutes_url',
             'schema_type',
+            'account_holder',
+            'iban',
+            'bic',
+            'payment_purpose',
+            'donation_purpose',
+            'donation_note',
+            'membership_fee',
+            'membership_note',
         ];
 
         // Find which field is being saved
         $field = null;
         $value = null;
+
         foreach ($allowed as $f) {
             if (isset($_POST[$f])) {
                 $field = $f;

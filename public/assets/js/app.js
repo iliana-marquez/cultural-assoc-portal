@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         submitBtn.disabled = true;
                         openFeedbackModal({
                             title: 'Vielen Dank für Ihre Nachricht!',
-                            message: 'Wir melden uns so bald wie möglich zurück.'
+                            message: 'Wir melden uns so bald wie möglich bei Ihnen.'
                         });
                     } else {
                         showFeedback(json.error ?? 'Fehler beim Senden.', 'error');
@@ -304,6 +304,150 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .finally(function () {
                     submitBtn.textContent = 'Anmelden';
+                });
+        });
+    }
+
+    // ── Membership request form ───────────────────────────────
+    const membershipForm = document.querySelector('[data-action="membership-request-form"]');
+    if (membershipForm) {
+        const submitBtn = document.getElementById('membership-submit');
+        const feedback = document.getElementById('membership-feedback');
+        const firstNameInput = document.getElementById('membership-first-name');
+        const lastNameInput = document.getElementById('membership-last-name');
+        const emailInput = document.getElementById('membership-email');
+        const termsInput = document.getElementById('membership-terms');
+        const csrfInput = document.getElementById('csrf-mitglied');
+
+        const errorFirstName = document.getElementById('membership-error-first-name');
+        const errorLastName = document.getElementById('membership-error-last-name');
+        const errorEmail = document.getElementById('membership-error-email');
+        const errorTerms = document.getElementById('membership-error-terms');
+        const errorMitglied = document.getElementById('membership-error-mitglied');
+
+        const touched = { firstName: false, lastName: false, email: false, terms: false };
+
+        function showFeedback(message, type) {
+            if (!feedback) return;
+            feedback.textContent = message;
+            feedback.className = 'contact-feedback contact-feedback--' + type;
+            feedback.style.display = 'block';
+        }
+
+        function showFieldError(el, msg) {
+            if (el) { el.textContent = msg; el.style.display = msg ? 'block' : 'none'; }
+        }
+
+        function isValidEmail(val) {
+            return /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(val);
+        }
+
+        function validateFirstName(show) {
+            const val = firstNameInput?.value.trim() ?? '';
+            let err = '';
+            if (!val) err = 'Bitte Vorname eingeben.';
+            else if (val.length < 2) err = 'Mindestens 2 Zeichen.';
+            else if (val.length > 100) err = 'Maximal 100 Zeichen.';
+            if (show) showFieldError(errorFirstName, err);
+            return !err;
+        }
+
+        function validateLastName(show) {
+            const val = lastNameInput?.value.trim() ?? '';
+            let err = '';
+            if (!val) err = 'Bitte Nachname eingeben.';
+            else if (val.length < 2) err = 'Mindestens 2 Zeichen.';
+            else if (val.length > 100) err = 'Maximal 100 Zeichen.';
+            if (show) showFieldError(errorLastName, err);
+            return !err;
+        }
+
+        function validateEmail(show) {
+            const val = emailInput?.value.trim() ?? '';
+            let err = '';
+            if (!val) err = 'Bitte E-Mail eingeben.';
+            else if (!isValidEmail(val)) err = 'Bitte eine gültige E-Mail-Adresse eingeben.';
+            if (show) showFieldError(errorEmail, err);
+            return !err;
+        }
+
+        function validateTerms(show) {
+            const checked = termsInput?.checked ?? false;
+            if (show && !checked) showFieldError(errorTerms, 'Bitte Datenschutz bestätigen.');
+            else if (show) showFieldError(errorTerms, '');
+            return checked;
+        }
+
+        function validateMitglied(show) {
+            const checked = document.getElementById('membership-check')?.checked ?? false;
+            if (show && !checked) showFieldError(errorMitglied, 'Bitte Mitgliedschaft bestätigen.');
+            else if (show) showFieldError(errorMitglied, '');
+            return checked;
+        }
+
+        // Live validation after field is touched
+        firstNameInput?.addEventListener('blur', function () { touched.firstName = true; validateFirstName(true); });
+        lastNameInput?.addEventListener('blur', function () { touched.lastName = true; validateLastName(true); });
+        emailInput?.addEventListener('blur', function () { touched.email = true; validateEmail(true); });
+        document.getElementById('membership-check')?.addEventListener('change', function () { validateMitglied(true); });
+        termsInput?.addEventListener('change', function () { touched.terms = true; validateTerms(true); });
+        firstNameInput?.addEventListener('input', function () { if (touched.firstName) validateFirstName(true); });
+        lastNameInput?.addEventListener('input', function () { if (touched.lastName) validateLastName(true); });
+        emailInput?.addEventListener('input', function () { if (touched.email) validateEmail(true); });
+
+        submitBtn?.addEventListener('click', function () {
+            // Force all touched states and show all field errors
+            touched.firstName = touched.lastName = touched.email = touched.terms = true;
+            // const valid = validateFirstName(true) && validateLastName(true) && validateEmail(true) && validateTerms(true) && validateMitglied(true);
+            // if (!valid) return;
+
+            if (!validateMitglied(true)) return;
+            if (!validateFirstName(true)) return;
+            if (!validateLastName(true)) return;
+            if (!validateEmail(true)) return;
+            if (!validateTerms(true)) return;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Wird gesendet...';
+
+            const data = new FormData();
+            data.append('first_name', firstNameInput.value.trim());
+            data.append('last_name', lastNameInput.value.trim());
+            data.append('email', emailInput.value.trim());
+            data.append('adresse', document.getElementById('membership-adresse')?.value.trim() ?? '');
+            data.append('plz', document.getElementById('membership-plz')?.value.trim() ?? '');
+            data.append('ort', document.getElementById('membership-ort')?.value.trim() ?? '');
+            data.append('telefon', document.getElementById('membership-phone')?.value.trim() ?? '');
+            data.append('geburtstag', document.getElementById('membership-birth-date')?.value ?? '');
+            data.append('mitglied', document.getElementById('membership-check')?.checked ? '1' : '');
+            data.append('newsletter', document.getElementById('newsletter-check')?.checked ? '1' : '');
+            data.append('csrf_membership', csrfInput?.value ?? '');
+
+            fetch('/mitglied-werden', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        membershipForm.reset();
+                        submitBtn.disabled = true;
+                        openFeedbackModal({
+                            title: 'Schön, dass Sie dabei sind!',
+                            message: 'Ihr Antrag ist bei uns eingegangen.\nSie erhalten in Kürze eine E-Mail mit allen Informationen zur Zahlung des Mitgliedsbeitrags.'
+                        });
+                    } else {
+                        showFeedback(json.error ?? 'Fehler beim Senden.', 'error');
+                        submitBtn.disabled = false;
+                    }
+                })
+                .catch(function () {
+                    showFeedback('Verbindungsfehler. Bitte versuche es später erneut.', 'error');
+                    submitBtn.disabled = false;
+                })
+                .finally(function () {
+                    submitBtn.textContent = 'Mitglied werden';
                 });
         });
     }

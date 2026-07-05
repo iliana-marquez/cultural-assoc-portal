@@ -26,19 +26,33 @@
     <div class="d-flex justify-content-end gap-3">
         <a href="#" class="edit-bar__exit" data-action="new-event">
             <i class="ti ti-plus"></i>
-            Neue Veranstaltung
+            Veranstaltung
         </a>
         <span class="edit-bar__exit">|</span>
 
         <a href="#" class="edit-bar__exit" data-action="new-participant">
             <i class="ti ti-plus"></i>
-            Neue:r Künstler:in
+            Künstler:in
         </a>
         <span class="edit-bar__exit">|</span>
 
         <a href="#" class="edit-bar__exit" data-action="new-team">
             <i class="ti ti-plus"></i>
-            Neues Teammitglied
+            Teammitglied
+        </a>
+        <span class="edit-bar__exit">|</span>
+
+        <a href="/newsletter/subscribers"
+            class="edit-bar__exit" title="Exit edit mode">
+            <i class="ti ti-mail-share"></i>
+            Abonnenten
+        </a>
+        <span class="edit-bar__exit">|</span>
+
+        <a href="/members"
+            class="edit-bar__exit" title="Exit edit mode">
+            <i class="ti ti-users-group"></i>
+            Mitglieder
         </a>
         <span class="edit-bar__exit">|</span>
 
@@ -46,13 +60,6 @@
             class="edit-bar__exit" title="Exit edit mode">
             <i class="ti ti-edit"></i>
             Vereinsinfo
-        </a>
-        <span class="edit-bar__exit">|</span>
-
-        <a href="/newsletter/subscribers"
-            class="edit-bar__exit" title="Exit edit mode">
-            <i class="ti ti-users-group"></i>
-            Abonnenten
         </a>
         <span class="edit-bar__exit">|</span>
 

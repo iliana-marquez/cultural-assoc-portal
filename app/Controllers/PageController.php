@@ -105,6 +105,16 @@ class PageController extends BaseController
         $pageKey  = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/') ?: 'home';
         $sections = $this->pagesModel->getForPage($pageKey);
 
+        // For membership-request-form
+        $csrfMembership = null;
+        if ($pageKey === 'mitglied-werden') {
+            $this->startSession();
+            if (empty($_SESSION['csrf_membership'])) {
+                $_SESSION['csrf_membership'] = bin2hex(random_bytes(32));
+            }
+            $csrfMembership = $_SESSION['csrf_membership'];
+        }
+
         // SEO — $this->org loaded once in BaseController::__construct()
         $title = !empty($this->pageTitles[$pageKey])
             ? $this->org->name . ' | ' . $this->pageTitles[$pageKey]
@@ -123,6 +133,7 @@ class PageController extends BaseController
             'sections' => $sections,
             'seo'      => $seo,
             'pageKey'  => $pageKey,
+            'csrf_membership' => $csrfMembership,
         ]);
     }
 
