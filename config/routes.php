@@ -28,6 +28,7 @@ $router->get('/logout',                    'AuthController', 'logout');
 
 // -- Membership Request -------------------------------------
 $router->post('/mitglied-werden', 'MembershipRequestController', 'send');
+
 // -- Members ------------------------------------------------
 $router->get('/members',              'MemberController', 'index');
 $router->get('/members/export',       'MemberController', 'export');
@@ -35,6 +36,8 @@ $router->post('/members/{id}/activate', 'MemberController', 'activate');
 $router->post('/members/{id}/renew',    'MemberController', 'renew');
 $router->post('/members/{id}/delete',   'MemberController', 'delete');
 
+// -- Non entitty-specific with dedicated logic----------------
+$router->get('/spenden', 'SpendenController', 'index');
 
 // ── Free Pages (non entity-specific) → PageController ───────
 $router->get('/',                    'PageController', 'show');
