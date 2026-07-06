@@ -3598,6 +3598,118 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // ── Contributors — add, publish, unpublish, delete ───────────
+    const contributorAddBtn = document.getElementById('contributor-add-btn');
+    if (contributorAddBtn) {
+        contributorAddBtn.addEventListener('click', function () {
+            const nameInput = document.getElementById('contributor-name-input');
+            const name = nameInput?.value.trim() ?? '';
+            if (!name) {
+                nameInput?.focus();
+                return;
+            }
+
+            const data = new FormData();
+            data.append('name', name);
+
+            fetch('/contributors/add', {
+                method: 'POST',
+                body: data,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        window.location.reload();
+                    } else {
+                        alert(json.error ?? 'Fehler beim Erstellen.');
+                    }
+                })
+                .catch(function () {
+                    alert('Verbindungsfehler.');
+                });
+        });
+    }
+
+    // Publish
+    document.querySelectorAll('.contributor-publish-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const id = btn.dataset.id;
+            btn.disabled = true;
+            fetch('/contributors/' + id + '/publish', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        window.location.reload();
+                    } else {
+                        alert(json.error ?? 'Fehler beim Veröffentlichen.');
+                        btn.disabled = false;
+                    }
+                })
+                .catch(function () {
+                    alert('Verbindungsfehler.');
+                    btn.disabled = false;
+                });
+        });
+    });
+
+    // Unpublish
+    document.querySelectorAll('.contributor-unpublish-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const id = btn.dataset.id;
+            btn.disabled = true;
+            fetch('/contributors/' + id + '/unpublish', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(res => res.json())
+                .then(function (json) {
+                    if (json.success) {
+                        window.location.reload();
+                    } else {
+                        alert(json.error ?? 'Fehler beim Zurückziehen.');
+                        btn.disabled = false;
+                    }
+                })
+                .catch(function () {
+                    alert('Verbindungsfehler.');
+                    btn.disabled = false;
+                });
+        });
+    });
+
+    // Delete
+    document.querySelectorAll('.contributor-delete-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const id = btn.dataset.id;
+            openConfirmModal({
+                title: 'Unterstützer löschen',
+                message: 'Dieser Eintrag wird endgültig gelöscht.',
+                confirmLabel: 'Endgültig löschen',
+                onConfirm: function () {
+                    fetch('/contributors/' + id + '/delete', {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(res => res.json())
+                        .then(function (json) {
+                            if (json.success) {
+                                window.location.reload();
+                            } else {
+                                alert(json.error ?? 'Fehler beim Löschen.');
+                            }
+                        })
+                        .catch(function () {
+                            alert('Verbindungsfehler.');
+                        });
+                }
+            });
+        });
+    });
+
     // ── Warn on page leave ────────────────────────────────────
     window.addEventListener('beforeunload', function (e) {
         if (hasUnsaved) { e.preventDefault(); e.returnValue = ''; }
