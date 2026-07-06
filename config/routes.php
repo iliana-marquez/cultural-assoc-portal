@@ -40,8 +40,7 @@ $router->post('/members/{id}/delete',   'MemberController', 'delete');
 $router->get('/',                    'PageController', 'show');
 $router->get('/ueber-uns',           'PageController', 'show');
 $router->get('/alsergrund',          'PageController', 'show');
-$router->get('/partner',             'PageController', 'show');
-$router->get('/sponsoren',           'PageController', 'show');
+$router->get('/spenden',             'PageController', 'show');
 $router->get('/mitglied-werden',     'PageController', 'show');
 $router->get('/datenschutz',         'PageController', 'datenschutz');
 $router->get('/impressum',           'PageController', 'impressum');
@@ -134,3 +133,12 @@ $router->get('/newsletter/confirm/{token}',     'NewsletterController', 'confirm
 $router->get('/newsletter/unsubscribe/{token}', 'NewsletterController', 'unsubscribe');
 $router->get('/newsletter/subscribers',         'NewsletterController', 'subscribers');
 $router->get('/newsletter/export',              'NewsletterController', 'export');
+
+// ── Contributors ──────────────────────────────────────────────
+$router->get('/unterstuetzer',               'ContributorController', 'index');
+$router->post('/contributors/add',           'ContributorController', 'add');
+$router->get('/contributors/{id}/profile-fragment', 'ContributorController', 'profileFragment');
+$router->post('/contributors/{id}/save',     'ContributorController', 'save');
+$router->post('/contributors/{id}/publish',  'ContributorController', 'publish');
+$router->post('/contributors/{id}/unpublish', 'ContributorController', 'unpublish');
+$router->post('/contributors/{id}/delete',   'ContributorController', 'delete');
