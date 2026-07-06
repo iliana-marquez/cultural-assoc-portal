@@ -717,6 +717,11 @@ footer p {
 
 .image-credit i { font-size: 0.85rem; }
 
+/* -- CTA Itiem -----------------------------------------------*/
+.section-cta-item .btn-section {
+    margin-top: 0 !important;
+}
+
 /* ── Section content ────────────────────────────────────────── */
 .section-content {
     display: flex;
@@ -1196,6 +1201,57 @@ form {
     left: -0.25rem;
 }
 
+/* ── Contributor / Untersützer ───────────────────────────────── */
+.contributor-card {
+    border-top: 1px solid currentColor;
+    border-bottom: 1px solid currentColor;
+    border-radius: 0;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: none;
+    color: inherit;
+    align-items: start;
+}
+
+.contributor-card h4 {
+    font-weight: var(--font-bold);
+}
+
+.contributor-logo {
+   max-height: auto;
+   max-width: fit-content;
+   object-fit: contain;
+}
+
+.contributor-name {
+    margin: 0;
+}
+
+.contributor-description {
+    opacity: 0.7;
+    margin: 0;
+}
+
+.contributor-group-title {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--neutral);
+}
+
+.contributor-group {
+    margin-bottom: 3rem;
+}
+
+.contributor-card .portrait-img {
+    height: auto;
+    min-height: unset;
+    border-radius: 0;
+}
+
+.contributor-card .portrait-img img {
+    max-height: 100px;
+    object-fit: contain;
+}
 
 /* ── Mobile (desktop nav) ─────────────────────────────────────────────────── */
 @media (max-width: 1000px) {
