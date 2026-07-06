@@ -30,7 +30,7 @@ require_once __DIR__ . '/../app/Models/ParticipantModel.php';
 require_once __DIR__ . '/../app/Models/EventModel.php';
 require_once __DIR__ . '/../app/Models/MediaModel.php';
 require_once __DIR__ . '/../app/Models/MemberModel.php';
-
+require_once __DIR__ . '/../app/Models/ContributorModel.php';
 
 // Controllers
 require_once __DIR__ . '/../app/Controllers/BaseController.php';
@@ -46,6 +46,7 @@ require_once __DIR__ . '/../app/Controllers/ParticipantController.php';
 require_once __DIR__ . '/../app/Controllers/MediaController.php';
 require_once __DIR__ . '/../app/Controllers/OrganisationController.php';
 require_once __DIR__ . '/../app/Controllers/NewsletterController.php';
+require_once __DIR__ . '/../app/Controllers/ContributorController.php';
 
 // Environment 
 $envPaths = [
