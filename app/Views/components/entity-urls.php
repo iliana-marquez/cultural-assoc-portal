@@ -91,8 +91,11 @@ endif;
             </div>
         </div>
     <?php elseif (!empty($urls)): ?>
-        <h3>Links</h3>
+        <?php if (empty($hideUrlsLabel)): ?>
+            <h3>Links</h3>
+        <?php endif; ?>
     <?php endif; ?>
+
 
     <div class="links-list-container">
         <?php if (!empty($urls)): ?>
