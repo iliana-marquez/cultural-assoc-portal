@@ -43,9 +43,9 @@ function navActivePrefix(string $prefix, string $current): string
                     <ul class="dropdown-menu">
                         <li><a href="/ueber-uns" class="inline-link <?= navActive('/ueber-uns', $currentPath) ?>">Über uns</a></li>
                         <li><a href="/team" class="inline-link <?= navActivePrefix('/team', $currentPath) ?>">Team</a></li>
-                        <li><a href="/partner" class="inline-link <?= navActive('/partner', $currentPath) ?>">Partner</a></li>
-                        <li><a href="/sponsoren" class="inline-link <?= navActive('/sponsoren', $currentPath) ?>">Sponsoren</a></li>
                         <li><a href="/kuenstlerinnen" class="inline-link <?= navActivePrefix('/kuenstlerinnen', $currentPath) ?>">Künstler:innen</a></li>
+                        <li><a href="/unterstuetzer" class="inline-link <?= navActive('/unterstuetzer', $currentPath) ?>">Unterstützer</a></li>
+                        <li><a href="/spenden" class="inline-link <?= navActive('/spenden', $currentPath) ?>">Spenden</a></li>
                         <li><a href="/mitglied-werden" class="inline-link <?= navActive('/mitglied-werden', $currentPath) ?>">Mitglied werden</a></li>
                     </ul>
                 </li>
@@ -78,9 +78,9 @@ function navActivePrefix(string $prefix, string $current): string
             <ul class="sidebar-submenu">
                 <li><a href="/ueber-uns" class="inline-link <?= navActive('/ueber-uns', $currentPath) ?>">Über uns</a></li>
                 <li><a href="/team" class="inline-link <?= navActivePrefix('/team', $currentPath) ?>">Team</a></li>
-                <li><a href="/partner" class="inline-link <?= navActive('/partner', $currentPath) ?>">Partner</a></li>
-                <li><a href="/sponsoren" class="inline-link <?= navActive('/sponsoren', $currentPath) ?>">Sponsoren</a></li>
                 <li><a href="/kuenstlerinnen" class="inline-link <?= navActivePrefix('/kuenstlerinnen', $currentPath) ?>">Künstler:innen</a></li>
+                <li><a href="/unterstuetzer" class="inline-link <?= navActive('/unterstuetzer', $currentPath) ?>">Unterstützer</a></li>
+                <li><a href="/spenden" class="inline-link <?= navActive('/spenden', $currentPath) ?>">Spenden</a></li>
                 <li><a href="/mitglied-werden" class="inline-link <?= navActive('/mitglied-werden', $currentPath) ?>">Mitglied werden</a></li>
             </ul>
         </li>
