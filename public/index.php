@@ -47,6 +47,7 @@ require_once __DIR__ . '/../app/Controllers/MediaController.php';
 require_once __DIR__ . '/../app/Controllers/OrganisationController.php';
 require_once __DIR__ . '/../app/Controllers/NewsletterController.php';
 require_once __DIR__ . '/../app/Controllers/ContributorController.php';
+require_once __DIR__ . '/../app/Controllers/SpendenController.php';
 
 // Environment 
 $envPaths = [
