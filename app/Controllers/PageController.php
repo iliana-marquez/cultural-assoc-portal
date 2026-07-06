@@ -10,8 +10,6 @@
  *   /                    → home
  *   /ueber-uns           → about
  *   /alsergrund          → district portrait
- *   /partner             → partners
- *   /sponsoren           → sponsors
  *   /mitglied-werden     → membership
  *   /archiv              → archive
  *
@@ -39,8 +37,6 @@ class PageController extends BaseController
         'home'            => '',
         'ueber-uns'       => 'Über uns',
         'alsergrund'      => 'Alsergrund',
-        'partner'         => 'Partner',
-        'sponsoren'       => 'Sponsoren',
         'mitglied-werden' => 'Mitglied werden',
     ];
 
