@@ -3294,6 +3294,111 @@ ALTER TABLE organisation_info
 7. Member pays again → editor clicks "Verlängern" → `expires_at` extended by 1 year from current expiry
 8. Member receives renewal confirmation email
 
+# feat/supporters-and-donations
+
+## Overview
+
+Replaces the empty `/partner` and `/sponsoren` placeholder pages with two purposeful, functional pages: `/unterstuetzer` for showcasing contributors and `/spenden` for donation information. Both are fully managed from the live site — no separate admin panel needed.
+
+---
+
+## Architecture Decisions
+
+### Contributors — entity system, not free sections
+
+Contributors needed a structured entity (name, type, description, logo, URLs) rather than free sections, because they need to be grouped, filtered, and managed as a list. The `contributors` table follows the same pattern as `team` and `participants` — draft/published lifecycle, soft delete, media via the existing `media` table, URLs via the existing `urls` table.
+
+No detail page — all editing happens inline on the listing page via `entity-edit-row`, `profile-img.php` and `entity-urls.php`. This is the right call for a simple entity with 4-5 fields.
+
+### contributor-card.php — single partial for both modes
+
+Rather than duplicating card markup for edit mode and public mode, a single `contributor-card.php` partial handles both. The `$isLoggedIn` flag inside the partial switches between edit controls and public display. This means any layout change to the card happens in one place — immediate consistency across both views.
+
+### Type as free string with select UI
+
+`type` is stored as a `VARCHAR` free string — no enum enforcement. The editor UI offers a select with four predefined options (Partner, Förderer, Unterstützer, Institution) for consistency, but the underlying storage accepts any string. This gives future flexibility without a migration when new categories are needed.
+
+### Grouped by type, alphabetical — no manual reorder
+
+Contributors are sorted `status ASC, name ASC` in the DB query. Public display groups them by type. No `order_index`, no drag-to-reorder. The type select determines placement automatically — simpler mental model for volunteers, zero maintenance overhead.
+
+### /spenden — dedicated controller, not PageController
+
+`/spenden` gets its own `SpendenController` rather than being handled by `PageController::show()`. The page displays org bank data which requires no extra DB queries (already in `$org` via `BaseController`), but a dedicated controller gives a clear extension point for future features — PDF download, event-specific donation links, donation form.
+
+### EPC QR code — client-side, no server dependency
+
+QR code generated client-side via `qrcodejs` — no Composer dependency, no server-side image generation, no storage. The EPC data string is assembled in PHP and passed to JS. IBAN and BIC have spaces stripped before encoding (`str_replace(' ', '')`) since the EPC standard requires compact format. The display values keep the original formatted string.
+
+### QR gated on IBAN + account_holder
+
+A valid EPC QR requires at minimum IBAN and account holder name — without the recipient name, banking apps prompt the user to enter it manually, defeating the purpose. BIC is optional (many modern banking apps resolve it from IBAN). The QR block only renders when both required fields are set.
+
+### Bank details placeholder
+
+When no bank data is configured, `/spenden` shows a friendly message rather than an empty section. The editor sets up bank details in org settings once, and the page goes live automatically. No code deployment needed.
+
+---
+
+## Database
+
+### `contributors` table — existing, adapted
+
+The table existed from the initial project design. Two changes made in this feature:
+
+1. `url` column dropped — a single URL per contributor was too limiting. URLs are now managed via the existing `urls` entity system, giving each contributor multiple typed URLs (website, Instagram, etc.) consistent with team and participant entities.
+
+2. `order_index` column dropped — manual reordering was unnecessary complexity for a small list. Display order is alphabetical by name, grouped by type. The type select determines placement automatically.
+
+```sql
+ALTER TABLE contributors DROP COLUMN url;
+ALTER TABLE contributors DROP COLUMN order_index;
+```
+
+### `organisation_info` — columns used (added in feat/membership-lifecycle)
+
+- `account_holder` — Kontoinhaber
+- `iban` — IBAN
+- `bic` — BIC
+- `donation_purpose` — Verwendungszweck Spende
+- `donation_note` — Spendenhinweis (tax disclaimer)
+
+---
+
+## Files Changed
+
+- `app/Models/ContributorModel.php` — new
+- `app/Controllers/ContributorController.php` — new
+- `app/Controllers/SpendenController.php` — new
+- `app/Views/pages/unterstuetzer.php` — new
+- `app/Views/pages/spenden.php` — new
+- `app/Views/components/contributor-card.php` — new
+- `app/Views/layouts/nav.php` — updated links
+- `app/Views/layouts/main.php` — qrcodejs script
+- `app/Controllers/PageController.php` — pageTitles updated
+- `public/assets/js/edit-mode.js` — contributor CRUD JS
+- `public/assets/css/edit-mode.css` — contributor card styles
+- `public/assets/css/main.css` — contributor and spenden styles
+- `config/routes.php` — new routes
+- `public/index.php` — new requires
+
+## Testing
+
+- Contributors grouped by type on public side ✓
+- Draft contributors hidden from public ✓
+- Add → card appears immediately ✓
+- Edit name, type, description inline ✓
+- Upload logo via media component ✓
+- Add/remove URLs via entity-urls component ✓
+- Publish → appears on public side ✓
+- Unpublish → hidden from public ✓
+- Delete only available on drafts ✓
+- /spenden bank details display correctly ✓
+- Copy buttons work for all fields ✓
+- QR code renders and scans correctly in banking apps ✓
+- Placeholder shown when no bank data configured ✓
+- Free sections above on both pages ✓
+
 <!--
 
 ## ROADMAP/KNOWN ISSUES
