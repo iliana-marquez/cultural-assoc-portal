@@ -17,8 +17,10 @@ jobs:
           password: ${{ secrets.PROD_SSH_PASS }}
           script: |
             cd ~
-            git clone https://github.com/${{ github.repository }} .
-            git checkout production
+            git init
+            git remote add origin https://github.com/iliana-marquez/cultural-assoc-portal.git
+            git fetch origin production
+            git checkout -f production
             php8.2 -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
             php8.2 composer-setup.php
             rm composer-setup.php
