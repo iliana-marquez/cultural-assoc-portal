@@ -17,6 +17,6 @@ jobs:
           username: ${{ secrets.PROD_SSH_USER }}
           password: ${{ secrets.PROD_SSH_PASS }}
           script: |
-            cd ~
+            cd ~/html
             git pull origin production
-            php8.2 composer.phar install --no-dev --optimize-autoloader
+            php8.2 ~/composer.phar install --no-dev --optimize-autoloader --working-dir=/data/web/e140950/html
